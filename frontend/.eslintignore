@@ -1,0 +1,5 @@
+src/lib/fonts/*.js
+src/components/fuel/utils/consolidatedInvoice.ts
+src/components/fuel/utils/domesticInvoice.ts
+src/components/fuel/ForexTradingViewWidget.tsx
+src/components/fuel/TradingViewWidget.tsx

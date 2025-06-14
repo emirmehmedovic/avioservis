@@ -1,0 +1,13 @@
+/* Styles for TankImageDisplay component */
+
+/* Hide the fallback by default */
+.image-error-fallback {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* Show the fallback when the parent has the image-error class */
+.image-error .image-error-fallback {
+  opacity: 1;
+  pointer-events: auto;
+}

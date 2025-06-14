@@ -1,0 +1,4 @@
+# This is an empty migration.toml file, used to mark the migration as valid for Prisma
+# This migration adds the WORK_ORDER value to the ServiceItemType enum
+
+migration_lock = { provider = "postgresql" }

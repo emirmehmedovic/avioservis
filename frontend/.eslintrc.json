@@ -1,0 +1,12 @@
+{
+  "extends": "next/core-web-vitals",
+  "ignorePatterns": ["src/lib/fonts/*.js"],
+  "overrides": [
+    {
+      "files": ["src/components/fuel/utils/*.ts"],
+      "rules": {
+        "@typescript-eslint/ban-ts-comment": "off"
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+-- AlterTable
+ALTER TABLE "Vehicle" ADD COLUMN     "conductivity_meter_calibration_date" TIMESTAMP(3),
+ADD COLUMN     "conductivity_meter_calibration_valid_until" TIMESTAMP(3),
+ADD COLUMN     "hydrometer_calibration_date" TIMESTAMP(3),
+ADD COLUMN     "hydrometer_calibration_valid_until" TIMESTAMP(3),
+ADD COLUMN     "main_flow_meter_calibration_date" TIMESTAMP(3),
+ADD COLUMN     "main_flow_meter_calibration_valid_until" TIMESTAMP(3),
+ADD COLUMN     "resistance_meter_calibration_date" TIMESTAMP(3),
+ADD COLUMN     "resistance_meter_calibration_valid_until" TIMESTAMP(3),
+ADD COLUMN     "thermometer_calibration_date" TIMESTAMP(3),
+ADD COLUMN     "thermometer_calibration_valid_until" TIMESTAMP(3),
+ADD COLUMN     "torque_wrench_calibration_date" TIMESTAMP(3),
+ADD COLUMN     "torque_wrench_calibration_valid_until" TIMESTAMP(3),
+ADD COLUMN     "water_chemical_test_date" TIMESTAMP(3),
+ADD COLUMN     "water_chemical_test_valid_until" TIMESTAMP(3);
