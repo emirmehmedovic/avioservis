@@ -31,16 +31,21 @@ export const formatImageUrl = (url: string | undefined | null): string | undefin
     return `${API_BASE_URL}/${path}${hasQueryParams ? '&' : '?'}t=${timestamp}`;
   }
   
-  // For other relative paths, make sure they start with a slash
-  let fixedUrl = url;
-  if (!fixedUrl.startsWith('/')) {
-    fixedUrl = '/' + fixedUrl;
+  // Normalize path - remove multiple leading slashes
+  let cleanPath = url;
+  while (cleanPath.startsWith('/')) {
+    cleanPath = cleanPath.substring(1);
+  }
+  
+  // Remove trailing slash if present
+  if (cleanPath.endsWith('/')) {
+    cleanPath = cleanPath.substring(0, cleanPath.length - 1);
   }
   
   // Add a timestamp to prevent caching issues
-  const hasQueryParams = fixedUrl.includes('?');
+  const hasQueryParams = cleanPath.includes('?');
   const timestamp = new Date().getTime();
-  return `${fixedUrl}${hasQueryParams ? '&' : '?'}t=${timestamp}`;
+  return `${API_BASE_URL}/${cleanPath}${hasQueryParams ? '&' : '?'}t=${timestamp}`;
 };
 
 /**

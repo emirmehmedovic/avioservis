@@ -281,6 +281,39 @@ const [reserveFuelError, setReserveFuelError] = useState<string | null>(null);
     }
   }
 
+  // Fetch reserve fuel data for the tank
+  const fetchReserveFuel = async () => {
+    if (!tank) return;
+    
+    setLoadingReserveFuel(true);
+    setReserveFuelError(null);
+    
+    try {
+      const response = await getReserveFuelByTank(tank.id, 'fixed');
+      
+      if (response.success && response.data && response.summary) {
+        setReserveFuel(response.data);
+        setReserveFuelSummary(response.summary);
+      } else {
+        console.error('Unexpected response format:', response);
+        setReserveFuel([]);
+        setReserveFuelSummary({ totalAvailableLiters: 0, recordCount: 0, availableRecordCount: 0 });
+      }
+    } catch (error) {
+      console.error('Error fetching reserve fuel data:', error);
+      setReserveFuelError('Greška pri dohvaćanju podataka o rezervnom gorivu.');
+    } finally {
+      setLoadingReserveFuel(false);
+    }
+  };
+
+  // Load reserve fuel data when tab is active
+  useEffect(() => {
+    if (isOpen && tank && activeTab === 'reserve') {
+      fetchReserveFuel();
+    }
+  }, [isOpen, tank, activeTab]);
+
   const handleSaveChanges = async (e: FormEvent) => {
     e.preventDefault();
     if (!tank) return;
@@ -288,37 +321,6 @@ const [reserveFuelError, setReserveFuelError] = useState<string | null>(null);
     setUpdateError(null);
 
     const formData = new FormData();
-// Dodati novu funkciju nakon fetchCustomsBreakdown
-const fetchReserveFuel = async () => {
-  if (!tank) return;
-  
-  setLoadingReserveFuel(true);
-  setReserveFuelError(null);
-  
-  try {
-    const response = await getReserveFuelByTank(tank.id, 'fixed');
-    
-    if (response.success && response.data && response.summary) {
-      setReserveFuel(response.data);
-      setReserveFuelSummary(response.summary);
-    } else {
-      console.error('Unexpected response format:', response);
-      setReserveFuel([]);
-      setReserveFuelSummary({ totalAvailableLiters: 0, recordCount: 0, availableRecordCount: 0 });
-    }
-  } catch (error) {
-    console.error('Error fetching reserve fuel data:', error);
-    setReserveFuelError('Greška pri dohvaćanju podataka o rezervnom gorivu.');
-  } finally {
-    setLoadingReserveFuel(false);
-  }
-};
-// Dodati novi useEffect nakon postojećih useEffect blokova
-useEffect(() => {
-  if (isOpen && tank && activeTab === 'reserve') {
-    fetchReserveFuel();
-  }
-}, [isOpen, tank, activeTab]);
     // Append all editableTankData fields to formData
     // Ensure correct types are passed, especially for numbers
     Object.entries(editableTankData).forEach(([key, value]) => {

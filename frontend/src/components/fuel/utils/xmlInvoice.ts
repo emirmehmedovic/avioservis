@@ -1,10 +1,22 @@
 import { FuelingOperation } from '../types';
 import dayjs from 'dayjs';
 
+// Helper function to safely parse and format numbers
+const formatDecimal = (value: any): string => {
+  const number = parseFloat(value || '0');
+  return number.toFixed(2);
+};
+
 /**
  * Generate an XML invoice for a single fueling operation in IATA format
  */
 export const generateXMLInvoice = (operation: FuelingOperation): string => {
+  // Safely parse all numeric values at the beginning
+  const quantityLiters = formatDecimal(operation.quantity_liters);
+  const quantityKg = formatDecimal(operation.quantity_kg);
+  const totalAmount = formatDecimal(operation.total_amount);
+  const pricePerKg = formatDecimal(operation.price_per_kg);
+
   // Format the date in YYYY-MM-DD format
   const invoiceDate = dayjs(operation.dateTime).format('YYYY-MM-DD');
   const invoiceDateTime = dayjs(operation.dateTime).format('YYYY-MM-DDTkk:mm:ss');
@@ -12,10 +24,6 @@ export const generateXMLInvoice = (operation: FuelingOperation): string => {
   // Generate a unique invoice transmission ID
   const locationCode = operation.destination?.substring(0, 3).toUpperCase() || 'TZL';
   const invoiceTransmissionId = `${locationCode}-${operation.id}-${invoiceDate}`;
-  
-  // Calculate the quantity in liters and kilograms
-  const quantityLiters = operation.quantity_liters || 0;
-  const quantityKg = operation.quantity_kg || 0;
   
   // Format the XML content
   const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
@@ -35,7 +43,7 @@ export const generateXMLInvoice = (operation: FuelingOperation): string => {
       <InvoiceDeliveryLocation>${locationCode}</InvoiceDeliveryLocation>
       <TaxInvoiceNumber>${operation.id}</TaxInvoiceNumber>
       <InvoiceCurrencyCode>${operation.currency || 'BAM'}</InvoiceCurrencyCode>
-      <InvoiceTotalAmount>${operation.total_amount || 0}</InvoiceTotalAmount>
+      <InvoiceTotalAmount>${totalAmount}</InvoiceTotalAmount>
     </InvoiceHeader>
     <SubInvoiceHeader>
       <InvoiceLine>
@@ -43,38 +51,38 @@ export const generateXMLInvoice = (operation: FuelingOperation): string => {
         <ItemQuantity>
           <ItemQuantityType>DL</ItemQuantityType>
           <ItemQuantityFlag>GR</ItemQuantityFlag>
-          <ItemQuantityQty>${quantityKg.toFixed(2)}</ItemQuantityQty>
+          <ItemQuantityQty>${quantityKg}</ItemQuantityQty>
           <ItemQuantityUOM>KG</ItemQuantityUOM>
         </ItemQuantity>
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="FNO">${operation.flight_number || 'N/A'}</ItemDeliveryReferenceValue>
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="ARN">${operation.aircraft_registration || 'N/A'}</ItemDeliveryReferenceValue>
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="DTN">${operation.destination || 'N/A'}</ItemDeliveryReferenceValue>
         <ItemReferenceLocalDate ItemReferenceDateTypes="DTA">${invoiceDateTime}</ItemReferenceLocalDate>
-        <ItemInvoiceAmount>${operation.total_amount || 0}</ItemInvoiceAmount>
+        <ItemInvoiceAmount>${totalAmount}</ItemInvoiceAmount>
         <SubItem>
           <SubItemProduct>
             <SubItemProductID>${operation.tank?.fuel_type || 'JETA1'}</SubItemProductID>
             <SubItemPricingUnitRateType>UR</SubItemPricingUnitRateType>
-            <SubItemPricingUnitRate>${operation.price_per_kg || 0}</SubItemPricingUnitRate>
+            <SubItemPricingUnitRate>${pricePerKg}</SubItemPricingUnitRate>
             <SubItemPricingUOM>KG</SubItemPricingUOM>
             <SubItemPricingUOMFactor>1</SubItemPricingUOMFactor>
             <SubItemPricingCurrencyCode>${operation.currency || 'BAM'}</SubItemPricingCurrencyCode>
-            <SubItemPricingAmount>${quantityKg.toFixed(2)}</SubItemPricingAmount>
+            <SubItemPricingAmount>${quantityKg}</SubItemPricingAmount>
             <SubItemInvoiceUOM>KG</SubItemInvoiceUOM>
             <SubItemQuantity>
-              <SubItemInvoiceQuantity>${quantityKg.toFixed(2)}</SubItemInvoiceQuantity>
+              <SubItemInvoiceQuantity>${quantityKg}</SubItemInvoiceQuantity>
               <SubItemQuantityType>DL</SubItemQuantityType>
               <SubItemQuantityFlag>GR</SubItemQuantityFlag>
             </SubItemQuantity>
-            <SubItemInvoiceUnitRate>${operation.price_per_kg || 0}</SubItemInvoiceUnitRate>
-            <SubItemInvoiceAmount>${operation.total_amount || 0}</SubItemInvoiceAmount>
+            <SubItemInvoiceUnitRate>${pricePerKg}</SubItemInvoiceUnitRate>
+            <SubItemInvoiceAmount>${totalAmount}</SubItemInvoiceAmount>
           </SubItemProduct>
         </SubItem>
       </InvoiceLine>
     </SubInvoiceHeader>
     <InvoiceSummary>
       <InvoiceLineCount>1</InvoiceLineCount>
-      <TotalInvoiceLineAmount>${operation.total_amount || 0}</TotalInvoiceLineAmount>
+      <TotalInvoiceLineAmount>${totalAmount}</TotalInvoiceLineAmount>
       <TotalInvoiceTaxAmount>0</TotalInvoiceTaxAmount>
     </InvoiceSummary>
   </Invoice>
@@ -134,8 +142,8 @@ export const generateConsolidatedXMLInvoice = (operations: FuelingOperation[], f
   
   // Generate invoice lines XML
   const invoiceLines = sortedOperations.map((operation, index) => {
-    const quantityLiters = operation.quantity_liters || 0;
-    const quantityKg = operation.quantity_kg || 0;
+    const quantityLiters = parseFloat(operation.quantity_liters as any || '0');
+    const quantityKg = parseFloat(operation.quantity_kg as any || '0');
     const operationDate = dayjs(operation.dateTime).format('YYYY-MM-DDTkk:mm:ss');
     
     return `

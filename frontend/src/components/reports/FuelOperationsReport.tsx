@@ -130,8 +130,26 @@ export default function FuelOperationsReport() {
   
   // Function to convert FuelOperation to FuelingOperation
   const convertToFuelingOperation = (operation: FuelOperation): FuelingOperation => {
+    // Ensure documents are mapped correctly with 'url' for the details modal
+    const mappedDocuments = operation.documents ? operation.documents.map(doc => ({
+      id: doc.id,
+      name: doc.originalFilename,
+      url: doc.storagePath, // This is the crucial part
+      type: doc.mimeType,
+      size: doc.sizeBytes,
+      // Ensure all properties expected by FuelingOperationDocument are present
+      originalFilename: doc.originalFilename,
+      storagePath: doc.storagePath,
+      mimeType: doc.mimeType,
+      sizeBytes: doc.sizeBytes,
+      uploadedAt: doc.uploadedAt,
+      fuelReceiptId: doc.fuelReceiptId,
+      fuelingOperationId: doc.fuelingOperationId,
+    })) : [];
+
     return {
       ...operation,
+      documents: mappedDocuments, // Use the correctly mapped documents
       aircraft_registration: operation.aircraft_registration || null,
       airlineId: operation.airlineId || 0,
       mrnBreakdown: operation.mrnBreakdown || null,
@@ -139,51 +157,46 @@ export default function FuelOperationsReport() {
       airline: operation.airline ? {
         id: operation.airline.id,
         name: operation.airline.name,
+        isForeign: operation.airline.isForeign || false,
         taxId: operation.airline.taxId || null,
         address: operation.airline.address || null,
         contact_details: operation.airline.contact_details || null,
-        operatingDestinations: operation.airline.operatingDestinations || [],
+        operatingDestinations: operation.airline.operatingDestinations || null,
       } : {
         id: 0,
-        name: 'Unknown Airline',
+        name: 'Nepoznata avio kompanija',
+        isForeign: false,
         taxId: null,
         address: null,
         contact_details: null,
-        operatingDestinations: [],
+        operatingDestinations: null,
       },
-      destination: operation.destination || '',
-      tankId: operation.tankId || 0,
       tank: operation.tank ? {
-        id: operation.tank.id,
-        identifier: operation.tank.identifier,
-        name: operation.tank.name,
-        location: operation.tank.location || '',
+        ...operation.tank,
+        identifier: operation.tank.identifier || 'N/A',
+        name: operation.tank.name || 'N/A',
+        location: operation.tank.location || 'N/A',
         capacity_liters: operation.tank.capacity_liters || 0,
         current_liters: operation.tank.current_liters || 0,
-        fuel_type: operation.tank.fuel_type,
+        fuel_type: operation.tank.fuel_type || 'N/A',
         createdAt: operation.tank.createdAt || '',
         updatedAt: operation.tank.updatedAt || '',
       } : {
         id: 0,
-        identifier: 'Unknown',
-        name: 'Unknown Tank',
-        location: '',
+        identifier: 'N/A',
+        name: 'Nepoznati tank',
+        location: 'N/A',
         capacity_liters: 0,
         current_liters: 0,
-        fuel_type: 'JET A-1',
+        fuel_type: 'N/A',
         createdAt: '',
         updatedAt: '',
       },
       operator_name: operation.operator_name || '',
-      documents: operation.documents ? operation.documents.map(doc => ({
-        id: doc.id,
-        name: doc.originalFilename,
-        url: doc.storagePath,
-        type: doc.mimeType,
-        size: doc.sizeBytes
-      })) : [],
       createdAt: operation.createdAt || '',
       updatedAt: operation.updatedAt || '',
+      tip_saobracaja: operation.tip_saobracaja || null,
+      delivery_note_number: operation.delivery_note_number || null,
     } as FuelingOperation;
   };
 
@@ -1243,7 +1256,8 @@ export default function FuelOperationsReport() {
                                     key={doc.id}
                                     onClick={() => {
                                       let relativePath = '';
-                                      const storagePath = doc.storagePath as string;
+                                      // Use doc.url which contains the storage path (cast to any to avoid TypeScript error)
+                                      const storagePath = (doc as any).url;
                                       
                                       if (storagePath) {
                                         const privateUploadsMarker = 'private_uploads/';
@@ -1256,7 +1270,7 @@ export default function FuelOperationsReport() {
                                           return; // Prekini ako je putanja neispravna
                                         }
                                       } else {
-                                        console.error('doc.storagePath is missing for doc:', doc);
+                                        console.error('doc.url is missing for doc:', doc);
                                         toast.error('Greška: Putanja do dokumenta nedostaje.');
                                         return; // Prekini ako putanja nedostaje
                                       }
