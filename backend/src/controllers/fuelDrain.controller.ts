@@ -175,8 +175,11 @@ export const createFuelDrainRecord = async (req: AuthRequest, res: Response, nex
         console.log(`[createFuelDrainRecord] Upozorenje: ${remainingQuantity} litara nije pokriveno MRN zapisima`);
       }
     } else if (sourceType === 'mobile') {
-      const mobileTank = await prisma.fuelTank.findUnique({
-        where: { id: parsedSourceId },
+      const mobileTank = await prisma.fuelTank.findFirst({
+        where: { 
+          id: parsedSourceId,
+          is_deleted: false // Ne dohvaćamo obrisane cisterne
+        } as any, // Type assertion da izbjegnemo TS grešku
       });
       console.log('[createFuelDrainRecord] Mobile tank lookup result:', mobileTank);
       if (!mobileTank) {
@@ -452,8 +455,11 @@ export const createFuelDrainRecord = async (req: AuthRequest, res: Response, nex
         });
       } else if (sourceType === 'mobile') {
         // Dohvati mobilni tank da bismo mogli izračunati količinu u kg
-        const mobileTank = await tx.fuelTank.findUnique({
-          where: { id: parsedSourceId },
+        const mobileTank = await tx.fuelTank.findFirst({
+          where: { 
+            id: parsedSourceId,
+            is_deleted: false // Ne dohvaćamo obrisane cisterne
+          } as any, // Type assertion da izbjegnemo TS grešku
           select: { id: true, current_liters: true, current_kg: true }
         });
         

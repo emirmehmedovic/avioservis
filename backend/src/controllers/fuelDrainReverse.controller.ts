@@ -120,8 +120,11 @@ export const reverseFuelDrainTransaction = async (req: AuthRequest, res: Respons
         return;
       }
     } else if (destinationType === 'mobile') {
-      const mobileTank = await prisma.fuelTank.findUnique({
-        where: { id: parsedDestinationId },
+      const mobileTank = await prisma.fuelTank.findFirst({
+        where: { 
+          id: parsedDestinationId,
+          is_deleted: false // Ne dohvaćamo obrisane cisterne 
+        } as any, // Type assertion da izbjegnemo TS grešku
       });
       
       if (!mobileTank) {
@@ -274,9 +277,12 @@ export const reverseFuelDrainTransaction = async (req: AuthRequest, res: Respons
         });
       } else if (destinationType === 'mobile') {
         // Dohvati odredišni mobilni tank da bismo mogli izračunati količinu u kg
-        const destinationTank = await tx.fuelTank.findUnique({
-          where: { id: parsedDestinationId },
-          select: { id: true, current_liters: true, current_kg: true }
+        const destinationTank = await tx.fuelTank.findFirst({
+          where: { 
+            id: parsedDestinationId, 
+            is_deleted: false // Ne dohvaćamo obrisane cisterne
+          } as any, // Type assertion da izbjegnemo TS grešku
+          select: { id: true, current_kg: true, current_liters: true }
         });
         
         // Izračunaj specifičnu gustoću iz trenutnog stanja tanka

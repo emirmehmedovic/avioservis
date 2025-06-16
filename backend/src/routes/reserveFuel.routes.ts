@@ -13,4 +13,7 @@ router.post('/dispense/:tankId/:tankType?', authenticateToken, reserveFuelContro
 router.get('/exchange-history/:tankId/:tankType?', authenticateToken, reserveFuelController.getExchangeHistory);
 router.get('/exchange-details/:exchangeId', authenticateToken, reserveFuelController.getExchangeDetails);
 
+// Ruta za izvršavanje zamjene viška goriva
+router.post('/exchange-excess/:tankId', authenticateToken, reserveFuelController.exchangeExcessFuel);
+
 export default router;

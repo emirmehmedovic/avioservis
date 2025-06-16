@@ -3,6 +3,7 @@ import { PrismaClient, Prisma, FixedTankActivityType } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
 import { removeFuelFromMrnRecordsByKg } from '../utils/mrnUtils'; // KG-based FIFO
+import * as densityUtils from '../utils/densityUtils'; // Import density utilities
 import { executeFuelOperation } from '../utils/transactionUtils';
 import { Decimal } from '@prisma/client/runtime/library'; // For Prisma Decimal type
 import { ExtendedTransactionClient } from '../utils/fuelConsistencyUtils'; // Import ExtendedTransactionClient
@@ -54,6 +55,7 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
 
   // --- Parameter Parsing and Basic Validation ---
   const quantity_liters = req.body.quantity_liters;
+  const input_specific_gravity = req.body.specific_gravity || null;
   
   // Omogućavamo korisnicima da pošalju ili kg+specifičnu težinu ili samo litru
   if (!transfer_datetime || !source_fixed_tank_id || !target_mobile_tank_id || 
@@ -67,103 +69,130 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
   const parsedTransferDatetime = new Date(transfer_datetime);
 
   let parsedQuantityKg: Decimal;
-  let parsedSpecificGravity: Decimal;
   let parsedQuantityLiters: Decimal;
-
-  try {
-    // Ako su kg i specifična gustoća već proslijeđeni, koristimo njih
-    if (quantity_kg != null && specific_gravity != null) {
-      // Koristimo string konverziju za maksimalnu preciznost
-      parsedQuantityKg = new Decimal(quantity_kg.toString());
-      parsedSpecificGravity = new Decimal(specific_gravity.toString());
-      
-      if (parsedQuantityKg.isNegative() || parsedQuantityKg.isZero()) {
-        throw new Error('Quantity in KG must be a positive number.');
-      }
-      if (parsedSpecificGravity.isNegative() || parsedSpecificGravity.isZero()) {
-        throw new Error('Specific gravity must be a positive number.');
-      }
-      
-      // Izračunajmo litre za konzistenciju u bazi - bez zaokruživanja decimala
-      // Koristimo punu preciznost tijekom podjele
-      parsedQuantityLiters = parsedQuantityKg.div(parsedSpecificGravity);
-      logger.info(`KG to L konverzija: ${parsedQuantityKg} KG / ${parsedSpecificGravity} = ${parsedQuantityLiters} L (bez zaokruživanja)`);
-    } 
-    // Ako su samo litre proslijeđene, trebamo dohvatiti specifičnu gustoću i izračunati kg
-    else if (quantity_liters != null) {
-      // Koristimo string konverziju za maksimalnu preciznost
-      parsedQuantityLiters = new Decimal(quantity_liters.toString());
-      
-      if (parsedQuantityLiters.isNegative() || parsedQuantityLiters.isZero()) {
-        throw new Error('Quantity in liters must be a positive number.');
-      }
-      
-      // Dohvaćanje fiksnog tanka i provjera postojanja
-      const sourceFixedTank = await prisma.fixedStorageTanks.findUnique({
-        where: { id: parsedSourceFixedStorageTankId },
-        select: { id: true }
-      });
-      
-      if (!sourceFixedTank) {
-        throw new Error(`Fixed storage tank with ID ${parsedSourceFixedStorageTankId} not found.`);
-      }
-      
-      // Dohvaćanje najnovijeg carinskog zapisa za ovaj tank koji ima preostalu količinu
-      const latestCustomsRecord = await prisma.tankFuelByCustoms.findFirst({
-        where: { 
-          fixed_tank_id: parsedSourceFixedStorageTankId,
-          remaining_quantity_liters: { gt: 0 }
-        },
-        orderBy: { date_added: 'desc' },
-        // Koristimo sva osnovna polja, ne selektiramo pojedinačno jer model ima dinamičnu strukturu
-      });
-      
-      // Ako nemamo carinski zapis, koristimo standardnu vrijednost
-      if (!latestCustomsRecord) {
-        // Koristimo standardnu vrijednost jer nemamo podatke o gustoći
-        parsedSpecificGravity = new Decimal('0.8'); // Standardna vrijednost
-        console.log(`Warning: No customs records found for tank ${parsedSourceFixedStorageTankId}, using default density 0.8`);
-      } else {
-        // Sigurno pristupi poljima koristeći rest operator za hvatanje dodatnih polja
-        // TypeScript ne zna za sva polja koja su dinamički dodana u bazu
-        const record = latestCustomsRecord as any;
-        
-        // Izračunaj gustoću za ovaj MRN zapis (ako nije već definirana) s maksimalnom preciznošću
-        if (!record.density_at_intake) {
-          if (record.remaining_quantity_kg && record.remaining_quantity_liters) {
-            // Koristimo punu preciznost pri podjeli
-            record.density_at_intake = record.remaining_quantity_kg.div(record.remaining_quantity_liters);
-            logger.info(`Izračunata gustoća za ${record.customs_declaration_number}: ${record.density_at_intake} (bez zaokruživanja)`);
-          }
-        }
-        
-        // Koristimo density_at_intake ako postoji
-        if (record.density_at_intake) {
-          try {
-            parsedSpecificGravity = new Decimal(String(record.density_at_intake));
-            console.log(`Using density_at_intake: ${parsedSpecificGravity} from tank customs record`);
-          } catch (e: any) {
-            console.error(`Error parsing density_at_intake: ${e?.message || 'Unknown error'}`);
-            parsedSpecificGravity = new Decimal('0.8'); // Standardna vrijednost
-          }
-        } else {
-          parsedSpecificGravity = new Decimal('0.8'); // Standardna vrijednost
-          console.log(`Warning: Density information not found in customs records for tank ${parsedSourceFixedStorageTankId}, using default 0.8`);
-        }
-      }
-        
-      // Izračunaj kg iz litara
-      parsedQuantityKg = parsedQuantityLiters.mul(parsedSpecificGravity);
+  let parsedSpecificGravity = new Decimal('0.8'); // Default specific gravity for Jet A-1 fuel
+  let prioritizeLiters = false; // Po defaultu prioritet je na kilogramima, osim ako nisu specificirani samo litri
+  
+  if (quantity_kg != null) {
+    // If KG is provided, it is the primary input
+    parsedQuantityKg = parseDecimalValue(quantity_kg);
+    
+    // Ako je specificirana gustoća pri unosu, koristimo nju umjesto dohvata iz baze
+    if (specific_gravity != null) {
+      parsedSpecificGravity = parseDecimalValue(specific_gravity);
+      logger.info(`Koristimo unesenu gustoću: ${parsedSpecificGravity} za izračun kg iz litara`);
     } else {
-      throw new Error('Either quantity_kg or quantity_liters must be provided.');
+      // Pokušamo dohvatiti specifičnu težinu iz MRN zapisa ako postoji
+      try {
+        const mrnRecords = await prisma.$queryRaw<any[]>`
+          SELECT
+            id,
+            customs_declaration_number,
+            remaining_quantity_kg,
+            remaining_quantity_liters,
+            density_at_intake
+          FROM "TankFuelByCustoms"
+          WHERE fixed_tank_id = ${parsedSourceFixedStorageTankId}
+            AND remaining_quantity_kg > 0
+          ORDER BY date_added ASC
+          LIMIT 1
+        `;
+        
+        if (mrnRecords.length > 0) {
+          const record = mrnRecords[0];
+          
+          // Ensure density is available
+          if (!record.density_at_intake) {
+            // Ako nema gustoće, izračunamo je iz kg i litara
+            try {
+              record.density_at_intake = record.remaining_quantity_kg.div(record.remaining_quantity_liters);
+              logger.info(`Izračunata gustoća za ${record.customs_declaration_number}: ${record.density_at_intake} (bez zaokruživanja)`);
+            } catch (e: any) {
+              logger.error(`Greška pri izračunu gustoće za MRN ${record.customs_declaration_number}: ${e?.message || 'Unknown error'}`);
+            }
+          }
+          
+          // Koristimo density_at_intake ako postoji
+          if (record.density_at_intake) {
+            try {
+              parsedSpecificGravity = new Decimal(String(record.density_at_intake));
+              logger.info(`Koristi se MRN gustoća: ${parsedSpecificGravity} iz MRN zapisa ${record.customs_declaration_number}`);
+            } catch (e: any) {
+              logger.error(`Greška pri parsiranju density_at_intake: ${e?.message || 'Unknown error'}`);
+            }
+          } else {
+            logger.warn(`Nije pronađena informacija o gustoći u MRN zapisima za tank ${parsedSourceFixedStorageTankId}, koristi se default ${parsedSpecificGravity}`);
+          }
+        }
+      } catch (error: any) {
+        logger.error('Greška pri dohvatu MRN zapisa za informacije o gustoći:', error);
+      }
     }
-    // Calculate liters for reference and potentially for capacity checks if KG capacity isn't available
-    parsedQuantityLiters = parsedQuantityKg.div(parsedSpecificGravity).toDecimalPlaces(3);
-  } catch (error) {
-    const e = error instanceof Error ? error : new Error(String(error));
-    logger.error('Invalid input for quantity_kg or specific_gravity:', e);
-    res.status(400).json({ message: `Invalid number format for quantity_kg or specific_gravity. ${e.message}` });
-    return;
+    
+    // Izračunajmo litre za konzistenciju u bazi - bez zaokruživanja decimala
+    // Koristimo punu preciznost tijekom podjele
+    parsedQuantityLiters = parsedQuantityKg.div(parsedSpecificGravity);
+    logger.info(`KG to L konverzija: ${parsedQuantityKg} KG / ${parsedSpecificGravity} = ${parsedQuantityLiters} L (bez zaokruživanja)`);
+  } else {
+    // Ako imamo samo litre, koristimo default gustoću za izračun kg
+    parsedQuantityLiters = parseDecimalValue(quantity_liters);
+    prioritizeLiters = true; // Kad korisnik unese samo litre, prioritiziramo očuvanje litara
+    
+    // Ako je specificirana gustoća pri unosu, koristimo nju umjesto dohvata iz baze
+    if (specific_gravity != null) {
+      parsedSpecificGravity = parseDecimalValue(specific_gravity);
+      logger.info(`Koristimo unesenu gustoću: ${parsedSpecificGravity} za izračun kg iz litara`);
+    } else {
+      // Pokušamo dohvatiti specifičnu težinu iz MRN zapisa ako postoji
+      try {
+        const mrnRecords = await prisma.$queryRaw<any[]>`
+          SELECT
+            id,
+            customs_declaration_number,
+            remaining_quantity_kg,
+            remaining_quantity_liters,
+            density_at_intake
+          FROM "TankFuelByCustoms"
+          WHERE fixed_tank_id = ${parsedSourceFixedStorageTankId}
+            AND remaining_quantity_kg > 0
+          ORDER BY date_added ASC
+          LIMIT 1
+        `;
+        
+        if (mrnRecords.length > 0) {
+          const record = mrnRecords[0];
+          
+          // Ensure density is available
+          if (!record.density_at_intake) {
+            // Ako nema gustoće, izračunamo je iz kg i litara
+            try {
+              record.density_at_intake = record.remaining_quantity_kg.div(record.remaining_quantity_liters);
+              logger.info(`Izračunata gustoća za ${record.customs_declaration_number}: ${record.density_at_intake} (bez zaokruživanja)`);
+            } catch (e: any) {
+              logger.error(`Greška pri izračunu gustoće za MRN ${record.customs_declaration_number}: ${e?.message || 'Unknown error'}`);
+            }
+          }
+          
+          // Koristimo density_at_intake ako postoji
+          if (record.density_at_intake) {
+            try {
+              parsedSpecificGravity = new Decimal(String(record.density_at_intake));
+              logger.info(`Koristi se MRN gustoća: ${parsedSpecificGravity} iz MRN zapisa ${record.customs_declaration_number}`);
+            } catch (e: any) {
+              logger.error(`Greška pri parsiranju density_at_intake: ${e?.message || 'Unknown error'}`);
+            }
+          } else {
+            logger.warn(`Nije pronađena informacija o gustoći u MRN zapisima za tank ${parsedSourceFixedStorageTankId}, koristi se default ${parsedSpecificGravity}`);
+          }
+        }
+      } catch (error: any) {
+        logger.error('Greška pri dohvatu MRN zapisa za informacije o gustoći:', error);
+      }
+    }
+    
+    // Izračunaj kg na temelju litara koristeći definiranu gustoću
+    parsedQuantityKg = parsedQuantityLiters.times(parsedSpecificGravity);
+    logger.info(`L to KG konverzija: ${parsedQuantityLiters} L * ${parsedSpecificGravity} = ${parsedQuantityKg} KG (bez zaokruživanja)`);
   }
 
   logger.info(`Initiating transfer of ${parsedQuantityKg.toFixed(3)} KG (${parsedQuantityLiters.toFixed(3)} L) from fixed tank ${parsedSourceFixedStorageTankId} to mobile tank ${parsedTargetMobileTankId}`);
@@ -373,9 +402,20 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
           // Deducted KG je ono što smo oduzeli iz baze (FIFO)
           const deductedKg = new Decimal(detail.quantityDeductedKg);
           
-          // Izračunaj litre korištenjem specifične gustoće ovog MRN-a
-          // Ovo osigurava da je konverzija konzistentna za svaki MRN zapis
-          const deductedLiters = deductedKg.div(itemDensity).toDecimalPlaces(3);
+          let deductedLiters: Decimal;
+          
+          if (prioritizeLiters) {
+            // Ako prioritiziramo litre, koristimo originalnu gustoću transfera za izračun
+            // a ne gustoću iz MRN zapisa, kako bismo dobili točno unešenu količinu litara
+            // Izračunavamo litre proporcionalno udjelu ovog MRN-a u ukupnim KG
+            const proportion = deductedKg.div(parsedQuantityKg);
+            deductedLiters = parsedQuantityLiters.mul(proportion).toDecimalPlaces(3);
+            logger.debug(`Prioritet LITRE: Korištenje proporcionalnog izračuna litara iz ${deductedKg} kg / ${parsedQuantityKg} kg = ${proportion.toFixed(4)}. Rezultat: ${parsedQuantityLiters} L * ${proportion.toFixed(4)} = ${deductedLiters} L`);
+          } else {
+            // Standardni izračun litara korištenjem specifične gustoće MRN zapisa
+            deductedLiters = deductedKg.div(itemDensity).toDecimalPlaces(3);
+            logger.debug(`Standardni izračun: ${deductedKg} kg / ${itemDensity} = ${deductedLiters} L`);
+          }
 
           mrnBreakdownForMobileTank.push({
             mrn: detail.mrn,
@@ -464,14 +504,15 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
               data: {
                 mobile_tank_id: parsedTargetMobileTankId,
                 customs_declaration_number: item.mrn,
-                quantity_liters: item.quantityLiters.toNumber(), // Initial quantity for this batch
                 remaining_quantity_liters: item.quantityLiters.toNumber(),
-                quantity_kg: item.quantityKg.toNumber(),
                 remaining_quantity_kg: item.quantityKg.toNumber(),
-                density_at_intake: item.densityAtIntake.toNumber(), // Spremanje specifične gustoće za ovaj MRN batch
-                date_added: parsedTransferDatetime, // Or new Date() if preferred for mobile tank entry
-                // supplier_name: `Transfer from fixed tank ${sourceTank.tank_name}`, // Optional: enhance supplier info
-                // fuel_intake_record_id: item.sourceMrnRecordId, // Link back to original intake if needed and schema supports
+                quantity_kg: item.quantityKg.toNumber(), // Dodano obavezno polje quantity_kg
+                quantity_liters: item.quantityLiters.toNumber(), // Dodano obavezno polje quantity_liters
+                density_at_intake: prioritizeLiters ? parsedSpecificGravity.toNumber() : item.densityAtIntake.toNumber(), // Ako prioritiziramo litre, koristimo gustoću iz transfera
+                // Uklonjena polja koja ne postoje u Prisma shemi:
+                // source_fixed_tank_id: parsedSourceFixedStorageTankId,
+                // source_mrn_record_id: item.sourceMrnRecordId,
+                date_added: new Date(),
               },
             });
           }

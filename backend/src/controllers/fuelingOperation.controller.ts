@@ -299,8 +299,11 @@ export const createFuelingOperation = async (req: Request, res: Response): Promi
     });
     
     // Check if the tank exists and has enough fuel
-    const tank = await (prisma as any).fuelTank.findUnique({
-      where: { id: tankId },
+    const tank = await (prisma as any).fuelTank.findFirst({
+      where: { 
+        id: tankId,
+        is_deleted: false // Provjeravamo da tanker nije obrisan
+      } as any, // Type assertion da izbjegnemo TS grešku
     });
     
     if (!tank) {
@@ -765,8 +768,11 @@ export const deleteFuelingOperation = async (req: AuthRequest, res: Response): P
       });
 
       // Vrati gorivo u tank - i litre i kilograme
-      const sourceTank = await tx.fuelTank.findUnique({ 
-        where: { id: operationToDelete.tankId } 
+      const sourceTank = await tx.fuelTank.findFirst({ 
+        where: { 
+          id: operationToDelete.tankId,
+          is_deleted: false // Ne dohvaćamo obrisane cisterne
+        } as any // Type assertion da izbjegnemo TS grešku
       });
       
       if (sourceTank) {

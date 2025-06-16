@@ -442,7 +442,7 @@ const DrainedFuelOperations: React.FC = () => {
         buyerName: saleFormData.buyerName
       };
       
-      const response = await fetchWithAuth('/api/fuel/drains/create', {
+      const response = await fetchWithAuth('/api/fuel/drains', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -648,7 +648,7 @@ const DrainedFuelOperations: React.FC = () => {
       };
       
       // This endpoint would need to be implemented in the backend
-      const response = await fetchWithAuth('/api/fuel/drains/create', {
+      const response = await fetchWithAuth('/api/fuel/drains', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

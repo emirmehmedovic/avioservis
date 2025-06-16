@@ -417,9 +417,9 @@ let fixedTanksCache: FixedStorageTank[] | null = null;
 let fixedTanksCacheTimestamp: number | null = null;
 const CACHE_DURATION_MS = 30000; // Cache for 30 seconds
 
-export const getFixedTanks = async (): Promise<FixedStorageTank[]> => {
+export const getFixedTanks = async (forceRefresh: boolean = false): Promise<FixedStorageTank[]> => {
   const now = Date.now();
-  if (fixedTanksCache && fixedTanksCacheTimestamp && (now - fixedTanksCacheTimestamp < CACHE_DURATION_MS)) {
+  if (!forceRefresh && fixedTanksCache && fixedTanksCacheTimestamp && (now - fixedTanksCacheTimestamp < CACHE_DURATION_MS)) {
     console.log('Returning fixed tanks from cache');
     return Promise.resolve(fixedTanksCache);
   }
@@ -1026,8 +1026,12 @@ export const getCachedTanks = async (forceRefresh: boolean = false): Promise<Fue
   }
   console.log(forceRefresh ? 'Forcing refresh for tanks data' : 'Fetching fresh tanks data');
   const data = await fetchWithAuth<FuelTank[]>('/api/fuel/tanks');
-  tanksCache = { data, timestamp: now };
-  return data;
+  
+  // Filtriramo cisterne označene kao obrisane (is_deleted: true)
+  const filteredData = data.filter(tank => !tank.is_deleted);
+  
+  tanksCache = { data: filteredData, timestamp: now };
+  return filteredData;
 };
 
 export const clearTanksCache = () => {
@@ -1090,6 +1094,7 @@ export interface FuelTank {
   capacity_liters: number;
   current_liters: number;
   current_quantity_liters?: number; // Added for compatibility
+  is_deleted?: boolean; // Flag za soft delete funkcionalnost
   fuel_type: string;
   last_refill_date?: string;
   last_maintenance_date?: string;

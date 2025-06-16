@@ -106,7 +106,7 @@ if (process.env.REDIS_URL) {
 // General API rate limiter - applies to all routes
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 150, // limit each IP to 150 requests per windowMs (povećano za 50%)
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   store: store, // Use Redis if available, otherwise memory store
@@ -119,7 +119,7 @@ export const apiLimiter = rateLimit({
 // Stricter rate limiter for authentication endpoints
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 login attempts per windowMs
+  max: 8, // limit each IP to 8 login attempts per windowMs (povećano za 50%)
   standardHeaders: true,
   legacyHeaders: false,
   store: store, // Use Redis if available, otherwise memory store
@@ -168,7 +168,7 @@ export const authLimiter = rateLimit({
 // More aggressive limiter for failed login attempts
 export const loginFailureLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10, // limit each IP to 10 failed attempts per hour
+  max: 15, // limit each IP to 15 failed attempts per hour (povećano za 50%)
   standardHeaders: true,
   legacyHeaders: false,
   store: store,
@@ -187,7 +187,7 @@ export const loginFailureLimiter = rateLimit({
 // Limiter for user management routes (more strict)
 export const userManagementLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 30, // limit each IP to 30 requests per 15 minutes
+  max: 45, // limit each IP to 45 requests per 15 minutes (povećano za 50%)
   standardHeaders: true,
   legacyHeaders: false,
   store: store,
@@ -203,7 +203,7 @@ export const userManagementLimiter = rateLimit({
 // Limiter for sensitive operations like fuel transfers, financial operations
 export const sensitiveOperationsLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 150, // Povećano na 150 zahtjeva po 15 minuta za podršku većem broju legitimnih operacija
+  max: 225, // Povećano na 225 zahtjeva po 15 minuta (50% povećanje)
   standardHeaders: true,
   legacyHeaders: false,
   store: store,
@@ -252,7 +252,7 @@ export const sensitiveOperationsLimiter = rateLimit({
 // Limiter for reporting and data export endpoints
 export const reportingLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 200, // Povećano na 200 zahtjeva po satu za podršku masovnom generiranju izvještaja
+  max: 300, // Povećano na 300 zahtjeva po satu (50% povećanje)
   standardHeaders: true,
   legacyHeaders: false,
   store: store,

@@ -423,6 +423,7 @@ model FuelTank {
   identifier            String                 @unique
   updatedAt             DateTime               @updatedAt
   image_url             String?
+  is_deleted            Boolean                @default(false) // Polje za "soft delete" funkcionalnost
   drainRecords          FuelDrainRecord[]
   refills               FuelTankRefill[]
   fuelTransfersAsTarget FuelTransferToTanker[] @relation("TransferToFuelTank")

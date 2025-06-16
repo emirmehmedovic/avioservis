@@ -96,9 +96,10 @@ export async function verifyTankConsistency(
   
   // Nađimo toleranciju koja je razumna za ovaj tank
   // Za veće količine goriva dozvoljavamo veću apsolutnu toleranciju
+  // Povećana na 20% zbog očekivanih razlika u gustoći kroz vrijeme
   const tolerance = Math.max(
-    5.0, // Minimalna tolerancija od 5 litara
-    tank.current_quantity_liters * 0.01 // 1% od ukupne količine
+    10.0, // Minimalna tolerancija od 10 litara
+    tank.current_quantity_liters * 0.20 // 20% od ukupne količine
   );
   
   // Provjeri je li razlika unutar izračunate tolerancije

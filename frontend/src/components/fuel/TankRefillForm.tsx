@@ -30,9 +30,10 @@ interface FixedStorageTank {
   current_quantity_liters: number;
   fuel_type: string;
   // Custom fields for MRN data
-  oldestMrnDate?: string;
-  oldestMrn?: string;
+  oldestMrnDate?: string | null;
+  oldestMrn?: string | null;
   customsData?: CustomsBreakdownItem[];
+  totalMrnLiters?: number; // Ukupna količina goriva iz MRN zapisa
 }
 
 export default function TankRefillForm({ tankId, onSuccess, onCancel }: TankRefillFormProps) {
@@ -89,25 +90,50 @@ export default function TankRefillForm({ tankId, onSuccess, onCancel }: TankRefi
               let oldestMrnDate = null;
               let oldestMrn = null;
               
+              // Izračunaj ukupnu količinu goriva iz MRN zapisa
+              let totalMrnLiters = 0;
+              
               // Process customs data to find the oldest MRN
               if (Array.isArray(customsData)) {
                 // Direct array format
                 if (customsData.length > 0) {
-                  // Sort by date to find oldest
-                  const sorted = [...customsData].sort((a, b) => 
-                    new Date(a.date_received).getTime() - new Date(b.date_received).getTime()
-                  );
-                  oldestMrnDate = sorted[0].date_received;
-                  oldestMrn = sorted[0].mrn;
-                  return { ...tank, oldestMrnDate, oldestMrn, customsData };
+                  // Filtriraj MRN zapise s manje od 1L goriva
+                  const validMrnRecords = customsData.filter(item => item.quantity >= 1);
+                  
+                  // Izračunaj ukupnu količinu iz MRN zapisa
+                  totalMrnLiters = customsData.reduce((total, item) => total + (item.quantity || 0), 0);
+                  
+                  if (validMrnRecords.length > 0) {
+                    // Sort by date to find oldest
+                    const sorted = [...validMrnRecords].sort((a, b) => 
+                      new Date(a.date_received).getTime() - new Date(b.date_received).getTime()
+                    );
+                    oldestMrnDate = sorted[0].date_received;
+                    oldestMrn = sorted[0].mrn;
+                  }
+                  return { ...tank, oldestMrnDate, oldestMrn, customsData, totalMrnLiters };
                 }
               } else if (customsData.customs_breakdown && customsData.customs_breakdown.length > 0) {
                 // Response object format
-                const sorted = [...customsData.customs_breakdown].sort((a, b) => 
-                  new Date(a.date_added).getTime() - new Date(b.date_added).getTime()
+                
+                // Izračunaj ukupnu količinu iz MRN zapisa
+                totalMrnLiters = customsData.customs_breakdown.reduce(
+                  (total, item) => total + (item.remaining_quantity_liters || 0), 
+                  0
                 );
-                oldestMrnDate = sorted[0].date_added;
-                oldestMrn = sorted[0].customs_declaration_number;
+                
+                // Filtriraj MRN zapise s manje od 1L goriva
+                const validMrnRecords = customsData.customs_breakdown.filter(
+                  item => item.remaining_quantity_liters >= 1
+                );
+                
+                if (validMrnRecords.length > 0) {
+                  const sorted = [...validMrnRecords].sort((a, b) => 
+                    new Date(a.date_added).getTime() - new Date(b.date_added).getTime()
+                  );
+                  oldestMrnDate = sorted[0].date_added;
+                  oldestMrn = sorted[0].customs_declaration_number;
+                }
                 
                 // Convert to consistent format for component use
                 const formattedCustomsData = customsData.customs_breakdown.map(item => ({
@@ -116,13 +142,13 @@ export default function TankRefillForm({ tankId, onSuccess, onCancel }: TankRefi
                   date_received: item.date_added
                 }));
                 
-                return { ...tank, oldestMrnDate, oldestMrn, customsData: formattedCustomsData };
+                return { ...tank, oldestMrnDate, oldestMrn, customsData: formattedCustomsData, totalMrnLiters };
               }
               
-              return { ...tank }; // No MRN data
+              return { ...tank, totalMrnLiters: 0 }; // No MRN data
             } catch (error) {
               console.error(`Error fetching customs data for tank ${tank.id}:`, error);
-              return { ...tank }; // Return tank without MRN data on error
+              return { ...tank, totalMrnLiters: 0 }; // Return tank without MRN data on error
             }
           }));
           
@@ -489,7 +515,7 @@ export default function TankRefillForm({ tankId, onSuccess, onCancel }: TankRefi
                     {ft.oldestMrn ? 
                       `MRN: ${ft.oldestMrn} (${ft.oldestMrnDate ? format(new Date(ft.oldestMrnDate), 'dd.MM.yyyy') : 'n/a'})` : 
                       'Nema MRN podataka'} - 
-                    Dostupno: {(ft.current_quantity_liters ?? 0).toLocaleString()} L
+                    Dostupno po MRN: {(ft.totalMrnLiters ?? 0).toLocaleString()} L
                   </option>
                 ))}
               </select>
@@ -554,8 +580,8 @@ export default function TankRefillForm({ tankId, onSuccess, onCancel }: TankRefi
                   <span className="ml-1 text-gray-900 font-medium">{selectedFixedTank.fuel_type}</span>
                 </div>
                 <div>
-                  <span className="text-gray-500">Trenutno stanje:</span>
-                  <span className="ml-1 text-gray-900 font-medium">{(selectedFixedTank.current_quantity_liters ?? 0).toLocaleString()} L</span>
+                  <span className="text-gray-500">Dostupno po MRN:</span>
+                  <span className="ml-1 text-gray-900 font-medium">{(selectedFixedTank.totalMrnLiters ?? 0).toLocaleString()} L</span>
                 </div>
               </div>
             </div>

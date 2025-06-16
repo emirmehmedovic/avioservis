@@ -39,6 +39,11 @@ import fuelConsistencyRoutes from './routes/fuelConsistency.routes'; // Rute za 
 import reserveFuelRoutes from './routes/reserveFuel.routes'; // Rute za upravljanje rezervnim gorivom
 
 const app = express();
+
+// Trust the first proxy in front of the app (e.g., Nginx, Load Balancer)
+// This is important for express-rate-limit to correctly identify client IPs
+app.set('trust proxy', 1);
+
 const PORT = process.env.PORT || 4000;
 
 app.use(cors({

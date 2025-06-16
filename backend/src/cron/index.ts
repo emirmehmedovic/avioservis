@@ -1,4 +1,5 @@
 import { initFuelSyncCronJobs } from './fuelSyncCronJob';
+import { initExcessFuelExchangeJob } from './excessFuelExchangeJob';
 import { logger } from '../utils/logger';
 
 /**
@@ -6,11 +7,14 @@ import { logger } from '../utils/logger';
  */
 export function initAllCronJobs(): void {
   logger.info("Inicijalizacija cron poslova...");
-  
+
   // Inicijalizacija cron poslova za sinhronizaciju goriva
   initFuelSyncCronJobs();
   
+  // Inicijalizacija cron posla za automatsku razmjenu viška goriva
+  initExcessFuelExchangeJob();
+
   // Ovdje se mogu dodati inicijalizacije drugih cron poslova
-  
+
   logger.info("Svi cron poslovi uspješno inicijalizirani.");
 }

@@ -4,7 +4,8 @@ import { parseDecimalValue } from '../utils/numberUtils';
 import prismaClient from '../utils/prisma';
 import { PrismaClient } from '@prisma/client';
 import { logger } from '../utils/logger';
-import { ExcessFuelExchangeResult } from '../utils/excessFuelExchangeService';
+import { v4 as uuidv4 } from 'uuid';
+import { ExcessFuelExchangeResult, processExcessFuelExchange } from '../utils/excessFuelExchangeService';
 
 // Proširena definicija tipa za Prisma klijent koji uključuje tankReserveFuel
 type ExtendedPrismaClient = PrismaClient & {
@@ -18,10 +19,15 @@ const prisma = prismaClient as ExtendedPrismaClient;
  * Dohvaća listu rezervnog goriva za određeni tank
  */
 export const getReserveFuelByTank = async (req: AuthRequest, res: Response): Promise<void> => {
+  const requestId = uuidv4().substring(0, 8); // Generisanje kratkog ID-a za praćenje zahtjeva
+  logger.info(`[${requestId}] getReserveFuelByTank - Početak izvršavanja za korisnika: ${req.user?.username || 'nepoznat'}`);
+  
   try {
     const { tankId, tankType = 'fixed' } = req.params;
+    logger.debug(`[${requestId}] Parametri: tankId=${tankId}, tankType=${tankType}`);
     
     if (!tankId) {
+      logger.warn(`[${requestId}] Nedostaje obavezni parametar tankId`);
       res.status(400).json({ 
         success: false, 
         message: "ID tanka je obavezan parametar" 
@@ -78,11 +84,18 @@ export const getReserveFuelByTank = async (req: AuthRequest, res: Response): Pro
  * Istoči (koristi) rezervno gorivo iz tanka
  */
 export const dispenseReserveFuel = async (req: AuthRequest, res: Response): Promise<void> => {
+  const requestId = uuidv4().substring(0, 8);
+  logger.info(`[${requestId}] dispenseReserveFuel - Početak izvršavanja za korisnika: ${req.user?.username || 'nepoznat'}`);
+
   try {
     const { tankId, tankType = 'fixed' } = req.params;
     const { quantityLiters, notes, referenceOperationId = null } = req.body;
     
+    logger.debug(`[${requestId}] Parametri: tankId=${tankId}, tankType=${tankType}, quantityLiters=${quantityLiters}, referenceOperationId=${referenceOperationId}`);
+    if (notes) logger.debug(`[${requestId}] Notes: ${notes}`);
+    
     if (!tankId || !quantityLiters) {
+      logger.warn(`[${requestId}] Nedostaju obavezni parametri: tankId=${tankId}, quantityLiters=${quantityLiters}`);
       res.status(400).json({ 
         success: false, 
         message: "ID tanka i količina litara su obavezni parametri" 
@@ -283,52 +296,73 @@ export const dispenseReserveFuel = async (req: AuthRequest, res: Response): Prom
 }
 
 /**
- * Dobiva ukupni sažetak rezervnog goriva za sve tankove
+ * Dohvaća sumarni prikaz rezervnog goriva po tipovima tankova
  */
 export const getReserveFuelSummary = async (req: AuthRequest, res: Response): Promise<void> => {
+  const requestId = uuidv4().substring(0, 8);
+  logger.info(`[${requestId}] getReserveFuelSummary - Početak izvršavanja za korisnika: ${req.user?.username || 'nepoznat'}`);
+  
   try {
-    // Dohvaća sve zapise rezervnog goriva koji nisu istočeni
-    const reserveFuel = await prisma.tankReserveFuel.findMany({
-      where: {
-        is_dispensed: false
-      }
-    });
+    // Dohvatamo ukupnu sumu rezervnog goriva po tipovima tankova
+    logger.debug(`[${requestId}] Dohvaćanje sumarne statistike rezervnog goriva po tipovima tankova`); 
+    
+    const summary = await prisma.$queryRaw<{ 
+      tank_type: string; 
+      total_liters: number;
+      total_kg: number; 
+      count: number;
+    }[]>`
+      SELECT 
+        tf.type as tank_type,
+        COALESCE(SUM(trf.liters), 0) as total_liters,
+        COALESCE(SUM(trf.kg), 0) as total_kg,
+        COUNT(trf.id) as count
+      FROM 
+        tank_reserve_fuel trf
+      JOIN 
+        fuel_tanks tf ON tf.id = trf.tank_id
+      GROUP BY 
+        tf.type
+    `;
 
-    // Grupiranje po tipu tanka i ID-u tanka
+    // Sumiranje po tipu tanka
     const tankGroups: Record<string, {
-      tankId: number,
       tankType: string,
       totalLiters: number,
+      totalKg: number,
       recordCount: number
     }> = {};
 
-    for (const record of reserveFuel) {
-      const key = `${record.tank_type}_${record.tank_id}`;
+    logger.debug(`[${requestId}] Dohvaćeni rezultati za ${summary.length} tipova tankova`);
+    
+    for (const record of summary) {
+      const key = record.tank_type;
       
-      if (!tankGroups[key]) {
-        tankGroups[key] = {
-          tankId: record.tank_id,
-          tankType: record.tank_type,
-          totalLiters: 0,
-          recordCount: 0
-        };
-      }
+      tankGroups[key] = {
+        tankType: record.tank_type,
+        totalLiters: Number(record.total_liters),
+        totalKg: Number(record.total_kg),
+        recordCount: Number(record.count)
+      };
       
-      tankGroups[key].totalLiters += Number(record.quantity_liters);
-      tankGroups[key].recordCount += 1;
+      logger.debug(`[${requestId}] ${record.tank_type}: ${record.total_liters.toFixed(2)} L, ${record.total_kg.toFixed(2)} kg, ${record.count} zapisa`);
     }
 
-    // Ukupna količina litara za sve tankove
-    const totalLiters = reserveFuel.reduce((sum: number, record: any) => sum + Number(record.quantity_liters), 0);
+    // Ukupna količina litara i kg za sve tankove
+    const totalLiters = summary.reduce((sum: number, record: any) => sum + Number(record.total_liters), 0);
+    const totalKg = summary.reduce((sum: number, record: any) => sum + Number(record.total_kg), 0);
+    const totalRecords = summary.reduce((sum: number, record: any) => sum + Number(record.count), 0);
 
-    // Uklanjamo 'return' s response poziva
+    logger.info(`[${requestId}] Ukupno rezervno gorivo: ${totalLiters.toFixed(2)} L, ${totalKg.toFixed(2)} kg, ${totalRecords} zapisa`);
+
     res.status(200).json({
       success: true,
       data: {
         tanks: Object.values(tankGroups),
         total: {
           liters: totalLiters,
-          recordCount: reserveFuel.length
+          kg: totalKg,
+          recordCount: totalRecords
         }
       }
     });
@@ -436,6 +470,140 @@ export const getExchangeHistory = async (req: AuthRequest, res: Response): Promi
 /**
  * Dohvaća detaljne informacije o specifičnoj zamjeni viška goriva
  */
+/**
+ * Inicira zamjenu viška goriva s nultim MRN kg ali preostalim litrama
+ * koristeći servis za automatsku zamjenu viška goriva iz najstarijeg MRN zapisa u fiksnim tankovima
+ */
+export const exchangeExcessFuel = async (req: AuthRequest, res: Response): Promise<void> => {
+  const requestId = uuidv4().substring(0, 8);
+  logger.info(`[${requestId}] exchangeExcessFuel - Početak izvršavanja za korisnika: ${req.user?.username || 'nepoznat'}`);
+  
+  try {
+    const { tankId } = req.params;
+    const { sourceMrnId, sourceMrn, excessLiters, density } = req.body;
+    
+    logger.info(`[${requestId}] Zahtjev za zamjenu viška goriva: tankId=${tankId}, sourceMrnId=${sourceMrnId}, sourceMrn=${sourceMrn}, excessLiters=${excessLiters}, density=${density}`);
+    
+    if (!tankId || !sourceMrnId || !sourceMrn || !excessLiters) {
+      logger.warn(`[${requestId}] Nedostaju obavezni parametri za zamjenu`);
+      res.status(400).json({ 
+        success: false, 
+        message: "Nedostaju obavezni parametri za zamjenu viška goriva" 
+      });
+      return;
+    }
+    
+    const tankIdNum = parseInt(tankId, 10);
+    const sourceMrnIdNum = parseInt(sourceMrnId, 10);
+    const excessLitersNum = parseFloat(excessLiters.toString());
+    const densityNum = density ? parseFloat(density.toString()) : null;
+    
+    if (isNaN(tankIdNum) || isNaN(sourceMrnIdNum) || isNaN(excessLitersNum)) {
+      logger.warn(`[${requestId}] Nevaljani brojčani parametri`);
+      res.status(400).json({ 
+        success: false, 
+        message: "Parametri moraju biti validni brojevi" 
+      });
+      return;
+    }
+    
+    if (excessLitersNum <= 0) {
+      logger.warn(`[${requestId}] Količina viška mora biti pozitivna`);
+      res.status(400).json({ 
+        success: false, 
+        message: "Količina viška goriva mora biti pozitivan broj" 
+      });
+      return;
+    }
+    
+    // Provjera postojanja mobilnog tanka
+    const tank = await prisma.fuelTank.findUnique({
+      where: { id: tankIdNum }
+    });
+    
+    if (!tank) {
+      logger.warn(`[${requestId}] Mobilni tank ID=${tankIdNum} nije pronađen`);
+      res.status(404).json({
+        success: false,
+        message: "Mobilni tank nije pronađen"
+      });
+      return;
+    }
+    
+    // Provjera MRN zapisa u mobilnom tanku s viškom goriva
+    // Ovdje tražimo MRN zapis u mobilnoj cisterni koja ima zadani mobile_tank_id
+    const mobileTankMRN = await (prisma as any).mobileTankCustoms.findFirst({
+      where: {
+        mobile_tank_id: tankIdNum,
+        customs_declaration_number: sourceMrn
+      }
+    });
+    
+    if (!mobileTankMRN) {
+      logger.warn(`[${requestId}] MRN ${sourceMrn} nije pronađen u mobilnom tanku ${tankIdNum}`);
+      res.status(404).json({
+        success: false,
+        message: `MRN zapis ${sourceMrn} nije pronađen u mobilnom tanku ${tankIdNum}`
+      });
+      return;
+    }
+    
+    // Provjerimo da mobilni tank stvarno ima preostale litre
+    if (Number(mobileTankMRN.remaining_quantity_liters) < excessLitersNum) {
+      logger.warn(`[${requestId}] Nema dovoljno litara (${mobileTankMRN.remaining_quantity_liters}) za zamjenu viška (${excessLitersNum})`);
+      res.status(400).json({
+        success: false,
+        message: `Nema dovoljno litara za zamjenu viška. Dostupno: ${mobileTankMRN.remaining_quantity_liters}, Zatraženo: ${excessLitersNum}`
+      });
+      return;
+    }
+    
+    logger.info(`[${requestId}] Pronađen MRN zapis ${sourceMrn} u mobilnom tanku ${tankIdNum} s ${mobileTankMRN.remaining_quantity_liters}L za zamjenu ${excessLitersNum}L`);
+    
+    // Ako MRN zapis ima kg==0 i litre>0, to je naš slučaj viška goriva koji trebamo zamijeniti
+    const remainingKg = Number(mobileTankMRN.remaining_quantity_kg || 0);
+    if (remainingKg > 0 && excessLitersNum > 0) {
+      logger.warn(`[${requestId}] MRN zapis ima preostale kg: ${remainingKg}, ovo nije tipičan slučaj viška goriva s kg=0`);
+    }
+    
+    // Poziv servisa za zamjenu viška goriva - ovdje servis preuzima odgovornost za pronalazak najstarijeg MRN-a u fiksnim tankovima
+    logger.info(`[${requestId}] Pozivamo processExcessFuelExchange za tank=${tankIdNum}, litara=${excessLitersNum}`);
+    const exchangeResult = await processExcessFuelExchange(
+      tankIdNum,
+      excessLitersNum,
+      mobileTankMRN.id, // Koristimo ID mobileTankMRN zapisa umjesto sourceMrnIdNum (koji možda ne pripada ovom tanku)
+      sourceMrn,
+      densityNum || Number(mobileTankMRN.density_at_intake) || null  // Koristimo density parametar ili density iz MRN zapisa
+    );
+    
+    if (exchangeResult.success) {
+      // Logiranje uspješne zamjene
+      logger.info(`[${requestId}] Uspješna zamjena viška goriva: ${JSON.stringify(exchangeResult)}`);
+      
+      res.status(200).json({
+        success: true,
+        message: `Uspješno zamijenjen višak goriva: ${excessLitersNum.toFixed(2)} L iz mobilnog tanka ${tankIdNum} u fiksni tank ${exchangeResult.targetFixedTankId}`,
+        data: exchangeResult
+      });
+    } else {
+      logger.warn(`[${requestId}] Neuspješna zamjena viška goriva: ${exchangeResult.error || 'Nepoznat razlog'}`);
+      
+      res.status(400).json({
+        success: false,
+        message: exchangeResult.error || "Greška prilikom zamjene viška goriva",
+        data: exchangeResult
+      });
+    }
+  } catch (error) {
+    logger.error(`Greška prilikom zamjene viška goriva: ${error instanceof Error ? error.message : String(error)}`);
+    res.status(500).json({ 
+      success: false, 
+      message: "Tehnička greška prilikom zamjene viška goriva",
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+};
+
 export const getExchangeDetails = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { exchangeId } = req.params;

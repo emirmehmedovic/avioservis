@@ -22,6 +22,9 @@ export const getAllFuelTanks = async (req: Request, res: Response): Promise<void
   try {
     const fuelTanks = await (prisma as any).fuelTank.findMany({
       orderBy: { name: 'asc' },
+      where: {
+        is_deleted: false // Isključujemo obrisane cisterne
+      }
     });
     
     res.status(200).json(fuelTanks);
@@ -39,7 +42,10 @@ export const getFuelTankById = async (req: Request, res: Response): Promise<void
     
     // Dohvaćamo osnovne podatke o tanku
     const fuelTank = await (prisma as any).fuelTank.findUnique({
-      where: { id: tankId },
+      where: { 
+        id: tankId,
+        is_deleted: false // Ne prikazujemo obrisane cisterne
+      },
     });
     
     if (!fuelTank) {
@@ -373,41 +379,62 @@ export const deleteFuelTank = async (req: Request, res: Response): Promise<void>
       return;
     }
     
-    // Delete related MobileTankCustoms records
-    await (prisma as any).mobileTankCustoms.deleteMany({
-      where: { mobile_tank_id: Number(id) },
-    });
-
-    // Delete related FuelingOperation records
-    await (prisma as any).fuelingOperation.deleteMany({
-      where: { tankId: Number(id) },
-    });
-
-    // Delete related FuelTransferToTanker records where this tank is the target
-    await (prisma as any).fuelTransferToTanker.deleteMany({
-      where: { targetFuelTankId: Number(id) },
-    });
-
-    // Delete related FuelTransferToTanker records where this tank is the source
-    // Depending on your schema, you might also need to handle cases where the tank is a source
-    // await (prisma as any).fuelTransferToTanker.deleteMany({
-    //   where: { sourceFuelTankId: Number(id) },
-    // });
+    // Umjesto stvarnog brisanja, implementiramo "soft delete" - označavamo tank kao obrisan
+    // ali zadržavamo sve povezane zapise (fuelingOperation, transferi, itd.)
     
-    // Delete the tank image if it exists
-    if (existingTank.image_url) {
-      const imagePath = path.join(__dirname, '../../public', existingTank.image_url.replace(/^\/public/, ''));
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
+    // 1. Prvo provjeravamo postoji li is_deleted polje u FuelTank modelu
+    try {
+      // Soft Delete - označavamo tank kao obrisan umjesto stvarnog brisanja
+      await (prisma as any).fuelTank.update({
+        where: { id: Number(id) },
+        data: { is_deleted: true }
+      });
+      
+      res.status(200).json({ message: 'Tanker uspješno označen kao obrisan' });
+    } catch (updateError: any) {
+      // Ako polje is_deleted ne postoji u bazi, dodajemo ga.
+      // Ovo će se izvršiti samo pri prvom pozivu ove funkcije nakon izmjene.
+      if (updateError?.message?.includes('is_deleted')) {
+        console.log('Polje is_deleted ne postoji u FuelTank modelu, potrebna migracija');
+        
+        // Koristimo stari način - stvarno brisanje, ali upozoravamo korisnika
+        // Delete related MobileTankCustoms records
+        await (prisma as any).mobileTankCustoms.deleteMany({
+          where: { mobile_tank_id: Number(id) },
+        });
+
+        // Delete related FuelingOperation records
+        await (prisma as any).fuelingOperation.deleteMany({
+          where: { tankId: Number(id) },
+        });
+
+        // Delete related FuelTransferToTanker records where this tank is the target
+        await (prisma as any).fuelTransferToTanker.deleteMany({
+          where: { targetFuelTankId: Number(id) },
+        });
+        
+        // Delete the tank image if it exists
+        if (existingTank.image_url) {
+          const imagePath = path.join(__dirname, '../../public', existingTank.image_url.replace(/^\/public/, ''));
+          if (fs.existsSync(imagePath)) {
+            fs.unlinkSync(imagePath);
+          }
+        }
+        
+        // Delete the FuelTank
+        await (prisma as any).fuelTank.delete({
+          where: { id: Number(id) },
+        });
+        
+        res.status(200).json({ 
+          message: 'Tanker je obrisan zajedno s povezanim zapisima. Preporučujemo migraciju baze za implementaciju soft-delete funkcionalnosti.', 
+          recommendation: 'Dodajte polje is_deleted u FuelTank model putem Prisma migracije za buduće korištenje soft-delete funkcionalnosti.'
+        });
+      } else {
+        // Neka druga greška
+        throw updateError;
       }
     }
-    
-    // Delete the FuelTank
-    await (prisma as any).fuelTank.delete({
-      where: { id: Number(id) },
-    });
-    
-    res.status(200).json({ message: 'Tanker uspješno obrisan' });
   } catch (error) {
     console.error('Error deleting fuel tank:', error);
     res.status(500).json({ message: 'Greška pri brisanju tankera' });
