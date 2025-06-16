@@ -16,7 +16,7 @@ export interface FuelSyncCronConfig {
 // Zadana konfiguracija
 const DEFAULT_CONFIG: FuelSyncCronConfig = {
   enableDailyCheck: true,
-  enableWeeklySync: true,
+  enableWeeklySync: false, // Onemogućena sedmična automatska korekcija po zahtjevu korisnika
   dailyCheckTime: "01:00", // 1:00 AM
   weeklyFullSyncDay: 0,    // nedjelja
   weeklyFullSyncTime: "03:00" // 3:00 AM
