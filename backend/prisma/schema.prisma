@@ -550,7 +550,7 @@ model FuelingOperation {
   currency              String?
   price_per_kg          Decimal            @db.Decimal(10, 5)
   quantity_kg           Decimal
-  specific_density      Float              @default(0.8)
+  specific_density      Decimal            @default(0.8) @db.Decimal(10, 6)
   total_amount          Decimal            @db.Decimal(15, 5)
   discount_percentage   Float?
   usd_exchange_rate     Decimal?           @db.Decimal(15, 6)
@@ -632,6 +632,8 @@ model TankFuelByCustoms {
   updatedAt                  DateTime          @updatedAt
   fixedTank                  FixedStorageTanks @relation(fields: [fixed_tank_id], references: [id])
   fuelIntakeRecord           FuelIntakeRecords @relation(fields: [fuel_intake_record_id], references: [id], onDelete: Cascade)
+  accumulatedLiterVariance   Decimal           @default(0) @db.Decimal(12, 3)
+  transactionLegs            MrnTransactionLeg[]
 
   @@index([fixed_tank_id])
   @@index([fuel_intake_record_id])
@@ -653,9 +655,55 @@ model MobileTankCustoms {
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
 
-  mobileTank FuelTank @relation(fields: [mobile_tank_id], references: [id])
+  mobileTank                 FuelTank          @relation(fields: [mobile_tank_id], references: [id])
+  accumulatedLiterVariance   Decimal           @default(0) @db.Decimal(12, 3)
+  transactionLegs            MrnTransactionLeg[]
 
   @@index([mobile_tank_id, customs_declaration_number])
+}
+
+model MrnTransactionLeg {
+  id                      Int                @id @default(autoincrement())
+  tankFuelByCustomsId     Int?
+  mobileTankCustomsId     Int?
+  transactionType         MrnTransactionType
+  relatedTransactionId    String?
+  kgTransacted            Decimal            @db.Decimal(12, 3)
+  litersTransactedActual  Decimal            @db.Decimal(12, 3)
+  operationalDensityUsed  Decimal            @db.Decimal(8, 4)
+  literVarianceForThisLeg Decimal            @db.Decimal(12, 3)
+  timestamp               DateTime           @default(now())
+  tankFuelByCustoms       TankFuelByCustoms? @relation(fields: [tankFuelByCustomsId], references: [id], onDelete: Cascade)
+  mobileTankCustoms       MobileTankCustoms? @relation(fields: [mobileTankCustomsId], references: [id], onDelete: Cascade)
+
+  @@index([tankFuelByCustomsId])
+  @@index([mobileTankCustomsId])
+  @@index([timestamp])
+}
+
+model MrnClosedVariance {
+  id                       Int      @id @default(autoincrement())
+  customsDeclarationNumber String   @unique
+  dateMrnClosed            DateTime @default(now())
+  totalKgProcessed         Decimal  @db.Decimal(12, 3)
+  netLiterVariance         Decimal  @db.Decimal(12, 3)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+}
+
+enum MrnTransactionType {
+  INITIAL_INTAKE
+  TRANSFER_TO_TANKER_OUT // Odlazna transakcija iz fiksnog tanka
+  TRANSFER_TO_TANKER_IN // Dolazna transakcija u mobilni tanker
+  FIXED_TO_MOBILE_TRANSFER_OUT
+  FIXED_TO_MOBILE_TRANSFER_IN
+  MOBILE_TO_AIRCRAFT_FUELING
+  FUEL_DRAIN_FROM_FIXED
+  FUEL_DRAIN_FROM_MOBILE
+  ADJUSTMENT_PLUS
+  ADJUSTMENT_MINUS
+  MANUAL_EXCESS_FUEL_SALE
+  EXCESS_TRANSFER_OUT // Automatski transfer viška litara u holding tank
 }
 
 enum Role {

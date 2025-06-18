@@ -37,6 +37,7 @@ import valveTestRoutes from './routes/valveTest.routes'; // Rute za ILPCV i HECP
 import fuelOperationLogRoutes from './routes/fuelOperationLog.routes'; // Rute za praćenje operacija s gorivom
 import fuelConsistencyRoutes from './routes/fuelConsistency.routes'; // Rute za upravljanje nekonzistentnostima goriva
 import reserveFuelRoutes from './routes/reserveFuel.routes'; // Rute za upravljanje rezervnim gorivom
+import fuelExcessRoutes from './routes/fuelExcess.routes'; // Rute za ručnu obradu viška goriva
 
 const app = express();
 
@@ -90,6 +91,7 @@ app.use('/api/fuel/drains', sensitiveOperationsLimiter, fuelDrainRoutes); // Reg
 app.use('/api/fuel-operation-logs', sensitiveOperationsLimiter, fuelOperationLogRoutes); // Registracija ruta za audit logove operacija s gorivom
 app.use('/api/fuel-consistency', sensitiveOperationsLimiter, fuelConsistencyRoutes); // Registracija ruta za upravljanje nekonzistentnostima u podacima o gorivu
 app.use('/api/reserve-fuel', sensitiveOperationsLimiter, reserveFuelRoutes); // Registracija ruta za upravljanje rezervnim gorivom
+app.use('/api/fuel', sensitiveOperationsLimiter, fuelExcessRoutes); // Registracija ruta za ručnu obradu viška goriva
 app.use('/api/airlines', airlineRoutes); // Mount airline routes
 app.use('/api/technical-documents', technicalDocumentRoutes); // Mount technical document routes
 app.use('/api/documents', documentsRouter); // Mount new secure documents router

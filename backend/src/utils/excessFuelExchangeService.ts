@@ -68,18 +68,29 @@ export async function processExcessFuelExchange(
     };
   }
 
-  // Provjeri ima li dovoljno goriva za transfer
-  if (!sourceMrnDensity) {
-    logger.warn(`Nedostaje podatak o gustoći goriva za MRN ${sourceMrn}`);
-    return {
-      success: false,
-      transferredLiters: 0,
-      transferredKg: 0,
-      error: 'Nedostaje podatak o gustoći goriva',
-      sourceMrn,
-      targetMrn: '',
-      targetFixedTankId: 0
-    };
+  // Provjeri imamo li gustoću goriva
+  let density = sourceMrnDensity;
+  
+  // Ako gustoća nije proslijeđena, pokušaj je dohvatiti iz MRN zapisa
+  if (!density) {
+    logger.warn(`Nedostaje podatak o gustoći goriva za MRN ${sourceMrn}, pokušavam dohvatiti iz baze`);
+    try {
+      const mrnRecord = await prisma.mobileTankCustoms.findUnique({
+        where: { id: sourceMrnId }
+      });
+      
+      if (mrnRecord && mrnRecord.density_at_intake) {
+        density = parseFloat(mrnRecord.density_at_intake.toString());
+        logger.info(`Uspješno dohvaćena gustoća iz baze: ${density} za MRN ${sourceMrn}`);
+      } else {
+        // Ako ne možemo dohvatiti gustoću, koristimo defaultnu vrijednost
+        density = 0.785; // Standardna gustoća za JET A-1
+        logger.warn(`Nije moguće dohvatiti gustoću za MRN ${sourceMrn}, koristim standardnu vrijednost ${density}`);
+      }
+    } catch (err) {
+      logger.error(`Greška prilikom dohvata gustoće za MRN ${sourceMrn}:`, err);
+      density = 0.785; // Fallback na standardnu gustoću
+    }
   }
   
   try {

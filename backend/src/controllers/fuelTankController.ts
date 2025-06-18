@@ -27,7 +27,38 @@ export const getAllFuelTanks = async (req: Request, res: Response): Promise<void
       }
     });
     
-    res.status(200).json(fuelTanks);
+    // Za svaki tank, izračunaj calculated_kg iz MRN podataka
+    const tanksWithCalculatedKg = await Promise.all(
+      fuelTanks.map(async (tank: any) => {
+        try {
+          // Dohvati MRN podatke za ovaj tank
+          const mrnData = await (prisma as any).mobileTankCustoms.findMany({
+            where: {
+              mobile_tank_id: tank.id,
+              remaining_quantity_kg: { gt: 0 } // Samo aktivni MRN zapisi
+            }
+          });
+          
+          // Izračunaj ukupnu kg vrijednost iz MRN podataka
+          const calculatedKg = mrnData.reduce((sum: number, item: any) => {
+            return sum + (parseFloat(item.remaining_quantity_kg) || 0);
+          }, 0);
+          
+          console.log(`🔍 Tank ${tank.id} (${tank.name}): current_kg=${tank.current_kg}, calculated_kg=${calculatedKg}`);
+          
+          // Dodaj calculated_kg u odgovor
+          return {
+            ...tank,
+            calculated_kg: calculatedKg > 0 ? calculatedKg : undefined
+          };
+        } catch (error) {
+          console.error(`Error calculating kg for tank ${tank.id}:`, error);
+          return tank; // Vrati originalni tank ako je greška
+        }
+      })
+    );
+    
+    res.status(200).json(tanksWithCalculatedKg);
   } catch (error) {
     console.error('Error fetching fuel tanks:', error);
     res.status(500).json({ message: 'Greška pri dohvaćanju tankera' });
@@ -64,7 +95,7 @@ export const getFuelTankById = async (req: Request, res: Response): Promise<void
         mtc.density_at_intake
       FROM "MobileTankCustoms" mtc
       WHERE mtc.mobile_tank_id = ${tankId}
-        AND mtc.remaining_quantity_liters > 0
+        AND mtc.remaining_quantity_kg > 0
       ORDER BY mtc.date_added ASC
     `;
     
@@ -109,35 +140,29 @@ export const getFuelTankById = async (req: Request, res: Response): Promise<void
     };
     
     // Ako postoje značajne razlike između prikazanih vrijednosti i MRN zapisa,
-    // ažuriramo podatke o cisterni kako bi bili točniji
+    // prikaži upozorenje ali NE ažurira automatski
     const currentLiters = parseFloat(String(fuelTank.current_liters || 0));
     const litersDifference = Math.abs(totalRemainingLiters - currentLiters);
     const currentKg = parseFloat(String(fuelTank.current_kg || fuelTank.current_quantity_kg || 0));
     const kgDifference = Math.abs(calculatedKg - currentKg);
     
-    // Ako je razlika veća od 1 litre ili 1kg, ažuriramo tank
+    // Ako je razlika veća od 1 litre ili 1kg, prikaži upozorenje ali NE ažurira automatski
     if (litersDifference > 1 || kgDifference > 1) {
-      console.log(`[getFuelTankById] Sinkronizacija podataka o cisterni ID=${id}:`);
-      console.log(`- Litre: ${currentLiters} -> ${totalRemainingLiters} (razlika: ${litersDifference.toFixed(2)})`);
-      console.log(`- KG: ${currentKg} -> ${calculatedKg} (razlika: ${kgDifference.toFixed(2)})`);
+      console.log(`[getFuelTankById] UPOZORENJE - Neslaganje podataka o cisterni ID=${id}:`);
+      console.log(`- Litre: ${currentLiters} (trenutno) vs ${totalRemainingLiters} (iz MRN zapisa) - razlika: ${litersDifference.toFixed(2)}L`);
+      console.log(`- KG: ${currentKg} (trenutno) vs ${calculatedKg} (iz MRN zapisa) - razlika: ${kgDifference.toFixed(2)}kg`);
       
-      try {
-        // Ažuriramo podatke o cisterni prema stvarnom MRN stanju
-        await prisma.fuelTank.update({
-          where: { id: tankId },
-          data: {
-            current_liters: totalRemainingLiters,
-            current_kg: calculatedKg
-          }
-        });
-        console.log(`[getFuelTankById] Podaci o cisterni ID=${id} su uspješno sinkronizirani s MRN zapisima.`);
+      // Orphaned liters calculation
+      const orphanedLiters = currentLiters - totalRemainingLiters;
+      if (orphanedLiters > 1) {
+        console.log(`[getFuelTankById] ORPHANED LITERS DETECTED: ${orphanedLiters.toFixed(2)}L u tanku ID=${id}`);
+        console.log(`[getFuelTankById] Ovi litri će trebati transfer u Excess Fuel Holding Tank`);
         
-        // Ažuriramo i odgovor s novim vrijednostima
-        response.current_liters = totalRemainingLiters;
-        response.current_kg = calculatedKg;
-      } catch (updateError) {
-        console.error(`[getFuelTankById] Greška pri ažuriranju podataka o cisterni:`, updateError);
+        // TODO: Implementirati automatski transfer orphaned litara u holding tank
+        // Za sada ne brišemo podatke - čuvamo ih
       }
+      
+      console.log(`[getFuelTankById] PRESERVING existing tank data - no destructive sync performed`);
     }
     
     res.status(200).json(response);
@@ -578,7 +603,7 @@ export const getMobileTankCustomsBreakdown = async (req: Request, res: Response,
         mtc.date_added
       FROM "MobileTankCustoms" mtc
       WHERE mtc.mobile_tank_id = ${tankId}
-        AND mtc.remaining_quantity_liters > 0
+        AND mtc.remaining_quantity_kg > 0
       ORDER BY mtc.date_added ASC
     `;
     

@@ -70,7 +70,7 @@ const OperationsTable: React.FC<OperationsTableProps> = ({ operations, handleRow
                 {(operation.specific_density || 0).toLocaleString('hr-HR', { minimumFractionDigits: 3 })}
               </td>
               <td className="whitespace-nowrap px-3 py-4 text-sm font-medium text-gray-900 text-right">
-                {(operation.quantity_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 })} kg
+                {(operation.quantity_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg
               </td>
               <td className="whitespace-nowrap px-3 py-4 text-sm font-medium text-gray-900 text-right">
                 {(operation.price_per_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 5 })}

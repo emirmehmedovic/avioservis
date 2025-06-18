@@ -1210,6 +1210,42 @@ export async function updateFuelPriceRule(id: number, payload: UpdateFuelPriceRu
 
 // --- Fueling Operations API --- //
 
+// --- Excess Fuel API --- //
+
+// Payload za procesiranje viška goriva
+export interface ProcessExcessFuelPayload {
+  mobileTankId: number;
+  litersQuantity: number;
+  notes?: string;
+}
+
+// Tip za excess fuel history zapis
+export interface ExcessFuelRecord {
+  id: number;
+  tankId: number;
+  tankName: string;
+  excessLiters: number;
+  processedAt: string;
+  notes?: string;
+  processedBy: string;
+}
+
+// Funkcija za procesiranje viška goriva
+export function processExcessFuel(payload: ProcessExcessFuelPayload): Promise<{ success: boolean; message: string }> {
+  return fetchWithAuth('/api/fuel/excess', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+// Funkcija za dohvaćanje povijesti obrade viška goriva
+export function getExcessFuelHistory(): Promise<ExcessFuelRecord[]> {
+  return fetchWithAuth('/api/fuel/excess/history');
+}
+
 // Update a fueling operation
 export async function updateFuelingOperation(id: number, payload: Partial<FuelingOperation>): Promise<FuelingOperation> {
   return fetchWithAuth<FuelingOperation>(`${API_BASE_URL}/api/fuel/fueling-operations/${id}`, {

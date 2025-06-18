@@ -293,13 +293,22 @@ export default function FuelingOperations() {
       // Provjeri da li je unos prazan ili validan broj prema odgovarjućem obrascu
       const pattern = validationPatterns[formKey as keyof typeof validationPatterns];
       if (value === '' || pattern.test(value)) {
-        // Ako je unos prazan, postavi vrijednost na 0, inače pretvori u broj
+        // Samo za interni izračun koristimo zaokruživanje, ali ne mijenjamo prikaz u polju
         const numValue = value === '' ? 0 : parseFloat(value);
+        // Zaokruženi broj za pohranu u formData
+        const roundedValue = value === '' ? 0 : parseFloat(parseFloat(value).toFixed(2));
         
         // Type-safe assignment for numeric fields
         if (formKey === 'quantity_kg') {
           // Ažuriramo kilograme direktno - bez automatskog izračuna litara
-          newFormData.quantity_kg = numValue;
+          // Koristimo zaokruženu vrijednost za pohranu ali ne mijenjamo prikaz
+          newFormData.quantity_kg = roundedValue;
+          
+          // Ažuriramo prikaz u polju - zadržavamo korisnikov unos za bolje tipkanje
+          setTextInputs(prev => ({
+            ...prev,
+            quantity_kg: value // Zadržavamo originalni unos korisnika za bolju interakciju
+          }));
           
           // Ako su i kilogrami i litre veći od 0, izračunajmo specifičnu gustoću
           if (numValue > 0 && newFormData.quantity_liters > 0) {
@@ -520,6 +529,9 @@ export default function FuelingOperations() {
         clearMobileTankCustomsCache(tankIdNum);
         clearFixedTankCustomsCache(tankIdNum);
       }
+      
+      // Jednostavno rješenje: postavi flag u localStorage da se podaci trebaju osvježiti
+      localStorage.setItem('fuelingOperationCompleted', Date.now().toString());
       
       toast.success('Operacija točenja uspješno dodana');
       setShowAddModal(false);

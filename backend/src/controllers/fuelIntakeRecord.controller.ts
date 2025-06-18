@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
-import { PrismaClient, Prisma, FixedTankActivityType } from '@prisma/client';
+import { PrismaClient, Prisma, FixedTankActivityType, MrnTransactionType } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
 import { logActivity } from './activity.controller';
 import { logger } from '../utils/logger';
 import { executeFuelOperation } from '../utils/transactionUtils';
-import { upsertMrnRecord } from '../utils/mrnUtils';
+
 
 const prisma = new PrismaClient();
 
@@ -148,7 +148,7 @@ export const getMrnReport = async (req: Request, res: Response): Promise<void> =
       res.status(400).json({ message: 'MRN broj je obavezan.' });
       return;
     }
-    
+
     // 1. Dohvati zapis o unosu goriva za dati MRN
     const intakeRecord = await prisma.fuelIntakeRecords.findFirst({
       where: { customs_declaration_number: mrn },
@@ -166,92 +166,195 @@ export const getMrnReport = async (req: Request, res: Response): Promise<void> =
       res.status(404).json({ message: `Nije pronađen unos goriva za MRN: ${mrn}` });
       return;
     }
-    
-    // 2. Dohvati sve operacije točenja goriva povezane s ovim MRN-om
-    const fuelingOperations = await prisma.fuelingOperation.findMany({
-      where: { mrnBreakdown: { contains: mrn } },
-      include: {
-        airline: true,
-        tank: true,
-        documents: true
-      },
-      orderBy: { dateTime: 'asc' }
+
+    // 2. Dohvati sve MrnTransactionLeg zapise povezane s ovim MRN-om
+    // Prisma ne dozvoljava direktno filtriranje po mrn jer taj field ne postoji u MrnTransactionLeg
+    // Moramo dohvatiti prvo customs ID pa filtritati po njemu
+    const tankFuelByCustomsRecords = await prisma.tankFuelByCustoms.findMany({
+      where: { customs_declaration_number: mrn },
+      select: { id: true }
     });
     
-    // 3. Dohvati sve zapise o dreniranom gorivu povezane s ovim MRN-om
-    const drainedFuel = await prisma.fuelDrainRecord.findMany({
-      where: { mrnBreakdown: { contains: mrn } },
-      include: {
-        user: true
+    const tankCustomsIds = tankFuelByCustomsRecords.map(record => record.id);
+    
+    // Dohvaćamo sve MrnTransactionLeg zapise povezane s ovim MRN-om preko tankFuelByCustoms ID-eva
+    const mrnTransactionLegs = await prisma.mrnTransactionLeg.findMany({
+      where: {
+        tankFuelByCustomsId: { in: tankCustomsIds.length > 0 ? tankCustomsIds : [-1] }
       },
-      orderBy: { dateTime: 'asc' }
+      include: {
+        tankFuelByCustoms: {
+          include: {
+            fixedTank: true
+          }
+        },
+        mobileTankCustoms: true
+      },
+      orderBy: { timestamp: 'asc' }
     });
     
-    // 4. Izračunaj balans goriva, uzimajući u obzir mrnBreakdown podatke
-    const totalIntake = intakeRecord.quantity_liters_received || 0;
+    // 3. Kalkuliraj sume i balans
+    // Početna vrijednost je ukupan unos goriva za ovaj MRN
+    const totalIntakeKg = Number(intakeRecord.quantity_kg_received) || 0;
+    const totalIntakeLiters = Number(intakeRecord.quantity_liters_received) || 0;
     
-    // Izračunaj točnu količinu goriva iz ovog MRN-a koja je iskorištena u operacijama točenja
-    let totalFuelingOperations = 0;
-    for (const op of fuelingOperations) {
+    // Izračunaj ukupne odljeve i izračunaj stanje
+    let totalOutflowKg = 0;
+    let totalOutflowLiters = 0;
+    let accumulatedLiterVariance = 0;
+    
+    // Prikupi potencijalne ID-jeve povezanih FuelingOperation zapisa
+    const fuelingOperationIds: number[] = [];
+    mrnTransactionLegs.forEach(leg => {
+      if (
+        leg.transactionType === MrnTransactionType.MOBILE_TO_AIRCRAFT_FUELING && 
+        leg.relatedTransactionId && 
+        !isNaN(parseInt(leg.relatedTransactionId))
+      ) {
+        fuelingOperationIds.push(parseInt(leg.relatedTransactionId));
+      }
+    });
+    
+    // Dohvati povezane FuelingOperation zapise ako postoje
+    const fuelingOperations = fuelingOperationIds.length > 0 
+      ? await prisma.fuelingOperation.findMany({
+          where: { id: { in: fuelingOperationIds } },
+          select: { id: true, mrnBreakdown: true }
+        })
+      : [];
+
+    // Kreiraj mapu ID -> mrnBreakdown za brži pristup
+    const fuelOpBreakdownMap = new Map<number, string>();
+    fuelingOperations.forEach(op => {
       if (op.mrnBreakdown) {
-        try {
-          const mrnData = JSON.parse(op.mrnBreakdown);
-          // Tražimo točno ovaj MRN u breakdown podacima
-          const mrnEntry = mrnData.find((entry: { mrn: string, quantity: number }) => entry.mrn === mrn);
-          if (mrnEntry) {
-            totalFuelingOperations += mrnEntry.quantity;
-          }
-        } catch (error) {
-          console.error(`Greška pri parsiranju mrnBreakdown za operaciju ${op.id}:`, error);
-          // Ako ne možemo parsirati, koristimo cijelu količinu kao fallback
-          totalFuelingOperations += Number(op.quantity_liters || 0);
-        }
-      } else {
-        // Ako nema mrnBreakdown podataka, koristimo cijelu količinu
-        totalFuelingOperations += Number(op.quantity_liters || 0);
+        fuelOpBreakdownMap.set(op.id, op.mrnBreakdown);
       }
-    }
-    
-    // Izračunaj točnu količinu dreniranog goriva iz ovog MRN-a
-    let totalDrained = 0;
-    for (const drain of drainedFuel) {
-      if (drain.mrnBreakdown) {
-        try {
-          const mrnData = JSON.parse(drain.mrnBreakdown);
-          // Tražimo točno ovaj MRN u breakdown podacima
-          const mrnEntry = mrnData.find((entry: { mrn: string, quantity: number }) => entry.mrn === mrn);
-          if (mrnEntry) {
-            totalDrained += mrnEntry.quantity;
-          }
-        } catch (error) {
-          console.error(`Greška pri parsiranju mrnBreakdown za drenirano gorivo ${drain.id}:`, error);
-          // Ako ne možemo parsirati, koristimo cijelu količinu kao fallback
-          totalDrained += Number(drain.quantityLiters || 0);
-        }
-      } else {
-        // Ako nema mrnBreakdown podataka, koristimo cijelu količinu
-        totalDrained += Number(drain.quantityLiters || 0);
+    });
+
+    // Izgradi kronološki popis svih transakcija
+    const transactionHistory = mrnTransactionLegs.map(leg => {
+      // KG uvijek imaju prioritet kao pouzdana vrijednost
+      const kgTransacted = Number(leg.kgTransacted) || 0;
+      const litersTransacted = Number(leg.litersTransactedActual) || 0;
+      
+      // Povećavamo outflow samo za negativne transakcije (odljeve goriva)
+      if (kgTransacted < 0) {
+        totalOutflowKg += Math.abs(kgTransacted);
+        totalOutflowLiters += Math.abs(litersTransacted);
       }
-    }
+      
+      // Varianca u litrama
+      if (leg.literVarianceForThisLeg) {
+        accumulatedLiterVariance += Number(leg.literVarianceForThisLeg);
+      }
+      
+      // Provjeri postoji li povezani FuelingOperation i dodaj njegov mrnBreakdown
+      let mrnBreakdown = null;
+      if (leg.relatedTransactionId && !isNaN(parseInt(leg.relatedTransactionId))) {
+        const fuelingOpId = parseInt(leg.relatedTransactionId);
+        mrnBreakdown = fuelOpBreakdownMap.get(fuelingOpId) || null;
+      }
+      
+      // Oblikuj objekt za povijest transakcija
+      return {
+        id: leg.id,
+        date: leg.timestamp,
+        transactionType: leg.transactionType,
+        kgTransacted,
+        litersTransacted,
+        density: leg.operationalDensityUsed ? Number(leg.operationalDensityUsed) : null,
+        customsDeclaration: leg.tankFuelByCustoms?.customs_declaration_number || null,
+        mrnBreakdown, // Dodaj mrnBreakdown podatak iz povezanog FuelingOperation zapisa
+        tankInfo: leg.tankFuelByCustoms?.fixedTank ? {
+          id: leg.tankFuelByCustoms.fixed_tank_id,
+          name: leg.tankFuelByCustoms.fixedTank.tank_name
+        } : null
+      };
+    });
     
-    const balance = totalIntake - totalFuelingOperations - totalDrained;
+    // 4. Izračunaj preostalo gorivo
+    const remainingKg = totalIntakeKg - totalOutflowKg;
+    const remainingLiters = totalIntakeLiters - totalOutflowLiters;
     
     // 5. Vrati kompletne podatke
     res.status(200).json({
       intake: intakeRecord,
-      fuelingOperations,
-      drainedFuel,
+      transactions: transactionHistory,
       balance: {
-        totalIntake,
-        totalFuelingOperations,
-        totalDrained,
-        remainingFuel: balance
-      }
+        totalIntakeKg,
+        totalIntakeLiters,
+        totalOutflowKg,
+        totalOutflowLiters,
+        remainingKg,
+        remainingLiters,
+        accumulatedLiterVariance
+      },
+      isMrnClosed: remainingKg <= 0
     });
     
   } catch (error) {
-    console.error('Error fetching MRN report:', error);
+    logger.error('Error fetching MRN report:', error);
     res.status(500).json({ message: 'Greška prilikom dohvaćanja MRN izvještaja', error: String(error) });
+  }
+};
+
+/**
+ * Generira opis transakcije na temelju tipa transakcije
+ */
+function getTransactionDescription(transaction: any): string {
+  switch (transaction.type) {
+    case 'FUEL_INTAKE':
+      return 'Unos goriva iz carinske deklaracije';
+    case 'FUELING_OPERATION':
+      return `Točenje goriva ${transaction.operation_fueling?.airline?.name || ''} ${transaction.operation_fueling?.aircraft?.registration || ''}`;
+    case 'DRAIN_OPERATION':
+      return 'Drenaža goriva';
+    case 'TRANSFER_TO_FIXED_TANK':
+      return `Transfer u fiksni tank ${transaction.affected_fixed_tank?.name || ''}`;
+    case 'TRANSFER_FROM_FIXED_TANK':
+      return `Transfer iz fiksnog tanka ${transaction.affected_fixed_tank?.name || ''}`;
+    case 'TRANSFER_TO_TANKER_IN':
+      return `Prihvat u mobilni tanker ${transaction.affected_mobile_tank?.registration_number || ''}`;
+    case 'TRANSFER_TO_TANKER_OUT':
+      return `Izdavanje iz fiksnog tanka ${transaction.affected_fixed_tank?.name || ''}`;
+    default:
+      return `Transakcija tipa ${transaction.type}`;
+  }
+}
+
+/**
+ * Dobiva informacije o povezanom entitetu ovisno o tipu transakcije
+ */
+function getRelatedEntityInfo(transaction: any): any {
+  switch (transaction.type) {
+    case 'FUELING_OPERATION':
+      return transaction.operation_fueling ? {
+        id: transaction.operation_fueling.id,
+        type: 'fueling',
+        airline: transaction.operation_fueling.airline,
+        aircraft: transaction.operation_fueling.aircraft
+      } : null;
+    case 'DRAIN_OPERATION':
+      return transaction.operation_drain ? {
+        id: transaction.operation_drain.id,
+        type: 'drain'
+      } : null;
+    case 'TRANSFER_TO_FIXED_TANK':
+    case 'TRANSFER_FROM_FIXED_TANK':
+      return transaction.affected_fixed_tank ? {
+        id: transaction.affected_fixed_tank.id,
+        type: 'fixedTank',
+        name: transaction.affected_fixed_tank.name
+      } : null;
+    case 'TRANSFER_TO_TANKER_IN':
+    case 'TRANSFER_TO_TANKER_OUT':
+      return transaction.affected_mobile_tank ? {
+        id: transaction.affected_mobile_tank.id,
+        type: 'mobileTank',
+        registration: transaction.affected_mobile_tank.registration_number
+      } : null;
+    default:
+      return null;
   }
 };
 
@@ -434,12 +537,16 @@ export const createFuelIntakeRecord: RequestHandler<unknown, unknown, any, unkno
           }
           
           console.log(`Creating transfer record for this tank`);
+          // Izračunaj proporcionalnu količinu KG za ovaj tank na temelju postotka litara distribuiranih u tank
+          const tankDistributionPercentage = parseFloat(dist.quantity_liters) / parseFloat(quantity_liters_received);
+          const tankKg = parseFloat(quantity_kg_received) * tankDistributionPercentage;
+          
           const transferRecord = await tx.fixedTankTransfers.create({
             data: {
               activity_type: FixedTankActivityType.INTAKE,
               affected_fixed_tank_id: tankId,
               quantity_liters_transferred: parseFloat(dist.quantity_liters),
-              quantity_kg_transferred: parseFloat(specific_gravity) * parseFloat(dist.quantity_liters), // Calculate kg using specific gravity
+              quantity_kg_transferred: tankKg, // Koristimo proporcionalni dio deklariranih KG
               transfer_datetime: new Date(intake_datetime),
               fuel_intake_record_id: newFuelIntakeRecord.id,
               notes: `Prijem goriva: ${delivery_note_number || 'Bez otpremnice'}${customs_declaration_number ? `, MRN: ${customs_declaration_number}` : ''}`,
@@ -451,20 +558,59 @@ export const createFuelIntakeRecord: RequestHandler<unknown, unknown, any, unkno
           const mrnNumber = customs_declaration_number || `UNTRACKED-INTAKE-${newFuelIntakeRecord.id}`;
           const quantityLiters = parseFloat(dist.quantity_liters);
           
-          // Koristi upsert funkciju umjesto direktnog SQL upita
-          // Izračunaj količinu u kilogramima koristeći specifičnu težinu (gustoću)
-          const quantityKg = parseFloat((quantityLiters * specific_gravity).toFixed(3));
+          // Izračunaj proporcionalni dio KG za ovaj MRN na temelju distribucije litara
+          const mrnDistributionPercentage = quantityLiters / parseFloat(quantity_liters_received);
+          const quantityKg = parseFloat(quantity_kg_received) * mrnDistributionPercentage;
           
-          await upsertMrnRecord(tx, {
-            tankId,
-            mrnNumber,
-            quantityLiters,
-            quantityKg,
-            specificGravity: parseFloat(specific_gravity), // Dodano: prosljeđivanje specific_gravity vrijednosti
-            fuelIntakeRecordId: newFuelIntakeRecord.id,
-            dateAdded: new Date(intake_datetime)
+          // Izračunaj stvarnu gustoću na osnovu deklariranih litara i kilograma
+          // Ovo je točnija reprezentacija prave gustoće goriva za ovaj unos
+          const calculatedDensity = parseFloat(quantity_kg_received) / parseFloat(quantity_liters_received);
+          
+          const existingRecord = await tx.tankFuelByCustoms.findFirst({
+            where: {
+              fixed_tank_id: tankId,
+              customs_declaration_number: mrnNumber
+            }
           });
-          console.log(`Created customs tracking record for tank ID ${tankId}, MRN: ${mrnNumber}, quantity: ${dist.quantity_liters} L`);
+
+          if (existingRecord) {
+            logger.info(`Ažuriranje postojećeg MRN zapisa: ${mrnNumber} za tank ID ${tankId}`);
+            const updatedQuantityLiters = new Prisma.Decimal(existingRecord.quantity_liters.toString()).add(new Prisma.Decimal(quantityLiters.toString()));
+            const updatedRemainingLiters = new Prisma.Decimal(existingRecord.remaining_quantity_liters.toString()).add(new Prisma.Decimal(quantityLiters.toString()));
+            const updatedQuantityKg = new Prisma.Decimal(existingRecord.quantity_kg?.toString() ?? '0').add(new Prisma.Decimal(quantityKg.toString()));
+            const updatedRemainingKg = new Prisma.Decimal(existingRecord.remaining_quantity_kg?.toString() ?? '0').add(new Prisma.Decimal(quantityKg.toString()));
+
+            await tx.tankFuelByCustoms.update({
+              where: {
+                id: existingRecord.id
+              },
+              data: {
+                quantity_liters: updatedQuantityLiters.toNumber(),
+                remaining_quantity_liters: updatedRemainingLiters.toNumber(),
+                quantity_kg: updatedQuantityKg.toNumber(),
+                remaining_quantity_kg: updatedRemainingKg.toNumber(),
+                updatedAt: new Date()
+              }
+            });
+          } else {
+            logger.info(`Kreiranje novog MRN zapisa: ${mrnNumber} za tank ID ${tankId}`);
+            await tx.tankFuelByCustoms.create({
+              data: {
+                fixed_tank_id: tankId,
+                customs_declaration_number: mrnNumber,
+                quantity_liters: quantityLiters,
+                remaining_quantity_liters: quantityLiters,
+                quantity_kg: quantityKg,
+                remaining_quantity_kg: quantityKg,
+                density_at_intake: calculatedDensity, // Koristimo izračunatu gustoću iz deklariranih KG/L
+                fuel_intake_record_id: newFuelIntakeRecord.id,
+                date_added: new Date(intake_datetime),
+                createdAt: new Date(),
+                updatedAt: new Date()
+              }
+            });
+          }
+          console.log(`Created customs tracking record for tank ID ${tankId}, MRN: ${mrnNumber}, quantity: ${dist.quantity_liters} L / ${quantityKg.toFixed(2)} KG, density: ${calculatedDensity.toFixed(4)}`);
           
           console.log(`Updating FixedStorageTanks current_quantity_liters for tank ID: ${tankId}.`);
           await tx.fixedStorageTanks.update({

@@ -1,5 +1,25 @@
 // frontend/src/components/fuel/types.ts
 
+// FuelTank definition
+export interface FuelTank {
+  id: number;
+  identifier: string;
+  name: string;
+  location: string;
+  location_description?: string;
+  capacity_liters: number;
+  current_liters: number;
+  current_kg?: number; // Polje za količinu u kilogramima
+  current_quantity_liters?: number; // Kompatibilnost
+  current_quantity_kg?: number; // Kompatibilnost s fiksnim tankovima
+  calculated_kg?: number; // Novo polje - točna vrijednost u kilogramima izračunata iz MRN zapisa
+  total_remaining_liters_from_mrn?: number; // Ukupni preostali litri iz MRN zapisa
+  fuel_type: string;
+  last_refill_date?: string;
+  last_maintenance_date?: string;
+  image_url?: string; // URL to the tank image
+}
+
 // From FuelProjections.tsx
 export interface ProjectionInputRow {
   id: string;

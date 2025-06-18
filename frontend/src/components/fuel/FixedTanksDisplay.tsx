@@ -84,8 +84,8 @@ export default function FixedTanksDisplay({
   const [totalFuel, setTotalFuel] = useState<number>(0);
   const [totalFuelKg, setTotalFuelKg] = useState<number>(0);
 
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [fuelTypeFilter, setFuelTypeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [fuelTypeFilter, setFuelTypeFilter] = useState<string>('ALL');
   const [isAddTankModalOpen, setIsAddTankModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedTankForDetails, setSelectedTankForDetails] = useState<FixedStorageTank | null>(null);
@@ -146,11 +146,13 @@ export default function FixedTanksDisplay({
             totalWeightedDensity += density * liters;
             totalLiters += liters;
 
+            // Uvijek koristi remaining_quantity_kg iz API-ja kao autoritativni izvor
             const remainingKg = typeof item.remaining_quantity_kg === 'number' ?
               item.remaining_quantity_kg :
               parseFloat(String(item.remaining_quantity_kg || '0'));
-
-            totalKgCalc += remainingKg || (liters * density);
+            
+            // Direktno dodajemo remaining_quantity_kg bez fallbacka na izračun liters * density
+            totalKgCalc += remainingKg;
           });
 
           const avgDensity = totalLiters > 0 ? totalWeightedDensity / totalLiters : 0.8;
@@ -191,14 +193,25 @@ export default function FixedTanksDisplay({
 
   useEffect(() => {
     let tempTanks = [...tanks];
-    if (statusFilter !== 'all') {
+    
+    // Filter based on status
+    if (statusFilter && statusFilter !== 'ALL') {
       tempTanks = tempTanks.filter(tank => tank.status === statusFilter);
     }
-    if (fuelTypeFilter !== 'all') {
+    
+    // Filter based on fuel type
+    if (fuelTypeFilter && fuelTypeFilter !== 'ALL') {
       tempTanks = tempTanks.filter(tank => tank.fuel_type === fuelTypeFilter);
     }
+    
+    // Filter out EXCESS_FUEL_HOLDING from main table
+    tempTanks = tempTanks.filter(tank => tank.tank_name !== 'EXCESS_FUEL_HOLDING');
+    
     setFilteredTanks(tempTanks);
   }, [tanks, statusFilter, fuelTypeFilter]);
+
+  // Separate holding tank for dedicated display
+  const holdingTank = tanks.find(tank => tank.tank_name === 'EXCESS_FUEL_HOLDING');
 
   const getStatusBadgeClasses = (status: FixedTankStatus): string => {
     switch (status) {
@@ -308,7 +321,7 @@ export default function FixedTanksDisplay({
                 onClick={() => setIsTransferModalOpen(true)}
                 className="backdrop-blur-md bg-white/10 border border-white/20 text-white shadow-lg hover:bg-white/20 transition-all py-2 px-4 rounded-xl flex items-center space-x-2 text-sm"
               >
-                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16.0002 4.00001H8.00016C6.89559 4.00001 6.00016 4.89544 6.00016 6.00001V18C6.00016 19.1046 6.89559 20 8.00016 20H16.0002C17.1047 20 18.0002 19.1046 18.0002 18V6.00001C18.0002 4.89544 17.1047 4.00001 16.0002 4.00001ZM12.0002 16L9.00016 13H11.0002V10C11.0002 9.44772 11.4479 9.00001 12.0002 9.00001C12.5524 9.00001 13.0002 9.44772 13.0002 10V13H15.0002L12.0002 16Z" fill="currentColor"/></svg>
+                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
                 <span>Pretakanje (Fiksni u Fiksni)</span>
               </Button>
             )}
@@ -353,7 +366,7 @@ export default function FixedTanksDisplay({
         {filteredTanks.length === 0 && !loading && (
           <div className="text-center py-16 bg-gray-50 rounded-lg border border-dashed border-gray-300 transition-all hover:border-[#E60026]/30">
             <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M20 10V7C20 5.34315 18.6569 4 17 4H7C5.34315 4 4 5.34315 4 7V10M20 10V19C20 20.1046 19.1046 21 18 21H6C4.89543 21 4 20.1046 4 19V10M20 10H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
             <p className="text-gray-500 text-lg">Nema fiksnih tankova koji odgovaraju zadatim filterima.</p>
             <p className="text-gray-400 mt-2">Pokušajte sa drugim filterima ili dodajte novi tank.</p>
@@ -394,7 +407,9 @@ export default function FixedTanksDisplay({
                     <TableRow key={tank.id} className="hover:bg-gray-50 transition-colors">
                       <TableCell className="font-medium text-gray-800">{tank.tank_name}</TableCell>
                       <TableCell>
-                        <span className="px-2 py-1 bg-gray-100 rounded text-xs font-medium text-gray-700">{tank.tank_identifier}</span>
+                        <span className="px-2 py-1 bg-gray-100 rounded text-xs font-medium text-gray-700">
+                          {tank.tank_identifier || 'N/A'}
+                        </span>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center">
@@ -469,20 +484,76 @@ export default function FixedTanksDisplay({
             </Table>
           </div>
         )}
+        
+        {holdingTank && (
+          <div className="mt-8">
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-6 border border-amber-200">
+              <div className="flex items-center mb-4">
+                <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center mr-3">
+                  <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-amber-800">Holding Tank za višak litara</h3>
+              </div>
+              
+              <div className="bg-white/60 rounded-lg p-4 backdrop-blur-sm">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-amber-700 mb-1">Naziv</span>
+                    <div className="flex items-center">
+                      <div className="w-6 h-6 bg-amber-100 rounded-full flex items-center justify-center mr-2">
+                        <svg className="w-3 h-3 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                        </svg>
+                      </div>
+                      <span className="text-gray-800 font-medium">EXCESS FUEL</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-amber-700 mb-1">Tip</span>
+                    <span className="text-gray-800 font-medium">VIRTUAL HOLDING</span>
+                  </div>
+                  
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-amber-700 mb-1">Trenutna količina</span>
+                    <div className="text-xl font-bold text-amber-800">
+                      {holdingTank.current_quantity_liters.toLocaleString()} L
+                    </div>
+                  </div>
+                </div>
+                
+                {holdingTank.current_quantity_liters > 0 && (
+                  <div className="mt-4 p-3 bg-amber-100 rounded-lg">
+                    <div className="flex items-center text-amber-800">
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-sm font-medium">
+                        Ovaj tank sadrži {holdingTank.current_quantity_liters.toLocaleString()}L goriva iz različitih MRN zapisa
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <FixedTankDetailsModal
+          tank={selectedTankForDetails}
+          isOpen={isDetailsModalOpen}
+          onClose={handleCloseDetailsModal}
+        />
+
+        <FixedToFixedTransferModal
+          isOpen={isTransferModalOpen}
+          onClose={() => setIsTransferModalOpen(false)}
+          onTransferSuccess={handleTransferSuccess}
+          availableTanks={tanks}
+        />
       </div>
-
-      <FixedTankDetailsModal
-        tank={selectedTankForDetails}
-        isOpen={isDetailsModalOpen}
-        onClose={handleCloseDetailsModal}
-      />
-
-      <FixedToFixedTransferModal
-        isOpen={isTransferModalOpen}
-        onClose={() => setIsTransferModalOpen(false)}
-        onTransferSuccess={handleTransferSuccess}
-        availableTanks={tanks}
-      />
     </div>
   );
 }

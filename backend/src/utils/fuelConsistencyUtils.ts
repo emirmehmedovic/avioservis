@@ -1,208 +1,143 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import { logger } from './logger';
-
-// Tip koji pokriva sve varijante transakcijskih klijenata koje koristimo
-// Za jednostavnost koristimo 'any' za metode koje dodajemo Prisma TransactionClient-u
-// jer nam nije potrebna stroga tipizacija za trenutne potrebe
-export type AnyTransactionClient = Prisma.TransactionClient | {
-  [key: string]: any;
-  systemLog?: {
-    create: (args: any) => Promise<any>;
-  }
-};
-
-// Tip za provjere i castove, koristimo ga gdje je potrebno
-export type ExtendedTransactionClient = AnyTransactionClient;
+import { Decimal } from '@prisma/client/runtime/library';
 
 const prisma = new PrismaClient();
 
 /**
- * Tip za rezultat provjere konzistentnosti tanka
+ * Interface for the result of a tank consistency check.
  */
 export interface TankConsistencyResult {
   tankId: number;
   tankName: string;
   isConsistent: boolean;
-  currentQuantityLiters: number;
-  sumMrnQuantities: number;
-  difference: number;
-  tolerance: number;
+  currentQuantityLiters: Decimal;
+  sumMrnQuantities: Decimal;
+  difference: Decimal;
+  tolerance: Decimal;
   mrnRecords: {
     id: number;
     customsDeclarationNumber: string;
-    remainingQuantityLiters: number;
-    remainingQuantityKg?: number;
-    dateAdded?: Date;
+    remainingQuantityLiters: Decimal;
+    remainingQuantityKg: Decimal | null;
+    dateAdded: Date;
   }[];
 }
 
 /**
- * Provjerava konzistentnost količine goriva u tanku sa sumom MRN zapisa
+ * Verifies the consistency of a fuel tank's quantity against the sum of its MRN records.
  * 
- * @param tankId ID fiksnog tanka za provjeru
- * @param tx Opcionalna Prisma transakcija
- * @returns Rezultat provjere konzistentnosti
+ * @param tankId The ID of the fixed tank to check.
+ * @param tx Optional Prisma transaction client.
+ * @returns A promise that resolves to the consistency check result.
  */
 export async function verifyTankConsistency(
   tankId: number, 
-  tx?: AnyTransactionClient
+  tx?: Prisma.TransactionClient
 ): Promise<TankConsistencyResult> {
   const client = tx || prisma;
   
-  // Dohvati podatke o tanku
   const tank = await client.fixedStorageTanks.findUnique({
     where: { id: tankId },
-    select: {
-      id: true,
-      tank_name: true,
-      current_quantity_liters: true
-    }
+    select: { id: true, tank_name: true, current_quantity_liters: true }
   });
   
   if (!tank) {
-    throw new Error(`Tank s ID ${tankId} nije pronađen`);
+    throw new Error(`Tank with ID ${tankId} not found.`);
   }
   
-  // Dohvati sve MRN zapise vezane uz tank - uz dodatne detalje za bolju dijagnostiku
-  const mrnRecords = await client.tankFuelByCustoms.findMany({
+  const mrnRecordsRaw = await client.tankFuelByCustoms.findMany({
     where: { fixed_tank_id: tankId },
     select: {
       id: true,
       customs_declaration_number: true,
       remaining_quantity_liters: true,
       remaining_quantity_kg: true,
-      quantity_liters: true,
-      quantity_kg: true,
       date_added: true
     }
   });
+
+  // Map raw records to the expected type for the result, ensuring type safety.
+  const mrnRecords = mrnRecordsRaw.map(r => ({
+      id: r.id,
+      customsDeclarationNumber: r.customs_declaration_number,
+      remainingQuantityLiters: r.remaining_quantity_liters,
+      remainingQuantityKg: r.remaining_quantity_kg,
+      dateAdded: r.date_added,
+  }));
   
-  logger.debug(`Pronađeno ${mrnRecords.length} MRN zapisa za tank ID ${tankId}:`);
-  mrnRecords.forEach((record: any, index: number) => {
-    logger.debug(`MRN ${index + 1}: ${record.customs_declaration_number}, L: ${record.remaining_quantity_liters}, KG: ${record.remaining_quantity_kg}`);
-  });
-  
-  // Izračunaj sumu preostalih količina iz MRN zapisa
   const sumMrnQuantities = mrnRecords.reduce(
-    (sum: number, record: { remaining_quantity_liters: number }) => {
-      const value = parseFloat(String(record.remaining_quantity_liters || 0));
-      return sum + value;
-    },
-    0
+    (sum, record) => sum.plus(record.remainingQuantityLiters),
+    new Decimal(0)
   );
   
-  // Izračunaj razliku između količine u tanku i sume MRN zapisa
-  const difference = Math.abs(tank.current_quantity_liters - sumMrnQuantities);
-  
-  // Nađimo toleranciju koja je razumna za ovaj tank
-  // Za veće količine goriva dozvoljavamo veću apsolutnu toleranciju
-  // Povećana na 20% zbog očekivanih razlika u gustoći kroz vrijeme
-  const tolerance = Math.max(
-    10.0, // Minimalna tolerancija od 10 litara
-    tank.current_quantity_liters * 0.20 // 20% od ukupne količine
-  );
-  
-  // Provjeri je li razlika unutar izračunate tolerancije
-  const isConsistent = difference <= tolerance;
-  
-  // Logiraj rezultat provjere
+  const currentQuantityLiters = new Decimal(tank.current_quantity_liters);
+  const difference = currentQuantityLiters.minus(sumMrnQuantities).abs();
+  const tolerance = Decimal.max(currentQuantityLiters.mul(0.005), new Decimal(50)); // 0.5% or 50L, whichever is greater.
+  const isConsistent = difference.lessThanOrEqualTo(tolerance);
+
   if (!isConsistent) {
-    logger.warn(`Nekonzistentnost podataka u tanku ${tank.tank_name} (ID: ${tankId}): Tank sadrži ${tank.current_quantity_liters} L, suma MRN zapisa: ${sumMrnQuantities.toFixed(2)} L, razlika: ${difference.toFixed(3)} L (tolerancija: ${tolerance.toFixed(2)} L)`);
-    
-    // Ispiši detaljnije informacije o MRN zapisima za pomoć pri dijagnostici
-    logger.warn(`Detalji MRN zapisa za tank ${tank.tank_name} (ID: ${tankId}):`);
-    mrnRecords.forEach((record: any) => {
-      logger.warn(`- MRN: ${record.customs_declaration_number || 'N/A'}, ID: ${record.id}, L: ${record.remaining_quantity_liters}, inicijalno L: ${record.quantity_liters}, dodan: ${record.date_added}`);
-    });
-  } else {
-    logger.debug(`Tank ${tank.tank_name} (ID: ${tankId}) je konzistentan: ${tank.current_quantity_liters} L = ${sumMrnQuantities.toFixed(2)} L (razlika: ${difference.toFixed(3)} L, tolerancija: ${tolerance.toFixed(2)} L)`);
+    logger.warn(
+      `Tank ${tank.tank_name} (ID: ${tankId}) is inconsistent. ` +
+      `Difference: ${difference.toFixed(2)} L, ` +
+      `Tank Qty: ${currentQuantityLiters.toFixed(2)} L, ` +
+      `MRN Sum: ${sumMrnQuantities.toFixed(2)} L, ` +
+      `Tolerance: ${tolerance.toFixed(2)} L`
+    );
   }
-  
+
   return {
     tankId: tank.id,
     tankName: tank.tank_name,
     isConsistent,
-    currentQuantityLiters: tank.current_quantity_liters,
+    currentQuantityLiters,
     sumMrnQuantities,
     difference,
     tolerance,
-    mrnRecords: mrnRecords.map((record: any) => ({
-      id: record.id,
-      customsDeclarationNumber: record.customs_declaration_number || 'N/A',
-      remainingQuantityLiters: parseFloat(String(record.remaining_quantity_liters || 0)),
-      remainingQuantityKg: parseFloat(String(record.remaining_quantity_kg || 0)),
-      dateAdded: record.date_added
-    }))
+    mrnRecords, // Use the correctly mapped records.
   };
 }
 
 /**
- * Provjerava konzistentnost podataka za više tankova
+ * Verifies the consistency for multiple tanks at once.
  * 
- * @param tankIds Lista ID-eva tankova za provjeru
- * @param tx Opcionalna Prisma transakcija
- * @returns Rezultati provjere za sve tankove
+ * @param tankIds Array of tank IDs to check.
+ * @param tx Optional Prisma transaction client.
+ * @returns An array of consistency check results.
  */
 export async function verifyMultipleTanksConsistency(
   tankIds: number[],
-  tx?: AnyTransactionClient
+  tx?: Prisma.TransactionClient
 ): Promise<TankConsistencyResult[]> {
-  return Promise.all(tankIds.map(tankId => verifyTankConsistency(tankId, tx)));
+  return Promise.all(tankIds.map(id => verifyTankConsistency(id, tx)));
 }
 
 /**
- * Provjerava postoji li dovoljno goriva za operaciju i je li raspodjela po MRN zapisima moguća
+ * Checks if a fuel operation can be performed based on available quantity.
+ * This function now checks against KG, as it's the source of truth.
  * 
- * @param tankId ID fiksnog tanka
- * @param requestedQuantity Tražena količina goriva za operaciju
- * @param tx Opcionalna Prisma transakcija
- * @returns True ako je operacija moguća, inače false
+ * @param tankId The ID of the tank.
+ * @param requiredAmountKg The amount of fuel in KG required for the operation.
+ * @param tx Optional Prisma transaction client.
+ * @returns True if the operation can be performed, otherwise false.
  */
 export async function canPerformFuelOperation(
   tankId: number,
-  requestedQuantity: number,
-  tx?: AnyTransactionClient
+  requiredAmountKg: Decimal,
+  tx?: Prisma.TransactionClient
 ): Promise<boolean> {
   const client = tx || prisma;
   
-  // Dohvati tank
   const tank = await client.fixedStorageTanks.findUnique({
     where: { id: tankId },
-    select: {
-      id: true,
-      current_quantity_liters: true
-    }
+    select: { current_quantity_kg: true }
   });
   
   if (!tank) {
+    logger.error(`Tank with ID ${tankId} not found during fuel operation check.`);
     return false;
   }
   
-  // Provjeri ima li dovoljno goriva u tanku
-  if (tank.current_quantity_liters < requestedQuantity) {
-    return false;
-  }
-  
-  // Dohvati MRN zapise i provjeri ima li dovoljno po MRN zapisima
-  const mrnRecords = await client.tankFuelByCustoms.findMany({
-    where: { fixed_tank_id: tankId },
-    select: {
-      id: true,
-      remaining_quantity_liters: true
-    },
-    orderBy: { date_added: 'asc' } // FIFO princip
-  });
-  
-  // Provjeri imaju li MRN zapisi dovoljno goriva
-  let remainingToAllocate = requestedQuantity;
-  // Eksplicitno definiranje tipa za cjeloviti niz a ne za pojedinačni element
-  for (const record of mrnRecords as Array<{ id: number, remaining_quantity_liters: number }>) {
-    remainingToAllocate -= Math.min(record.remaining_quantity_liters, remainingToAllocate);
-    if (remainingToAllocate <= 0) {
-      return true;
-    }
-  }
-  
-  // Ako smo došli do ovdje, nema dovoljno goriva u MRN zapisima
-  return false;
+  const currentKg = new Decimal(tank.current_quantity_kg);
+  return currentKg.greaterThanOrEqualTo(requiredAmountKg);
 }

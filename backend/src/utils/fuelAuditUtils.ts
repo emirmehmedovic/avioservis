@@ -1,6 +1,6 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import { logger } from './logger';
-import { AnyTransactionClient } from './fuelConsistencyUtils';
+import { Decimal } from '@prisma/client/runtime/library';
 
 // Moguće vrijednosti FuelOperationType enuma
 export enum FuelOperationType {
@@ -26,7 +26,7 @@ export interface FuelOperationLogData {
   sourceEntityId: number;
   targetEntityType?: string;
   targetEntityId?: number;
-  quantityLiters: number;
+  quantityLiters: Decimal;
   fuelType: string;
   userId?: number;
   transactionId?: string;
@@ -61,17 +61,14 @@ export async function logFuelOperation(
   details: FuelOperationDetails,
   stateBefore: EntityState,
   stateAfter: EntityState,
-  tx?: AnyTransactionClient
-): Promise<any> {
+  tx?: Prisma.TransactionClient
+): Promise<Prisma.FuelOperationLogGetPayload<{}>> {
   const client = tx || prisma;
   
   try {
-    // Vrsta operacije iz enuma pretvorena u string
-    const operationType = String(logData.operationType);
-    
-    const logEntry = await (client as any).fuelOperationLog.create({
+    const logEntry = await client.fuelOperationLog.create({
       data: {
-        operationType: operationType as any,
+        operationType: logData.operationType,
         description: logData.description,
         details: JSON.stringify(details),
         stateBefore: JSON.stringify(stateBefore),
@@ -80,7 +77,7 @@ export async function logFuelOperation(
         sourceEntityId: logData.sourceEntityId,
         targetEntityType: logData.targetEntityType,
         targetEntityId: logData.targetEntityId,
-        quantityLiters: logData.quantityLiters,
+        quantityLiters: logData.quantityLiters.toNumber(), // Convert Decimal to number for logging
         fuelType: logData.fuelType,
         userId: logData.userId,
         transactionId: logData.transactionId
@@ -91,8 +88,7 @@ export async function logFuelOperation(
     return logEntry;
   } catch (error) {
     logger.error(`Greška prilikom bilježenja operacije goriva: ${error}`);
-    // Ne bacamo grešku ovdje kako ne bi prekinuli glavnu operaciju
-    return null;
+    throw new Error(`Failed to log fuel operation: ${error}`);
   }
 }
 
@@ -109,18 +105,15 @@ export async function logFailedFuelOperation(
   logData: FuelOperationLogData,
   error: any,
   stateBefore: EntityState,
-  tx?: AnyTransactionClient
-): Promise<any> {
+  tx?: Prisma.TransactionClient
+): Promise<void> {
   const client = tx || prisma;
   
   try {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    // Vrsta operacije iz enuma pretvorena u string
-    const operationType = String(logData.operationType);
-    
-    const logEntry = await (client as any).fuelOperationLog.create({
+    const logEntry = await client.fuelOperationLog.create({
       data: {
-        operationType: operationType as any,
+        operationType: logData.operationType,
         description: `NEUSPJEŠNO: ${logData.description}`,
         details: JSON.stringify({ error: errorMessage }),
         stateBefore: JSON.stringify(stateBefore),
@@ -129,7 +122,7 @@ export async function logFailedFuelOperation(
         sourceEntityId: logData.sourceEntityId,
         targetEntityType: logData.targetEntityType,
         targetEntityId: logData.targetEntityId,
-        quantityLiters: logData.quantityLiters,
+        quantityLiters: logData.quantityLiters.toNumber(), // Convert Decimal to number for logging
         fuelType: logData.fuelType,
         userId: logData.userId,
         transactionId: logData.transactionId,
@@ -139,11 +132,8 @@ export async function logFailedFuelOperation(
     });
     
     logger.warn(`Zapisana neuspješna operacija goriva: ${logData.operationType}, ID: ${logEntry.id}`);
-    return logEntry;
   } catch (logError) {
     logger.error(`Greška prilikom bilježenja neuspješne operacije goriva: ${logError}`);
-    // Ne bacamo grešku ovdje kako ne bi prekinuli glavnu operaciju
-    return null;
   }
 }
 
@@ -154,19 +144,17 @@ export async function logFailedFuelOperation(
  * @param client Prisma klijent
  * @returns Stanje tanka s MRN zapisima
  */
-export async function getTankStateForLogging(tankId: number, client: AnyTransactionClient = prisma): Promise<EntityState> {
+export async function getTankStateForLogging(
+  tankId: number,
+  client: Prisma.TransactionClient | PrismaClient = prisma
+): Promise<EntityState> {
   try {
-    // Dohvaćamo osnovne podatke o tanku izbjegavajući ugniježđene upite koji uzrokuju SelectionSetOnScalar grešku
     const tank = await client.fixedStorageTanks.findUnique({
       where: { id: tankId },
-      select: {
-        id: true,
-        tank_name: true,
-        tank_identifier: true,
-        capacity_liters: true,
-        current_quantity_liters: true,
-        updatedAt: true,
-        fuel_type: true // Direktno dohvaćamo fuel_type string
+      include: {
+        tankFuelByCustoms: {
+          orderBy: { date_added: 'asc' }
+        }
       }
     });
     
@@ -174,26 +162,7 @@ export async function getTankStateForLogging(tankId: number, client: AnyTransact
       return { id: tankId, error: "Tank nije pronađen" };
     }
     
-    // Zasebno dohvaćamo MRN zapise za tank
-    const tankFuelByCustoms = await client.tankFuelByCustoms.findMany({
-      where: { fixed_tank_id: tankId },
-      select: {
-        id: true,
-        customs_declaration_number: true,
-        quantity_liters: true,
-        remaining_quantity_liters: true,
-        date_added: true
-      },
-      orderBy: {
-        date_added: 'asc'
-      }
-    });
-    
-    // Vraćamo rezultat koji ima isti format kao prije
-    return {
-      ...tank,
-      tankFuelByCustoms
-    };
+    return tank;
   } catch (error) {
     logger.error(`Greška prilikom dohvaćanja stanja tanka ${tankId} za log: ${error}`);
     return { id: tankId, error: "Greška prilikom dohvaćanja podataka" };
@@ -206,17 +175,9 @@ export async function getTankStateForLogging(tankId: number, client: AnyTransact
  * @param operationId ID operacije
  * @returns Detaljni zapis operacije
  */
-export async function getFuelOperationDetails(operationId: number): Promise<any> {
-  return await (prisma as any).fuelOperationLog.findUnique({
-    where: { id: operationId },
-    include: {
-      user: {
-        select: {
-          id: true,
-          username: true
-        }
-      }
-    }
+export async function getFuelOperationDetails(operationId: number) {
+  return await prisma.fuelOperationLog.findUnique({
+    where: { id: operationId }
   });
 }
 
@@ -239,28 +200,24 @@ export async function getFuelOperations(params: {
   endDate?: Date;
   fuelType?: string;
   success?: boolean;
-}): Promise<{ data: any[]; total: number; page: number; pageSize: number; }> {
-  const {
+}) {
+  const { 
     page = 1, 
     pageSize = 20, 
     operationType, 
-    sourceEntityType,
-    sourceEntityId,
-    targetEntityType,
-    targetEntityId,
-    userId,
-    startDate,
-    endDate,
+    sourceEntityType, 
+    sourceEntityId, 
+    targetEntityType, 
+    targetEntityId, 
+    userId, 
+    startDate, 
+    endDate, 
     fuelType,
     success
   } = params;
 
-  const skip = (page - 1) * pageSize;
-
-  // Kreiraj filter na osnovu parametara
-  const where: any = {};
-  
-  if (operationType) where.operationType = operationType;
+  const where: Prisma.FuelOperationLogWhereInput = {};
+  if (operationType) where.operationType = operationType as FuelOperationType;
   if (sourceEntityType) where.sourceEntityType = sourceEntityType;
   if (sourceEntityId) where.sourceEntityId = sourceEntityId;
   if (targetEntityType) where.targetEntityType = targetEntityType;
@@ -268,33 +225,20 @@ export async function getFuelOperations(params: {
   if (userId) where.userId = userId;
   if (fuelType) where.fuelType = fuelType;
   if (success !== undefined) where.success = success;
-  
-  // Raspon datuma
   if (startDate || endDate) {
     where.timestamp = {};
     if (startDate) where.timestamp.gte = startDate;
     if (endDate) where.timestamp.lte = endDate;
   }
 
-  // Dohvati podatke s paginacijom
-  const [data, total] = await Promise.all([
-    (prisma as any).fuelOperationLog.findMany({
+  const [data, total] = await prisma.$transaction([
+    prisma.fuelOperationLog.findMany({
       where,
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true
-          }
-        }
-      },
-      orderBy: {
-        timestamp: 'desc'
-      },
-      skip,
-      take: pageSize
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      orderBy: { timestamp: 'desc' }
     }),
-    (prisma as any).fuelOperationLog.count({ where })
+    prisma.fuelOperationLog.count({ where })
   ]);
 
   return {

@@ -5,6 +5,7 @@ import {
   getFuelIntakeRecordById,
   updateFuelIntakeRecord,
   deleteFuelIntakeRecord,
+  getMrnReport
 } from '../controllers/fuelIntakeRecord.controller';
 import { authenticateToken } from '../middleware/auth';
 
@@ -17,6 +18,7 @@ router.use(authenticateToken);
 
 router.post('/', createFuelIntakeRecord);
 router.get('/', getAllFuelIntakeRecords);
+router.get('/mrn-report/:mrn', getMrnReport);
 router.get('/:id', getFuelIntakeRecordById);
 router.put('/:id', updateFuelIntakeRecord);
 router.delete('/:id', deleteFuelIntakeRecord);

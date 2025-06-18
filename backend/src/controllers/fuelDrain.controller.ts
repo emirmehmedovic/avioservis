@@ -92,7 +92,7 @@ export const createFuelDrainRecord = async (req: AuthRequest, res: Response, nex
         SELECT id, customs_declaration_number, remaining_quantity_liters 
         FROM "TankFuelByCustoms" 
         WHERE fixed_tank_id = ${parsedSourceId} 
-          AND remaining_quantity_liters > 0 
+          AND remaining_quantity_kg > 0 
         ORDER BY date_added ASC
       `;
       
@@ -372,7 +372,7 @@ export const createFuelDrainRecord = async (req: AuthRequest, res: Response, nex
           SELECT id, customs_declaration_number, remaining_quantity_liters 
           FROM "TankFuelByCustoms" 
           WHERE fixed_tank_id = ${parsedSourceId} 
-            AND remaining_quantity_liters > 0 
+            AND remaining_quantity_kg > 0 
           ORDER BY date_added ASC
         `;
         

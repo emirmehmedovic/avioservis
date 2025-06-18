@@ -39,6 +39,8 @@ export default function TankRefillForm({ tankId, onSuccess, onCancel }: TankRefi
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     quantity_liters: 0,
+    operational_density: 0.8, // Defaultna vrijednost za gustoću (kg/L)
+    quantity_kg: 0, // Izračunata vrijednost u kg
     supplier: '',
     invoice_number: '',
     price_per_liter: 0,
@@ -86,14 +88,33 @@ export default function TankRefillForm({ tankId, onSuccess, onCancel }: TankRefi
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData({
+    
+    // Pripremi nove podatke forme
+    const newData = {
       ...formData,
-      [name]: name.includes('_liters') || name.includes('price') 
+      [name]: name.includes('_liters') || name.includes('price') || name.includes('_density') || name.includes('_kg')
         ? parseFloat(value) || 0 
         : value,
       // Ensure supplier-specific fields are reset if switching away from supplier
       ...(refillSourceType !== 'supplier' && name === 'refillSourceType' && { supplier: '', invoice_number: '', price_per_liter: 0 })
-    });
+    };
+    
+    // Automatski izračunaj količinu u kg na temelju litara i gustoće
+    if (name === 'quantity_liters' || name === 'operational_density') {
+      const liters = name === 'quantity_liters' ? parseFloat(value) || 0 : formData.quantity_liters;
+      const density = name === 'operational_density' ? parseFloat(value) || 0 : formData.operational_density;
+      newData.quantity_kg = parseFloat((liters * density).toFixed(3));
+    }
+    // Automatski izračunaj količinu u litrama na temelju kg i gustoće
+    else if (name === 'quantity_kg') {
+      const kg = parseFloat(value) || 0;
+      const density = formData.operational_density;
+      if (density > 0) {
+        newData.quantity_liters = parseFloat((kg / density).toFixed(3));
+      }
+    }
+    
+    setFormData(newData);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -320,21 +341,61 @@ export default function TankRefillForm({ tankId, onSuccess, onCancel }: TankRefi
             />
           </div>
           
-          <div>
-            <label htmlFor="quantity_liters" className="block text-sm font-medium text-gray-700">
-              Količina (litara)
-            </label>
-            <input
-              type="number"
-              name="quantity_liters"
-              id="quantity_liters"
-              min="0.1"
-              step="0.1"
-              value={formData.quantity_liters || ''}
-              onChange={handleInputChange}
-              required
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            />
+          <div className="sm:col-span-2 border-b pb-4 mb-4">
+            <h4 className="text-sm font-medium text-indigo-700 mb-3">Količina i gustoća</h4>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label htmlFor="quantity_liters" className="block text-sm font-medium text-gray-700">
+                  Količina (litara)
+                </label>
+                <input
+                  type="number"
+                  name="quantity_liters"
+                  id="quantity_liters"
+                  min="0.1"
+                  step="0.1"
+                  value={formData.quantity_liters || ''}
+                  onChange={handleInputChange}
+                  required
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="operational_density" className="block text-sm font-medium text-gray-700">
+                  Gustoća (kg/L)
+                </label>
+                <input
+                  type="number"
+                  name="operational_density"
+                  id="operational_density"
+                  min="0.5"
+                  max="1.5"
+                  step="0.001"
+                  value={formData.operational_density || ''}
+                  onChange={handleInputChange}
+                  required
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="quantity_kg" className="block text-sm font-medium text-gray-700">
+                  Količina (kg)
+                </label>
+                <input
+                  type="number"
+                  name="quantity_kg"
+                  id="quantity_kg"
+                  min="0.1"
+                  step="0.1"
+                  value={formData.quantity_kg || ''}
+                  onChange={handleInputChange}
+                  required
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                />
+              </div>
+            </div>
           </div>
           
           {refillSourceType === 'supplier' && (

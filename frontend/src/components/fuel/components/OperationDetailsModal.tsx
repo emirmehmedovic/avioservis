@@ -348,7 +348,7 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = ({ operation
               <div className="mb-6 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                 <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center">
                   <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M3.55 19.09L12 13.5L20.45 19.09C20.2726 19.3176 20.0216 19.4726 19.7341 19.5348C19.4466 19.597 19.1468 19.5626 18.88 19.44L12 16.24L5.12 19.44C4.85323 19.5626 4.55336 19.597 4.26588 19.5348C3.97839 19.4726 3.72736 19.3176 3.55 19.09ZM12 3C10.9 3 9.9 3.9 9.9 5L9.9 5.1L3 10.46V14.5H5V11.58L12 6.5L19 11.58V14.5H21V10.46L14.1 5.1C14.1 3.9 13.1 3 12 3Z" fill="currentColor"/>
+                    <path d="M3.55 19.09L19.78 7.22L16.06 3.5L15 4.56L17.11 6.67C16.17 7.03 15.5 7.93 15.5 9C15.5 10.38 16.62 11.5 18 11.5C18.36 11.5 18.69 11.42 19 11.29V18.5C19 19.05 18.55 19.5 18 19.5C17.45 19.5 17 19.05 17 18.5V14C17 12.9 16.1 12 15 12H14V5C14 3.9 13.1 3 12 3H6C4.9 3 4 3.9 4 5V21H14V13.5H15.5V18.5C15.5 19.88 16.62 21 18 21C19.38 21 20.5 19.88 20.5 18.5V9C20.5 8.31 20.22 7.68 19.77 7.23ZM12 10H6V5H12V10Z" fill="currentColor"/>
                   </svg>
                   Informacije o letu
                 </h4>
@@ -430,7 +430,7 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = ({ operation
                   <div className="bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700">
                     <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Količina (kg)</div>
                     <div className="font-semibold text-gray-900 dark:text-gray-100">
-                      {(operation.quantity_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 })} kg
+                      {(operation.quantity_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg
                     </div>
                   </div>
                 </div>
@@ -477,7 +477,7 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = ({ operation
                       className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                       </svg>
                       Uredi
                     </button>
@@ -519,7 +519,7 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = ({ operation
                     <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-indigo-100 dark:border-indigo-800 shadow-sm">
                       <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Obračun po formuli</h4>
                       <div className="flex items-center space-x-2 text-lg font-semibold text-gray-800 dark:text-gray-200">
-                        <span>{(operation.quantity_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 })} kg</span>
+                        <span>{(operation.quantity_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg</span>
                         <span>×</span>
                         <span>{(operation.price_per_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 5 })} {operation.currency || 'BAM'}</span>
                         {operation.discount_percentage && operation.discount_percentage > 0 && (

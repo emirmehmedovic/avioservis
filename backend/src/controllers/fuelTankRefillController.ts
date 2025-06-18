@@ -26,6 +26,8 @@ const tankRefillSchema = z.object({
     message: 'Datum mora biti validan',
   }),
   quantity_liters: z.number().positive('Količina mora biti pozitivan broj'),
+  quantity_kg: z.number().positive('Količina u kilogramima mora biti pozitivan broj'),
+  operational_density: z.number().positive('Operacijska gustoća mora biti pozitivan broj'),
   supplier: z.string().min(1, 'Dobavljač je obavezan'),
   invoice_number: z.string().optional(),
   price_per_liter: z.number().optional(),
@@ -73,7 +75,7 @@ export const createTankRefill = async (req: Request, res: Response): Promise<voi
       return;
     }
     
-    const { date, quantity_liters, supplier, invoice_number, price_per_liter, notes } = validationResult.data;
+    const { date, quantity_liters, quantity_kg, operational_density, supplier, invoice_number, price_per_liter, notes } = validationResult.data;
     
     // Check if the tank exists
     const tank = await (prisma as any).fuelTank.findUnique({
@@ -88,20 +90,27 @@ export const createTankRefill = async (req: Request, res: Response): Promise<voi
     // Check if the refill would exceed the tank's capacity
     // Koristimo sigurnu funkciju za obradu decimalnih vrijednosti
     const currentLiters = parseDecimalValue(tank.current_liters);
+    const currentKg = parseDecimalValue(tank.current_kg);
     const capacityLiters = parseDecimalValue(tank.capacity_liters);
     const addedLiters = parseDecimalValue(quantity_liters);
+    const addedKg = parseDecimalValue(quantity_kg);
     
     // Detaljno logiranje za debug
     logger.info(`Provjera kapaciteta tanka ID ${id}:`);
     logger.info(`Raw current_liters value: ${String(tank.current_liters)}`);
+    logger.info(`Raw current_kg value: ${String(tank.current_kg)}`);
     logger.info(`Raw capacity_liters value: ${String(tank.capacity_liters)}`);
     logger.info(`Raw quantity_liters value: ${String(quantity_liters)}`);
+    logger.info(`Raw quantity_kg value: ${String(quantity_kg)}`);
     logger.info(`Parsed currentLiters: ${currentLiters.toFixed(3)} L`);
+    logger.info(`Parsed currentKg: ${currentKg.toFixed(3)} kg`);
     logger.info(`Parsed capacityLiters: ${capacityLiters.toFixed(3)} L`);
     logger.info(`Parsed addedLiters: ${addedLiters.toFixed(3)} L`);
+    logger.info(`Parsed addedKg: ${addedKg.toFixed(3)} kg`);
     
     const newAmount = currentLiters + addedLiters;
-    logger.info(`Novo stanje: ${newAmount.toFixed(3)} L`);
+    const newKgAmount = currentKg + addedKg;
+    logger.info(`Novo stanje: ${newAmount.toFixed(3)} L, ${newKgAmount.toFixed(3)} kg`);
     
     // Provjeri nekonzistentnost - trenutno stanje veće od kapaciteta
     if (currentLiters > capacityLiters) {
@@ -150,6 +159,8 @@ export const createTankRefill = async (req: Request, res: Response): Promise<voi
           tankId: Number(id),
           date: new Date(date),
           quantity_liters,
+          quantity_kg,
+          operational_density,
           supplier,
           invoice_number,
           price_per_liter,
@@ -163,6 +174,7 @@ export const createTankRefill = async (req: Request, res: Response): Promise<voi
         where: { id: Number(id) },
         data: {
           current_liters: newAmount, // Koristimo već izračunatu vrijednost koja je sigurno broj
+          current_kg: newKgAmount, // Ažuriraj current_kg polje
         },
       }),
     ]);

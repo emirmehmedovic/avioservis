@@ -1,13 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient, Prisma, FixedTankActivityType } from '@prisma/client';
+import { PrismaClient, Prisma, FixedTankActivityType, MrnTransactionType } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
-import { removeFuelFromMrnRecordsByKg } from '../utils/mrnUtils'; // KG-based FIFO
 import * as densityUtils from '../utils/densityUtils'; // Import density utilities
 import { executeFuelOperation } from '../utils/transactionUtils';
 import { Decimal } from '@prisma/client/runtime/library'; // For Prisma Decimal type
-import { ExtendedTransactionClient } from '../utils/fuelConsistencyUtils'; // Import ExtendedTransactionClient
+// Koristimo standardni Prisma.TransactionClient umjesto nestandardnog ExtendedTransactionClient
 import { processExcessFuelExchange } from '../utils/excessFuelExchangeService'; // Za automatsku zamjenu viška goriva
+import { createMrnTransaction, processMrnDeduction } from '../services/mrnTransaction.service';
 
 const prisma = new PrismaClient();
 
@@ -84,6 +84,7 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
     } else {
       // Pokušamo dohvatiti specifičnu težinu iz MRN zapisa ako postoji
       try {
+        // Dohvaćamo SVE MRN zapise (ne samo prvi) za izračun prosjeka gustoće
         const mrnRecords = await prisma.$queryRaw<any[]>`
           SELECT
             id,
@@ -95,34 +96,52 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
           WHERE fixed_tank_id = ${parsedSourceFixedStorageTankId}
             AND remaining_quantity_kg > 0
           ORDER BY date_added ASC
-          LIMIT 1
         `;
         
         if (mrnRecords.length > 0) {
-          const record = mrnRecords[0];
+          // Izračunamo weighted average density na temelju svih MRN zapisa
+          let totalKgForDensity = new Decimal(0);
+          let totalLitersForDensity = new Decimal(0);
+          let validRecordsCount = 0;
           
-          // Ensure density is available
-          if (!record.density_at_intake) {
-            // Ako nema gustoće, izračunamo je iz kg i litara
-            try {
-              record.density_at_intake = record.remaining_quantity_kg.div(record.remaining_quantity_liters);
-              logger.info(`Izračunata gustoća za ${record.customs_declaration_number}: ${record.density_at_intake} (bez zaokruživanja)`);
-            } catch (e: any) {
-              logger.error(`Greška pri izračunu gustoće za MRN ${record.customs_declaration_number}: ${e?.message || 'Unknown error'}`);
+          for (const record of mrnRecords) {
+            // Ensure density is available for each record
+            if (!record.density_at_intake) {
+              // Ako nema gustoće, izračunamo je iz kg i litara
+              try {
+                const recordKg = new Decimal(record.remaining_quantity_kg || 0);
+                const recordLiters = new Decimal(record.remaining_quantity_liters || 0);
+                if (recordLiters.greaterThan(0)) {
+                  record.density_at_intake = recordKg.div(recordLiters).toNumber();
+                  logger.info(`Izračunata gustoća za ${record.customs_declaration_number}: ${record.density_at_intake} (bez zaokruživanja)`);
+                }
+              } catch (e: any) {
+                logger.error(`Greška pri izračunu gustoće za MRN ${record.customs_declaration_number}: ${e?.message || 'Unknown error'}`);
+                continue;
+              }
+            }
+            
+            if (record.density_at_intake) {
+              const recordKg = new Decimal(record.remaining_quantity_kg || 0);
+              const recordLiters = new Decimal(record.remaining_quantity_liters || 0);
+              
+              totalKgForDensity = totalKgForDensity.plus(recordKg);
+              totalLitersForDensity = totalLitersForDensity.plus(recordLiters);
+              validRecordsCount++;
+              
+              logger.debug(`MRN ${record.customs_declaration_number}: ${recordKg.toFixed(3)} KG, ${recordLiters.toFixed(3)} L, gustoća ${record.density_at_intake}`);
             }
           }
           
-          // Koristimo density_at_intake ako postoji
-          if (record.density_at_intake) {
-            try {
-              parsedSpecificGravity = new Decimal(String(record.density_at_intake));
-              logger.info(`Koristi se MRN gustoća: ${parsedSpecificGravity} iz MRN zapisa ${record.customs_declaration_number}`);
-            } catch (e: any) {
-              logger.error(`Greška pri parsiranju density_at_intake: ${e?.message || 'Unknown error'}`);
-            }
+          // Koristimo weighted average density ako imamo validne zapise
+          if (validRecordsCount > 0 && totalLitersForDensity.greaterThan(0)) {
+            parsedSpecificGravity = totalKgForDensity.div(totalLitersForDensity);
+            logger.info(`Koristi se weighted average gustoća: ${parsedSpecificGravity.toFixed(6)} iz ${validRecordsCount} MRN zapisa (ukupno ${totalKgForDensity.toFixed(3)} KG / ${totalLitersForDensity.toFixed(3)} L)`);
           } else {
-            logger.warn(`Nije pronađena informacija o gustoći u MRN zapisima za tank ${parsedSourceFixedStorageTankId}, koristi se default ${parsedSpecificGravity}`);
+            logger.warn(`Nije moguće izračunati weighted average gustoću za tank ${parsedSourceFixedStorageTankId}, koristi se default ${parsedSpecificGravity}`);
           }
+        } else {
+          logger.warn(`Nema aktivnih MRN zapisa za tank ${parsedSourceFixedStorageTankId}, koristi se default gustoća ${parsedSpecificGravity}`);
         }
       } catch (error: any) {
         logger.error('Greška pri dohvatu MRN zapisa za informacije o gustoći:', error);
@@ -145,6 +164,7 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
     } else {
       // Pokušamo dohvatiti specifičnu težinu iz MRN zapisa ako postoji
       try {
+        // Dohvaćamo SVE MRN zapise (ne samo prvi) za izračun prosjeka gustoće
         const mrnRecords = await prisma.$queryRaw<any[]>`
           SELECT
             id,
@@ -156,34 +176,52 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
           WHERE fixed_tank_id = ${parsedSourceFixedStorageTankId}
             AND remaining_quantity_kg > 0
           ORDER BY date_added ASC
-          LIMIT 1
         `;
         
         if (mrnRecords.length > 0) {
-          const record = mrnRecords[0];
+          // Izračunamo weighted average density na temelju svih MRN zapisa
+          let totalKgForDensity = new Decimal(0);
+          let totalLitersForDensity = new Decimal(0);
+          let validRecordsCount = 0;
           
-          // Ensure density is available
-          if (!record.density_at_intake) {
-            // Ako nema gustoće, izračunamo je iz kg i litara
-            try {
-              record.density_at_intake = record.remaining_quantity_kg.div(record.remaining_quantity_liters);
-              logger.info(`Izračunata gustoća za ${record.customs_declaration_number}: ${record.density_at_intake} (bez zaokruživanja)`);
-            } catch (e: any) {
-              logger.error(`Greška pri izračunu gustoće za MRN ${record.customs_declaration_number}: ${e?.message || 'Unknown error'}`);
+          for (const record of mrnRecords) {
+            // Ensure density is available for each record
+            if (!record.density_at_intake) {
+              // Ako nema gustoće, izračunamo je iz kg i litara
+              try {
+                const recordKg = new Decimal(record.remaining_quantity_kg || 0);
+                const recordLiters = new Decimal(record.remaining_quantity_liters || 0);
+                if (recordLiters.greaterThan(0)) {
+                  record.density_at_intake = recordKg.div(recordLiters).toNumber();
+                  logger.info(`Izračunata gustoća za ${record.customs_declaration_number}: ${record.density_at_intake} (bez zaokruživanja)`);
+                }
+              } catch (e: any) {
+                logger.error(`Greška pri izračunu gustoće za MRN ${record.customs_declaration_number}: ${e?.message || 'Unknown error'}`);
+                continue;
+              }
+            }
+            
+            if (record.density_at_intake) {
+              const recordKg = new Decimal(record.remaining_quantity_kg || 0);
+              const recordLiters = new Decimal(record.remaining_quantity_liters || 0);
+              
+              totalKgForDensity = totalKgForDensity.plus(recordKg);
+              totalLitersForDensity = totalLitersForDensity.plus(recordLiters);
+              validRecordsCount++;
+              
+              logger.debug(`MRN ${record.customs_declaration_number}: ${recordKg.toFixed(3)} KG, ${recordLiters.toFixed(3)} L, gustoća ${record.density_at_intake}`);
             }
           }
           
-          // Koristimo density_at_intake ako postoji
-          if (record.density_at_intake) {
-            try {
-              parsedSpecificGravity = new Decimal(String(record.density_at_intake));
-              logger.info(`Koristi se MRN gustoća: ${parsedSpecificGravity} iz MRN zapisa ${record.customs_declaration_number}`);
-            } catch (e: any) {
-              logger.error(`Greška pri parsiranju density_at_intake: ${e?.message || 'Unknown error'}`);
-            }
+          // Koristimo weighted average density ako imamo validne zapise
+          if (validRecordsCount > 0 && totalLitersForDensity.greaterThan(0)) {
+            parsedSpecificGravity = totalKgForDensity.div(totalLitersForDensity);
+            logger.info(`Koristi se weighted average gustoća: ${parsedSpecificGravity.toFixed(6)} iz ${validRecordsCount} MRN zapisa (ukupno ${totalKgForDensity.toFixed(3)} KG / ${totalLitersForDensity.toFixed(3)} L)`);
           } else {
-            logger.warn(`Nije pronađena informacija o gustoći u MRN zapisima za tank ${parsedSourceFixedStorageTankId}, koristi se default ${parsedSpecificGravity}`);
+            logger.warn(`Nije moguće izračunati weighted average gustoću za tank ${parsedSourceFixedStorageTankId}, koristi se default ${parsedSpecificGravity}`);
           }
+        } else {
+          logger.warn(`Nema aktivnih MRN zapisa za tank ${parsedSourceFixedStorageTankId}, koristi se default gustoća ${parsedSpecificGravity}`);
         }
       } catch (error: any) {
         logger.error('Greška pri dohvatu MRN zapisa za informacije o gustoći:', error);
@@ -214,7 +252,7 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
     let excessFuelExchangeResult: any = null;
     
     const result = await executeFuelOperation(
-      async (tx: ExtendedTransactionClient) => { // Use ExtendedTransactionClient
+      async (tx: Prisma.TransactionClient) => { // Koristimo standardni Prisma.TransactionClient
         // 1. Validate Source Fixed Tank (using KG primarily)
         const sourceTank = await tx.fixedStorageTanks.findUnique({
           where: { id: parsedSourceFixedStorageTankId },
@@ -356,11 +394,20 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
 
         // 3. FIFO MRN Deduction (KG-based)
         logger.info(`Deducting ${parsedQuantityKg.toFixed(3)} KG of fuel from fixed tank ID: ${parsedSourceFixedStorageTankId} by MRN records (KG-FIFO).`);
-        const { deductionDetails } = await removeFuelFromMrnRecordsByKg(
+        
+        // Koristimo trenutnu operativnu gustoću za izračun litara
+        // Sačuvat ćemo ID transakcije kao string izvršene operacije
+        const operationId = `transfer_${Date.now()}`;
+        
+        // Koristimo processMrnDeduction umjesto stare removeFuelFromMrnRecordsByKg funkcije
+        const deductionDetails = await processMrnDeduction(
           tx,
           parsedSourceFixedStorageTankId,
-          parsedQuantityKg.toNumber(), // removeFuelFromMrnRecordsByKg expects number
-          false // false = fiksni tank (nije mobilni)
+          parsedQuantityKg.toNumber(), 
+          parsedSpecificGravity.toNumber(), // Operativna gustoća za konverziju
+          false, // false = fiksni tank (nije mobilni)
+          MrnTransactionType.TRANSFER_TO_TANKER_OUT, // Tip transakcije
+          operationId // ID povezane transakcije
         );
 
         // 4. Prepare MRN Breakdown for transfer
@@ -369,7 +416,6 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
           quantityKg: Decimal;
           quantityLiters: Decimal;
           densityAtIntake: Decimal; // Specific density for this MRN batch
-          sourceMrnRecordId: number;
         }> = [];
 
         let totalDeductedKgFromMrns = new Decimal(0);
@@ -377,15 +423,15 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
 
         for (const detail of deductionDetails) {
           // Dohvati originalni TankFuelByCustoms zapis da bismo dobili točnu gustoću za taj MRN
-          const originalMrnRecord = await tx.tankFuelByCustoms.findUnique({
-            where: { id: detail.id },
+          const originalMrnRecord = await tx.tankFuelByCustoms.findFirst({
+            where: { customs_declaration_number: detail.mrn }, // U TankFuelByCustoms, MRN je pohranjem kao customs_declaration_number
             select: { density_at_intake: true } // Assuming density_at_intake is stored per MRN
           });
 
           let itemDensity: Decimal;
           if (!originalMrnRecord || !originalMrnRecord.density_at_intake) {
             // Ako gustoća nije pronađena u MRN zapisu, koristimo onu koja je prosljeđena u zahtjevu ili početnu
-            logger.warn(`Gustoća nije pronađena za MRN zapis ID ${detail.id}. Koristimo ukupnu gustoću transfera ${parsedSpecificGravity.toFixed(4)} kao rezervnu vrijednost.`);
+            logger.warn(`Gustoća nije pronađena za MRN ${detail.mrn}. Koristimo ukupnu gustoću transfera ${parsedSpecificGravity.toFixed(4)} kao rezervnu vrijednost.`);
             itemDensity = parsedSpecificGravity;
           } else {
             // Koristimo stvarnu gustoću zapisanu pri unosu tog MRN-a
@@ -400,7 +446,7 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
           }
 
           // Deducted KG je ono što smo oduzeli iz baze (FIFO)
-          const deductedKg = new Decimal(detail.quantityDeductedKg);
+          const deductedKg = detail.deductedKg; // deductedKg je već Decimal objekt iz processMrnDeduction
           
           let deductedLiters: Decimal;
           
@@ -422,7 +468,6 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
             quantityKg: deductedKg,
             quantityLiters: deductedLiters,
             densityAtIntake: itemDensity, // Store the specific density for this MRN batch
-            sourceMrnRecordId: detail.id,
           });
           totalDeductedKgFromMrns = totalDeductedKgFromMrns.plus(deductedKg);
           totalDeductedLitersFromMrns = totalDeductedLitersFromMrns.plus(deductedLiters);
@@ -479,6 +524,9 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
 
         // 8. Create/Update MobileTankCustoms records
         for (const item of mrnBreakdownForMobileTank) {
+          logger.info(`🔍 Processing MRN: ${item.mrn} for mobile tank ${parsedTargetMobileTankId}`);
+          logger.info(`🔍 Looking for existing MobileTankCustoms with MRN: ${item.mrn}, tank_id: ${parsedTargetMobileTankId}`);
+          
           const existingMobileTankCustoms = await tx.mobileTankCustoms.findFirst({
             where: {
               customs_declaration_number: item.mrn,
@@ -488,9 +536,21 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
             },
           });
 
+          logger.info(`🔍 Existing MobileTankCustoms found:`, existingMobileTankCustoms ? {
+            id: existingMobileTankCustoms.id,
+            customs_declaration_number: existingMobileTankCustoms.customs_declaration_number,
+            remaining_quantity_liters: existingMobileTankCustoms.remaining_quantity_liters,
+            remaining_quantity_kg: existingMobileTankCustoms.remaining_quantity_kg,
+            density_at_intake: existingMobileTankCustoms.density_at_intake
+          } : 'NONE');
+
           if (existingMobileTankCustoms) {
             // If MRN with same density exists, update it
-            await tx.mobileTankCustoms.update({
+            logger.info(`📝 UPDATING existing MobileTankCustoms ID: ${existingMobileTankCustoms.id}`);
+            logger.info(`📝 Current values: ${existingMobileTankCustoms.remaining_quantity_liters} L, ${existingMobileTankCustoms.remaining_quantity_kg} kg`);
+            logger.info(`📝 Adding: ${item.quantityLiters.toNumber()} L, ${item.quantityKg.toNumber()} kg`);
+            
+            const updateResult = await tx.mobileTankCustoms.update({
               where: { id: existingMobileTankCustoms.id },
               data: {
                 remaining_quantity_liters: { increment: item.quantityLiters.toNumber() },
@@ -498,9 +558,14 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
                 updatedAt: new Date(),
               },
             });
+            
+            logger.info(`✅ UPDATE completed. New values: ${updateResult.remaining_quantity_liters} L, ${updateResult.remaining_quantity_kg} kg`);
           } else {
             // Create new record for this MRN batch in the mobile tank
-            await tx.mobileTankCustoms.create({
+            logger.info(`🆕 CREATING new MobileTankCustoms record for MRN: ${item.mrn}`);
+            logger.info(`🆕 Data: ${item.quantityLiters.toNumber()} L, ${item.quantityKg.toNumber()} kg, density: ${item.densityAtIntake.toNumber()}`);
+            
+            const createResult = await tx.mobileTankCustoms.create({
               data: {
                 mobile_tank_id: parsedTargetMobileTankId,
                 customs_declaration_number: item.mrn,
@@ -515,6 +580,8 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
                 date_added: new Date(),
               },
             });
+            
+            logger.info(`✅ CREATE completed. New record ID: ${createResult.id}, MRN: ${createResult.customs_declaration_number}, ${createResult.remaining_quantity_liters} L, ${createResult.remaining_quantity_kg} kg`);
           }
         }
         
@@ -548,7 +615,7 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
         userId: userId,
         notes: `Transfer ${parsedQuantityKg.toFixed(3)} KG (${parsedQuantityLiters.toFixed(3)} L) from fixed tank ID: ${parsedSourceFixedStorageTankId} to mobile tanker ID: ${parsedTargetMobileTankId}${req.body.notes ? ` - ${req.body.notes}` : ''}`,
         maxRetries: 3,
-        requestedQuantity: parsedQuantityKg.toNumber(), // For consistency checks in executeFuelOperation
+        requestedQuantity: parsedQuantityKg, // For consistency checks in executeFuelOperation - potreban je Decimal tip
         // skipConsistencyCheck: false // Default is false, so it will run
       }
     );

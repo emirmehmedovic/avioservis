@@ -170,7 +170,8 @@ export const correctTankInconsistency = async (req: Request, res: Response): Pro
         // Kreiraj novi MRN zapis za balansiranje razlike
         const difference = consistency.difference;
         const direction = consistency.currentQuantityLiters > consistency.sumMrnQuantities ? 'positive' : 'negative';
-        const quantityToAdd = Math.abs(difference);
+        // Koristimo .abs() metodu Decimal objekta umjesto Math.abs koji radi samo s number tipom
+        const quantityToAdd = difference.abs();
         
         // Kreiraj novi MRN balansni zapis
         await tx.tankFuelByCustoms.create({

@@ -106,7 +106,7 @@ if (process.env.REDIS_URL) {
 // General API rate limiter - applies to all routes
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 150, // limit each IP to 150 requests per windowMs (povećano za 50%)
+  max: 300, // limit each IP to 300 requests per windowMs (privremeno povećano za 100%)
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   store: store, // Use Redis if available, otherwise memory store
@@ -119,7 +119,7 @@ export const apiLimiter = rateLimit({
 // Stricter rate limiter for authentication endpoints
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 8, // limit each IP to 8 login attempts per windowMs (povećano za 50%)
+  max: 16, // limit each IP to 16 login attempts per windowMs (privremeno povećano za 100%)
   standardHeaders: true,
   legacyHeaders: false,
   store: store, // Use Redis if available, otherwise memory store

@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import path from 'path'; // Ensure path is imported
 import fs from 'fs';   // Use standard fs module
 import { AuthRequest } from '../middleware/auth';
+import { logger } from '../utils/logger'; // Ensure path is imported
 
 const prisma = new PrismaClient();
 
@@ -512,15 +513,31 @@ export const getFixedTankHistory: RequestHandler = async (req, res, next): Promi
 
     const formattedTransfersToMobile = transfersToMobileTankers.map(transfer => {
       // Parsiranje MRN breakdown podataka ako postoje
-      let mrnInfo = [];
+      let mrnInfo: string[] = [];
       if (transfer.mrnBreakdown) {
         try {
-          const mrnData = JSON.parse(transfer.mrnBreakdown);
-          mrnInfo = mrnData.map((item: { mrn: string, quantity: number }) => 
-            `${item.mrn}: ${item.quantity.toFixed(2)} L`
-          );
+          const parsedData = JSON.parse(transfer.mrnBreakdown);
+          
+          // Provjeri je li parsedData niz, ako nije, pokušaj izvući podatke iz objekta
+          if (Array.isArray(parsedData)) {
+            // Ako je već niz, koristi ga direktno
+            mrnInfo = parsedData.map((item: { mrn: string, quantity: number }) => 
+              `${item.mrn}: ${item.quantity.toFixed(2)} L`
+            );
+          } else if (typeof parsedData === 'object' && parsedData !== null) {
+            // Ako je objekt, izvuci podatke iz njega (za slučaj kada imamo pojedinačni MRN)
+            const { sourceMrnNumber, sourceMrnId, kg, excessMrn } = parsedData;
+            if (sourceMrnNumber) {
+              mrnInfo = [`${sourceMrnNumber}: ${parseFloat(kg || '0').toFixed(2)} L`];
+            } else if (excessMrn) {
+              mrnInfo = [`${excessMrn}: ${parseFloat(kg || '0').toFixed(2)} L`];
+            }
+          } else {
+            // Ako ne možemo izvući podatke, logirajmo i nastavimo
+            logger.warn(`Nevalidan format mrnBreakdown za transfer ${transfer.id}`);
+          }
         } catch (e) {
-          console.error(`Error parsing MRN breakdown for transfer ${transfer.id}:`, e);
+          logger.error(`Error parsing MRN breakdown for transfer ${transfer.id}:`, e);
         }
       }
       
@@ -779,7 +796,7 @@ export const transferFuelBetweenFixedTanks: RequestHandler = async (req, res, ne
         SELECT id, customs_declaration_number, remaining_quantity_liters, fuel_intake_record_id 
         FROM "TankFuelByCustoms" 
         WHERE fixed_tank_id = ${sourceTank.id} 
-          AND remaining_quantity_liters > 0 
+          AND remaining_quantity_kg > 0 
         ORDER BY date_added ASC
       `;
       
@@ -1150,7 +1167,7 @@ export const getTankFuelByCustoms = async (req: Request, res: Response, next: Ne
       FROM "TankFuelByCustoms" tfc
       LEFT JOIN "FuelIntakeRecords" fir ON tfc.fuel_intake_record_id = fir.id
       WHERE tfc.fixed_tank_id = ${tankId}
-        AND tfc.remaining_quantity_liters > 0
+        AND tfc.remaining_quantity_kg > 0
       ORDER BY tfc.date_added ASC
     `;
     

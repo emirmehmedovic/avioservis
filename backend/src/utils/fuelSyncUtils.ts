@@ -1,6 +1,7 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import { logger } from './logger';
 import { verifyTankConsistency, TankConsistencyResult } from './fuelConsistencyUtils';
+import { Decimal } from '@prisma/client/runtime/library';
 
 // Definiramo LogSeverity enum koji odgovara onome u Prisma shemi
 enum LogSeverity {
@@ -10,20 +11,6 @@ enum LogSeverity {
   ERROR = 'ERROR',
   CRITICAL = 'CRITICAL'
 }
-
-// Prošireni tip za Prisma transakcijski klijent koji uključuje SystemLog model
-type ExtendedTransactionClient = Omit<Prisma.TransactionClient, 'systemLog'> & {
-  systemLog: {
-    create: (args: {
-      data: {
-        action: string;
-        details: string;
-        severity?: string;
-        userId?: number | null;
-      };
-    }) => Promise<any>;
-  };
-};
 
 const prisma = new PrismaClient();
 
@@ -49,27 +36,28 @@ interface SyncResult {
   tankName: string;
   wasConsistent: boolean;
   initialState: {
-    tankQuantity: number;
-    mrnTotalQuantity: number;
-    difference: number;
+    tankQuantity: Decimal;
+    mrnTotalQuantity: Decimal;
+    difference: Decimal;
   };
   finalState?: {
-    tankQuantity: number;
-    mrnTotalQuantity: number;
-    difference: number;
+    tankQuantity: Decimal;
+    mrnTotalQuantity: Decimal;
+    difference: Decimal;
   };
   strategy: SyncStrategy;
   adjustments?: {
     tankAdjusted?: boolean;
-    tankAdjustmentAmount?: number;
+    tankAdjustmentAmount?: Decimal;
     mrnAdjustments?: Array<{
       mrnId: number;
       customsDeclarationNumber: string;
-      previousQuantity: number;
-      newQuantity: number;
-      difference: number;
+      previousQuantity: Decimal;
+      newQuantity: Decimal;
+      difference: Decimal;
     }>;
   };
+  error?: string;
 }
 
 /**
@@ -130,32 +118,31 @@ export async function syncTankFuelData(
   
   // Izvrši sinhronizaciju unutar transakcije
   try {
-    await prisma.$transaction(async (tx: any) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       if (strategy === SyncStrategy.ADJUST_TANK_QUANTITY) {
         // Prilagodi količinu goriva u tanku da odgovara sumi MRN zapisa
-        const updatedTank = await tx.fixedStorageTanks.update({
+        const adjustmentAmount = consistencyResult.sumMrnQuantities.sub(consistencyResult.currentQuantityLiters);
+        
+        await tx.fixedStorageTanks.update({
           where: { id: tankId },
-          data: {
-            current_quantity_liters: consistencyResult.sumMrnQuantities
-          }
+          data: { current_quantity_liters: consistencyResult.sumMrnQuantities.toNumber() }
         });
         
         result.adjustments!.tankAdjusted = true;
-        result.adjustments!.tankAdjustmentAmount = 
-          consistencyResult.sumMrnQuantities - consistencyResult.currentQuantityLiters;
+        result.adjustments!.tankAdjustmentAmount = adjustmentAmount;
         
         logger.info(`Prilagođena količina tanka ${consistencyResult.tankName} (ID: ${tankId}): ${consistencyResult.currentQuantityLiters} L -> ${consistencyResult.sumMrnQuantities} L`);
         
         // Logiraj sinhronizaciju u SystemLog
-        await (tx as ExtendedTransactionClient).systemLog.create({
+        await (tx as any).systemLog.create({
           data: {
             action: 'FUEL_DATA_SYNC',
             details: JSON.stringify({
               tankId,
               strategy,
-              initialTankQuantity: consistencyResult.currentQuantityLiters,
-              newTankQuantity: consistencyResult.sumMrnQuantities,
-              adjustment: result.adjustments!.tankAdjustmentAmount,
+              initialTankQuantity: consistencyResult.currentQuantityLiters.toNumber(),
+              newTankQuantity: consistencyResult.sumMrnQuantities.toNumber(),
+              adjustment: adjustmentAmount.toNumber(),
               timestamp: new Date()
             }),
             severity: LogSeverity.INFO,
@@ -173,29 +160,28 @@ export async function syncTankFuelData(
         });
         
         // Izračunaj koliko treba prilagoditi (negativno: smanjiti, pozitivno: povećati)
-        let adjustmentNeeded = consistencyResult.currentQuantityLiters - consistencyResult.sumMrnQuantities;
+        let adjustmentNeeded = consistencyResult.currentQuantityLiters.sub(consistencyResult.sumMrnQuantities);
         
         // Prilagodi MRN zapise počevši od najnovijih
         for (const record of mrnRecords) {
-          if (Math.abs(adjustmentNeeded) < 0.001) break; // Završili smo s prilagodbama
+          if (adjustmentNeeded.isZero()) break; // Završili smo s prilagodbama
           
-          const previousQuantity = record.remaining_quantity_liters;
-          let newQuantity = previousQuantity;
+          const previousQuantity = record.remaining_quantity_liters as Decimal;
+          let newQuantity: Decimal;
           
-          if (adjustmentNeeded > 0) {
-            // Treba povećati MRN zapis
-            newQuantity = previousQuantity + adjustmentNeeded;
-            adjustmentNeeded = 0; // Sav višak dodajemo na najnoviji zapis
+          if (adjustmentNeeded.isPositive()) {
+            newQuantity = previousQuantity.add(adjustmentNeeded);
+            adjustmentNeeded = new Decimal(0); // Sav višak dodajemo na najnoviji zapis
           } else {
-            // Treba smanjiti MRN zapis
-            newQuantity = Math.max(0, previousQuantity + adjustmentNeeded);
-            adjustmentNeeded += (newQuantity - previousQuantity); // Ažuriraj preostalo za prilagodbu
+            const reduction = Decimal.min(previousQuantity, adjustmentNeeded.abs());
+            newQuantity = previousQuantity.sub(reduction);
+            adjustmentNeeded = adjustmentNeeded.add(reduction); // Ažuriraj preostalo za prilagodbu
           }
           
           // Ažuriraj MRN zapis
           await tx.tankFuelByCustoms.update({
             where: { id: record.id },
-            data: { remaining_quantity_liters: newQuantity }
+            data: { remaining_quantity_liters: newQuantity.toNumber() }
           });
           
           // Dodaj u rezultat
@@ -204,20 +190,25 @@ export async function syncTankFuelData(
             customsDeclarationNumber: record.customs_declaration_number,
             previousQuantity,
             newQuantity,
-            difference: newQuantity - previousQuantity
+            difference: newQuantity.sub(previousQuantity)
           });
           
           logger.info(`Prilagođen MRN zapis ${record.customs_declaration_number}: ${previousQuantity} L -> ${newQuantity} L`);
         }
         
         // Logiraj sinhronizaciju u SystemLog
-        await (tx as ExtendedTransactionClient).systemLog.create({
+        await (tx as any).systemLog.create({
           data: {
             action: 'FUEL_DATA_SYNC',
             details: JSON.stringify({
               tankId,
               strategy,
-              mrnAdjustments: result.adjustments!.mrnAdjustments,
+              mrnAdjustments: result.adjustments!.mrnAdjustments!.map(adj => ({
+                ...adj,
+                previousQuantity: adj.previousQuantity.toNumber(),
+                newQuantity: adj.newQuantity.toNumber(),
+                difference: adj.difference.toNumber(),
+              })),
               timestamp: new Date()
             }),
             severity: LogSeverity.INFO,
@@ -240,9 +231,10 @@ export async function syncTankFuelData(
     logger.info(`Sinhronizacija tanka ${result.tankName} (ID: ${tankId}) uspješno završena.`);
     return result;
     
-  } catch (error) {
+  } catch (error: any) {
     logger.error(`Greška prilikom sinhronizacije tanka ${result.tankName} (ID: ${tankId}):`, error);
-    throw error;
+    result.error = error.message;
+    return result; // Return result with error info
   }
 }
 
@@ -273,9 +265,16 @@ export async function syncAllTanksFuelData(
     try {
       const result = await syncTankFuelData(tank.id, strategy, userId);
       results.push(result);
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Greška prilikom sinhronizacije tanka ${tank.tank_name} (ID: ${tank.id}):`, error);
-      // Nastavi s ostalim tankovima
+      results.push({
+        tankId: tank.id,
+        tankName: tank.tank_name,
+        wasConsistent: false, // Assumed inconsistent on error
+        initialState: { tankQuantity: new Decimal(-1), mrnTotalQuantity: new Decimal(-1), difference: new Decimal(-1) }, // Error indicator
+        strategy,
+        error: `Sinhronizacija nije uspjela: ${error.message}`
+      });
     }
   }
   

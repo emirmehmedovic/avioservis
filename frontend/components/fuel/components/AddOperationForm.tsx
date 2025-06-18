@@ -155,42 +155,68 @@ const AddOperationForm: React.FC<AddOperationFormProps> = ({
           </div>
         </div>
 
-        <div>
-          <label htmlFor="quantity_liters" className="block text-sm font-medium text-gray-700">
-            Količina (litara)
-          </label>
-          <div className="mt-1">
-            <input
-              type="number"
-              name="quantity_liters"
-              id="quantity_liters"
-              min="0"
-              step="0.01"
-              value={formData.quantity_liters}
-              onChange={handleInputChange}
-              className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-              required
-            />
-          </div>
-        </div>
-
-        <div>
-          <label htmlFor="specific_density" className="block text-sm font-medium text-gray-700">
-            Specifična gustoća
-          </label>
-          <div className="mt-1">
-            <input
-              type="number"
-              name="specific_density"
-              id="specific_density"
-              min="0.1"
-              step="0.01"
-              value={formData.specific_density}
-              onChange={handleInputChange}
-              className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-              required
-            />
-          </div>
+        <div className="sm:col-span-2">
+          <fieldset className="border border-gray-200 rounded-md p-4">
+            <legend className="text-sm font-medium text-gray-700 px-2">Podaci o gorivo</legend>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label htmlFor="quantity_liters" className="block text-sm font-medium text-gray-700">
+                  Količina (litara)
+                </label>
+                <div className="mt-1">
+                  <input
+                    type="number"
+                    name="quantity_liters"
+                    id="quantity_liters"
+                    min="0"
+                    step="0.01"
+                    value={formData.quantity_liters}
+                    onChange={handleInputChange}
+                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label htmlFor="specific_density" className="block text-sm font-medium text-gray-700">
+                  Specifična gustoća (kg/L)
+                </label>
+                <div className="mt-1">
+                  <input
+                    type="number"
+                    name="specific_density"
+                    id="specific_density"
+                    min="0.5"
+                    max="1.5"
+                    step="0.001"
+                    value={formData.specific_density}
+                    onChange={handleInputChange}
+                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label htmlFor="quantity_kg" className="block text-sm font-medium text-gray-700">
+                  Količina (kg)
+                </label>
+                <div className="mt-1">
+                  <input
+                    type="number"
+                    name="quantity_kg"
+                    id="quantity_kg"
+                    min="0"
+                    step="0.01"
+                    value={formData.quantity_kg || (formData.quantity_liters * formData.specific_density).toFixed(3)}
+                    onChange={handleInputChange}
+                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+          </fieldset>
         </div>
 
         <div>

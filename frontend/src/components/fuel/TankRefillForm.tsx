@@ -307,6 +307,10 @@ export default function TankRefillForm({ tankId, onSuccess, onCancel }: TankRefi
           method: 'POST',
           body: JSON.stringify(transferPayload),
         });
+        
+        // Postavi localStorage flag da se podaci trebaju osvježiti u TankManagement
+        localStorage.setItem('fuelingOperationCompleted', Date.now().toString());
+        
         toast.success('Transfer iz fiksnog tanka uspješno evidentiran');
 
       } /* else { // refillSourceType === 'supplier'
