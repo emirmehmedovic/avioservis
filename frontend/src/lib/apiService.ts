@@ -180,11 +180,14 @@ export async function fetchWithAuth<T>(urlPath: string, options: FetchWithAuthOp
 
   if (!response.ok) {
     let errorData;
+    const responseText = await response.text();
+    console.log('Raw error response from server:', responseText); // Log raw response
     try {
-      errorData = await response.json();
+      // Try to parse the raw text as JSON
+      errorData = JSON.parse(responseText);
     } catch (e) {
-      // If response is not JSON, use status text
-      errorData = { message: response.statusText };
+      // If parsing fails, use the raw text or status text as the message
+      errorData = { message: responseText || response.statusText };
     }
     console.error('API Error:', errorData, 'URL:', fullUrl); // Use fullUrl
     

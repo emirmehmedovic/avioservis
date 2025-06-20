@@ -1,12 +1,13 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, MrnTransactionType } from '@prisma/client';
 import * as z from 'zod';
 import * as path from 'path';
 import { logActivity } from './activity.controller';
 import { AuthRequest } from '../middleware/auth';
 import { Decimal } from '@prisma/client/runtime/library'; // Za precizne decimalne kalkulacije
 import { logger } from '../utils/logger';
-// Uklonjen import automatske zamjene viška goriva - koristimo manualnu obradu preko API-ja
+// Import servisa za MRN transakcije
+import { processMrnDeduction } from '../services/mrnTransaction.service';
 
 const prisma = new PrismaClient();
 
@@ -295,12 +296,10 @@ export const createFuelingOperation = async (req: Request, res: Response): Promi
       providedTotalAmount,
       total_amount
     });
-    
     // Check if the tank exists and has enough fuel
     const tank = await (prisma as any).fuelTank.findFirst({
       where: { 
-        id: tankId,
-        is_deleted: false // Provjeravamo da tanker nije obrisan
+        id: tankId 
       } as any, // Type assertion da izbjegnemo TS grešku
     });
     
@@ -359,192 +358,11 @@ export const createFuelingOperation = async (req: Request, res: Response): Promi
       density_at_intake?: number;
     }
     
-    // Pripremi varijablu za MRN breakdown podatke
-    let mrnBreakdown: MrnBreakdownItem[] = [];
-    let remainingQuantityLiters = new Decimal(quantity_liters);
-    let remainingQuantityKg = new Decimal(quantity_kg); // Primarno pratimo kilograme
-    const originalQuantityKg = new Decimal(quantity_kg); // Pamtimo originalnu vrijednost za precizno praćenje
-    
-    // Varijable za praćenje viška litara za automatsku zamjenu
-    let excessLitersDetected = false;
-    let totalExcessLiters = new Decimal(0);
-    let excessSourceMrnId: number | null = null;
-    let excessSourceMrn: string | null = null;
-    let excessSourceDensity = 0;
-    
     logger.info(`Potrebno oduzeti: ${quantity_kg} kg, ${quantity_liters} L`);
     
-    // Implementacija FIFO principa za oduzimanje goriva po MRN brojevima - primarno po kilogramima
-    if (mobileTankCustoms.length > 0) {
-      // Filtriraj MRN zapise koji imaju preostalu količinu kilograma
-      const updatedMobileTankCustoms = mobileTankCustoms.filter((item: any) => {
-        return (
-          item.remaining_quantity_kg !== null && 
-          item.remaining_quantity_kg !== undefined && 
-          item.remaining_quantity_kg > 0
-        );
-      });
-      
-      // Iteriraj kroz filtrirane zapise - primarni fokus na kilogramima
-      for (let i = 0; i < updatedMobileTankCustoms.length && remainingQuantityKg.greaterThan(0); i++) {
-        const mrnRecord = updatedMobileTankCustoms[i];
-        const currentMrnQuantityLiters = new Decimal(mrnRecord.remaining_quantity_liters || mrnRecord.quantity_liters);
-        const currentMrnQuantityKg = new Decimal(mrnRecord.remaining_quantity_kg || mrnRecord.quantity_kg);
-        
-        // Izračunajmo specifičnu gustoću iz zapisa ili koristimo defaultnu
-        const specificGravity = (mrnRecord.density_at_intake && mrnRecord.density_at_intake > 0) 
-          ? new Decimal(mrnRecord.density_at_intake) 
-          : new Decimal(0.8); // Defaultna vrijednost za Jet A1
-        
-        // Eksplicitna konverzija u brojeve za sigurno izračunavanje - koristimo Decimal za preciznost
-        const currentMrnKg = currentMrnQuantityKg;
-        const currentMrnLiters = currentMrnQuantityLiters;
-        const remainingKg = remainingQuantityKg;
-        const remainingLiters = remainingQuantityLiters;
-        
-        // Pratimo razliku između originalne količine i ukupno oduzete količine do sada
-        let alreadyDeductedTotal = new Decimal(0);
-        mrnBreakdown.forEach((item: any) => {
-          alreadyDeductedTotal = alreadyDeductedTotal.add(new Decimal(item.quantity_kg || 0));
-        });
-        const exactRemainingToDeduct = originalQuantityKg.minus(alreadyDeductedTotal);
-        
-        // Odredimo koliko kilograma možemo oduzeti iz ovog zapisa
-        // Osiguramo da ukupna količina oduzimanja ne prekorači traženu količinu
-        let kgToDeduct: Decimal;
-        
-        // Logiraj stanje prije oduzimanja za dijagnostiku
-        logger.debug(`Goriva oduzeto do sada: ${alreadyDeductedTotal.toFixed(3)} KG od ${originalQuantityKg.toFixed(3)} KG, preostalo za oduzeti: ${exactRemainingToDeduct.toFixed(3)} KG`);
-        
-        // Koristi vrijednost koju smo izračunali izravno iz mrnBreakdown za najveću preciznost
-        // Ovo je ključna promjena koja osigurava točnost oduzimanja - koristimo stvarne oduzete vrijednosti
-        const remainingToOriginal = exactRemainingToDeduct;
-        
-        if (remainingKg.greaterThanOrEqualTo(currentMrnKg) || (currentMrnKg.lessThanOrEqualTo(0.1) && remainingKg.greaterThan(0))) {
-          // Ako oduzimamo cijeli zapis ili je ostalo vrlo malo (manje od 0.1 kg)
-          kgToDeduct = Decimal.min(currentMrnKg, remainingToOriginal);
-          logger.info(`Oduzimam ${kgToDeduct.toFixed(3)} kg (max: ${remainingToOriginal.toFixed(3)}) iz MRN zapisa ID ${mrnRecord.id}, zapis sadrži: ${currentMrnKg.toFixed(3)} kg`);
-        } else {
-          // Ograniči oduzimanje tako da ukupno bude točno originalQuantityKg
-          kgToDeduct = Decimal.min(remainingKg, currentMrnKg, remainingToOriginal);
-          logger.info(`Oduzimam DIO MRN zapisa ID ${mrnRecord.id}: ${kgToDeduct.toFixed(3)} kg (max: ${remainingToOriginal.toFixed(3)}) od ${currentMrnKg.toFixed(3)} kg`);
-        }
-        
-        // Nova implementacija - koristimo trenutnu gustoću za izračun litara
-        // Za točenje goriva važno je koristiti trenutnu gustoću, a ne gustoću iz MRN zapisa
-        // jer se faktura izdaje na osnovu trenutne gustoće
-        
-        // Izračunaj litre direktno iz kg koristeći trenutnu gustoću
-        // specific_density je gustoća pri točenju
-        const litersToDeduct = kgToDeduct.dividedBy(new Decimal(specific_density));
-        
-        logger.info(`Izračun litara: ${kgToDeduct.toFixed(3)} kg / ${specific_density.toFixed(3)} kg/L = ${litersToDeduct.toFixed(3)} L (stari način bi dao: ${(currentMrnKg.greaterThan(0) ? (kgToDeduct.dividedBy(currentMrnKg)).mul(currentMrnLiters) : currentMrnLiters).toFixed(3)} L)`);
-
-        // Detekcija viška litara kada kg padne na 0 - bitno za automatsku zamjenu
-        if (kgToDeduct.greaterThanOrEqualTo(currentMrnKg) && currentMrnLiters.greaterThan(litersToDeduct)) {
-          // Imamo višak litara jer smo oduzeli sve kilograme ali preostaje još litara
-          const excessLiters = currentMrnLiters.minus(litersToDeduct);
-          if (excessLiters.greaterThan(0.01)) { // Ignoriramo vrlo male razlike (manje od 0.01L)
-            excessLitersDetected = true;
-            totalExcessLiters = totalExcessLiters.add(excessLiters);
-            
-            // Pamtimo podatke o izvoru viška za automatsku zamjenu
-            if (excessSourceMrnId === null) {
-              excessSourceMrnId = mrnRecord.id;
-              excessSourceMrn = mrnRecord.customs_declaration_number || null;
-              excessSourceDensity = specificGravity.toNumber();
-            }
-            
-            logger.info(`[EXCESS_FUEL] Detektiran višak od ${excessLiters.toFixed(3)} L u MRN ${mrnRecord.customs_declaration_number || mrnRecord.id} kada su kg došli do 0.`);
-          }
-        }
-        
-        // Dodaj u MRN breakdown samo ako zapis ima validan MRN broj
-        if (mrnRecord.customs_declaration_number) {
-          mrnBreakdown.push({
-            mrn: mrnRecord.customs_declaration_number,
-            quantity: litersToDeduct.toNumber(),  // Litre
-            quantity_kg: kgToDeduct.toNumber(),   // Kilogrami - primarna vrijednost
-            density_at_intake: specificGravity.toNumber()
-          });
-          
-          // Počietak provjere preciznosti - ovo je ključno
-          // Izračunaj novu kumulativnu količinu i provjeri da li smo blizu tražene ukupne vrijednosti
-          const totalKgDeducted = mrnBreakdown.reduce((sum: number, item: any) => sum + Number(item.quantity_kg || 0), 0);
-          
-          // Ako smo prešli traženu količinu (zbog greške zaokruživanja), ispravi zadnju dodanu vrijednost
-          if (totalKgDeducted > originalQuantityKg.toNumber() && mrnBreakdown.length > 0) {
-            const excess = totalKgDeducted - originalQuantityKg.toNumber();
-            const lastIndex = mrnBreakdown.length - 1;
-            const lastEntry = mrnBreakdown[lastIndex];
-            
-            // Ispravi zadnju vrijednost tako da ukupna vrijednost bude točno originalQuantityKg
-            if (lastEntry && typeof lastEntry.quantity_kg === 'number') {
-              lastEntry.quantity_kg -= excess;
-              
-              // Ažuriraj kgToDeduct za kasniji izračun litara
-              kgToDeduct = kgToDeduct.minus(excess);
-              
-              logger.warn(`Korekcija zadnjeg MRN zapisa: prekoračenje od ${excess.toFixed(5)} KG, novi kgToDeduct: ${lastEntry.quantity_kg.toFixed(3)} KG`);
-            }
-          }
-          
-          // Ponovno izračunaj litre na temelju ispravljene vrijednosti kilograma
-          if (mrnBreakdown.length > 0) {
-            const lastEntry = mrnBreakdown[mrnBreakdown.length - 1];
-            if (lastEntry && typeof lastEntry.quantity_kg === 'number') {
-              const correctedKgToDeduct = lastEntry.quantity_kg;
-              
-              // Ponovni izračun litara koristeći TRENUTNU gustoću operacije, a ne gustoću iz MRN zapisa
-              // Ovo osigurava da su kilogrami i litre točno usklađeni prema trenutnoj gustoći goriva
-              const correctedLitersToDeduct = new Decimal(correctedKgToDeduct).dividedBy(new Decimal(specific_density)).toNumber();
-              
-              logger.info(`Korekcija litara: ${correctedKgToDeduct} kg / ${specific_density.toFixed(3)} kg/L = ${correctedLitersToDeduct} L`);
-              
-              
-              lastEntry.quantity = correctedLitersToDeduct;
-            }
-          }
-          
-          logger.info(`Dodajem MRN ${mrnRecord.customs_declaration_number} s količinom ${kgToDeduct.toFixed(3)} kg / ${litersToDeduct.toFixed(3)} L`);
-        }
-        
-        // Ažuriraj količinu u MRN zapisu - direktno oduzmi potrebne kilograme i litre
-        // Računamo nove vrijednosti
-        const newRemainingLiters = currentMrnLiters.minus(litersToDeduct);
-        const newRemainingKg = currentMrnKg.minus(kgToDeduct);
-        
-        // Ako je nova vrijednost vrlo mala (manje od 0.001), postavi je na 0
-        // Ovo sprečava probleme s vrlo malim ostacima koji stvaraju nekonzistentnost
-        const finalRemainingLiters = newRemainingLiters.lessThan(0.001) ? 0 : newRemainingLiters.toNumber();
-        const finalRemainingKg = newRemainingKg.lessThan(0.001) ? 0 : newRemainingKg.toNumber();
-        
-        logger.info(`MRN ${mrnRecord.customs_declaration_number || mrnRecord.id} - novo stanje:`);
-        logger.info(`Litre: ${currentMrnLiters.toFixed(3)} - ${litersToDeduct.toFixed(3)} = ${finalRemainingLiters.toFixed(3)}`);
-        logger.info(`Kilogrami: ${currentMrnKg.toFixed(3)} - ${kgToDeduct.toFixed(3)} = ${finalRemainingKg.toFixed(3)}`);
-        
-        await prisma.mobileTankCustoms.update({
-          where: { id: mrnRecord.id },
-          data: {
-            remaining_quantity_liters: finalRemainingLiters,
-            remaining_quantity_kg: finalRemainingKg
-          }
-        });
-        
-        // Smanjimo preostale količine
-        remainingQuantityLiters = remainingQuantityLiters.minus(litersToDeduct);
-        remainingQuantityKg = remainingQuantityKg.minus(kgToDeduct);
-      }
-      
-      logger.info(`Izračunati MRN breakdown za točenje po FIFO principu: ${JSON.stringify(mrnBreakdown)}`);
-      
-      // Ako nakon FIFO otpisa još uvijek imamo preostale kilograme za oduzeti, bacamo grešku
-      if (remainingQuantityKg.greaterThan(0)) {
-        throw new Error(`Nedovoljno goriva u MRN zapisima za operaciju točenja. Preostalo neoduzeto: ${remainingQuantityKg.toFixed(2)} kg, ${remainingQuantityLiters.toFixed(2)} L`);
-      }
-    } else {
-      logger.info('Nema MRN podataka za ovaj mobilni tank');
-    }
+    // Umjesto vlastite implementacije FIFO principa, koristit ćemo centralizirani servis processMrnDeduction
+    // koji će oduzeti gorivo po MRN zapisima i kreirati odgovarajuće MrnTransactionLeg zapise
+    logger.info(`🔍 Koristimo processMrnDeduction servis za oduzimanje ${quantity_kg} KG goriva iz tanka ID: ${tankId}`);
     
     // Check if the airline exists
     const airline = await (prisma as any).airline.findUnique({
@@ -561,11 +379,8 @@ export const createFuelingOperation = async (req: Request, res: Response): Promi
     
     // Start a transaction to ensure all operations succeed or fail together
     const result = await (prisma as any).$transaction(async (tx: any) => {
-      // Konvertiraj mrnBreakdown u JSON string za spremanje
-      const mrnBreakdownJson = mrnBreakdown.length > 0 ? JSON.stringify(mrnBreakdown) : null;
-      logger.info(`MRN breakdown JSON za spremanje u bazu: ${mrnBreakdownJson}`);
-      
-      // Create the fueling operation with mrnBreakdown data
+      // Prvo kreiramo fueling operaciju bez MRN breakdown podataka
+      // MRN breakdown će biti dodan kasnije nakon processMrnDeduction
       const newFuelingOperation = await tx.fuelingOperation.create({
         data: {
           dateTime: new Date(dateTime),
@@ -586,8 +401,8 @@ export const createFuelingOperation = async (req: Request, res: Response): Promi
           tip_saobracaja: tip_saobracaja || null,
           delivery_note_number: delivery_note_number || null,
           usd_exchange_rate: validationResult.data.usd_exchange_rate,
-          // Dodaj MRN breakdown podatke
-          mrnBreakdown: mrnBreakdownJson
+          // Inicijalno prazan mrnBreakdown - bit će ažuriran kasnije
+          mrnBreakdown: null
         },
         include: {
           airline: true,
@@ -595,6 +410,45 @@ export const createFuelingOperation = async (req: Request, res: Response): Promi
           documents: true,
         }
       });
+      
+      // Koristi processMrnDeduction servis za oduzimanje goriva po MRN zapisima
+      logger.info(`🔍 Pozivam processMrnDeduction za oduzimanje ${quantity_kg} KG goriva iz tanka ID: ${tankId}`);
+      
+      try {
+        // Pozovi servis za oduzimanje goriva po MRN zapisima
+        const deductionDetails = await processMrnDeduction(
+          tx,                                // Prisma transakcijski klijent
+          tankId,                            // ID izvora (mobilni tank)
+          quantity_kg,                       // Količina u KG za oduzimanje
+          specific_density,                  // Operativna gustoća
+          true,                              // isMobileSource = true za mobilni tank
+          MrnTransactionType.MOBILE_TO_AIRCRAFT_FUELING, // Tip transakcije
+          String(newFuelingOperation.id)     // ID povezane operacije točenja
+        );
+        
+        logger.info(`✅ Uspješno oduzeto gorivo po MRN zapisima:`, deductionDetails);
+        
+        // Kreiraj mrnBreakdown iz rezultata processMrnDeduction
+        const mrnBreakdown = deductionDetails.map(item => ({
+          mrn: item.mrn,
+          quantity: new Decimal(item.deductedKg).dividedBy(new Decimal(specific_density)).toNumber(), // Litre
+          quantity_kg: item.deductedKg.toNumber(),  // Kilogrami
+          density_at_intake: specific_density       // Trenutna gustoća
+        }));
+        
+        // Konvertiraj mrnBreakdown u JSON string za spremanje
+        const mrnBreakdownJson = mrnBreakdown.length > 0 ? JSON.stringify(mrnBreakdown) : null;
+        logger.info(`MRN breakdown JSON za spremanje u bazu: ${mrnBreakdownJson}`);
+        
+        // Ažuriraj fueling operaciju s mrnBreakdown podacima
+        await tx.fuelingOperation.update({
+          where: { id: newFuelingOperation.id },
+          data: { mrnBreakdown: mrnBreakdownJson }
+        });
+      } catch (deductionError) {
+        logger.error(`❌ Greška prilikom oduzimanja goriva po MRN zapisima: ${(deductionError as Error).message}`);
+        throw deductionError; // Propagiraj grešku da bi se transakcija poništila
+      }
       
       // Create document records if documents were uploaded
       if (documents && documents.length > 0) {
@@ -631,25 +485,6 @@ export const createFuelingOperation = async (req: Request, res: Response): Promi
       });
     });
     
-    // Nakon uspješno završene transakcije, provjeri da li je detektiran višak litara
-    // i zabilježi ga u rezultatu (za prikaz u UI i manualnu obradu)
-    if (excessLitersDetected && totalExcessLiters.greaterThan(0) && tankId && excessSourceMrnId) {
-      try {
-        logger.info(`[EXCESS_FUEL] Detektiran višak goriva za tank ID=${tankId}: ${totalExcessLiters.toFixed(3)}L iz MRN ${excessSourceMrn || 'nepoznat'}`);
-        
-        // Dodajemo informaciju o višku goriva u rezultat za UI
-        if (result) {
-          (result as any).excessFuelDetected = {
-            excessLiters: totalExcessLiters.toFixed(3),
-            sourceMrnId: excessSourceMrnId,
-            sourceMrn: excessSourceMrn,
-            density: excessSourceDensity
-          };
-        }
-      } catch (error) {
-        logger.error(`[EXCESS_FUEL] Greška prilikom bilježenja viška goriva: ${(error as Error).message}`);
-      }
-    }
     
     logger.info(`✅ Completed Fueling operation: AIRCRAFT_FUELING`);
     logger.info(`🛩️ Aircraft ${validationResult.data.aircraft_registration} fueled with ${quantity_liters}L / ${quantity_kg}kg from tank ${tank.name}`);

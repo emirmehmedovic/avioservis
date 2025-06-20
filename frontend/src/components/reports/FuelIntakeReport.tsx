@@ -21,18 +21,40 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { FuelIntakeRecord, FuelType, FuelIntakeDocument } from '@/types/fuel';
-import { FuelOperation as BaseFuelOperation } from '@/lib/types';
 
-// Extended interface to include EXD and K number fields
-interface FuelOperation extends BaseFuelOperation {
+// Defines the structure for a single MRN transaction, including legacy fields for backward compatibility.
+interface MrnTransaction {
+  id: number;
+  date: string; // ISO date string
+  transactionType: string;
+  kgTransacted?: number;
+  litersTransacted?: number;
+  density?: number;
+  aircraft_registration?: string;
+  airlineName?: string;
+  delivery_note_number?: string;
+  mrnBreakdown?: string; // JSON string
+  price_per_kg?: number;
+  currency?: string;
+  destination?: string;
+  operator_name?: string;
+  notes?: string;
   exd_number?: string | null;
   k_number?: string | null;
+
+  // Legacy fields for compatibility during transition
+  dateTime?: string;
+  quantity_liters?: number;
+  quantity_kg?: number;
+  specific_density?: number;
 }
+
 import toast from 'react-hot-toast';
 import { ArrowDownTrayIcon, DocumentTextIcon, PrinterIcon } from '@heroicons/react/24/outline';
 import { FileText } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+
 import { notoSansRegularBase64 } from '@/lib/fonts';
 import { notoSansBoldBase64 } from '@/lib/notoSansBoldBase64';
 
@@ -195,9 +217,9 @@ const FuelIntakeReport: React.FC = () => {
   const [expandedRecordId, setExpandedRecordId] = useState<number | null>(null);
   const [selectedMrn, setSelectedMrn] = useState<string | null>(null);
   const [mrnReportData, setMrnReportData] = useState<{
-    intake: any; // TODO: Zamijeniti sa FuelIntakeRecord tipom ako je dostupan
-    transactions: FuelOperation[]; // Prethodno fuelingOperations
-    drainedFuel: any[]; // TODO: Tipizirati ako je moguće
+    intake: FuelIntakeRecord;
+    transactions: MrnTransaction[]; // Use the new, accurate interface
+    drainedFuel: any[];
     balance: {
       totalIntakeKg: number;
       totalIntakeLiters: number;
@@ -206,26 +228,10 @@ const FuelIntakeReport: React.FC = () => {
       remainingKg: number;
       remainingLiters: number;
       accumulatedLiterVariance: number;
+      averageDensity: number;
     };
   } | null>(null);
   
-  // Definicija tipa za transakcije prema novoj strukturi podataka iz backend-a
-  type MrnTransaction = {
-    id: number;
-    date: string;
-    transactionType: string;
-    kgTransacted: number;
-    litersTransacted: number;
-    density: number | null;
-    customsDeclaration: string | null;
-    tankInfo: {
-      id: number;
-      name: string;
-    } | null;
-    // Dodajemo opciono polje za mrnBreakdown koje možda dođe iz povezane FuelingOperation
-    mrnBreakdown?: string;
-  };
-
   // State za balans MRN-ova
   const [mrnBalances, setMrnBalances] = useState<Record<string, {
     totalIntake: number;
@@ -306,11 +312,11 @@ const FuelIntakeReport: React.FC = () => {
               let operationKg = 0;
               let operationUsesTargetMrn = false;
               
-              // Nova logika - za MrnTransactionLeg zapise, transactionType i kgTransacted su direktni
-              // Za negativne transakcije (outflow), koristimo kgTransacted direktno
-              if (op.transactionType && ['FUELING_OPERATION_OUT', 'TRANSFER_TO_TANKER_OUT', 'FIXED_TANK_TRANSFER_OUT'].includes(op.transactionType)) {
-                // Ako je transakcija koja smanjuje količinu goriva (negativna vrijednost kgTransacted), onda je to potrošnja
-                if (op.kgTransacted < 0) {
+              // Nova logika - za MrnTransactionLeg zapise, uzimamo u obzir samo one transakcije koje su operacije točenja goriva u zrakoplov
+              // Ograničavamo izračun samo na MOBILE_TO_AIRCRAFT_FUELING operacije, kao što se radi na backendu
+              if (op.transactionType === 'MOBILE_TO_AIRCRAFT_FUELING') {
+                // Za transakcije točenja u zrakoplov koristimo kgTransacted (koji je negativna vrijednost)
+                if (typeof op.kgTransacted === 'number' && op.kgTransacted < 0) {
                   operationUsesTargetMrn = true;
                   operationKg = Math.abs(op.kgTransacted); // Pretvaramo negativnu u pozitivnu vrijednost za zbrajanje
                 }
@@ -502,7 +508,8 @@ const FuelIntakeReport: React.FC = () => {
     try {
       const response = await fetchWithAuth<{
         intake: FuelIntakeRecord;
-        transactions: FuelOperation[]; // Promijenjeno iz fuelingOperations
+        transactions: MrnTransaction[]; // Use the new, accurate interface
+        fuelingOperations: any[]; // Added back the fuelingOperations from restored API
         drainedFuel: any[];
         balance: {
           totalIntakeKg: number;
@@ -512,6 +519,7 @@ const FuelIntakeReport: React.FC = () => {
           remainingKg: number;
           remainingLiters: number;
           accumulatedLiterVariance: number;
+          averageDensity: number;
         };
       }>(`${API_URL}/api/fuel/mrn-report/${mrn}`);
       
@@ -535,13 +543,22 @@ const FuelIntakeReport: React.FC = () => {
   const handleGenerateMrnReport = async (mrn: string) => {
     const data = await fetchMrnReportData(mrn);
     if (!data) return;
+
+    // Ensure all arrays are defined to prevent crashes
+    const reportData = {
+      ...data,
+      transactions: data.transactions || [],
+      fuelingOperations: data.fuelingOperations || [],
+      drainedFuel: data.drainedFuel || [],
+    };
     
-    generateMrnReportPdf(data);
+    generateMrnReportPdf(reportData);
   };
 
   const generateMrnReportPdf = (data: {
     intake: FuelIntakeRecord;
-    transactions: FuelOperation[];
+    transactions: MrnTransaction[]; // Transakcije od MrnTransactionLeg
+    fuelingOperations: any[]; // Dodato natrag - puni podaci o operacijama točenja
     drainedFuel: any[];
     balance: {
       totalIntakeKg: number;
@@ -551,6 +568,7 @@ const FuelIntakeReport: React.FC = () => {
       remainingKg: number;
       remainingLiters: number;
       accumulatedLiterVariance: number;
+      averageDensity: number;
     };
   }) => {
     const { intake, drainedFuel, balance } = data;
@@ -616,66 +634,66 @@ const FuelIntakeReport: React.FC = () => {
     doc.setFont(FONT_NAME, 'bold');
     doc.text('Operacije točenja goriva:', 14, yPos + 10);
     
-    if (transactions.length > 0) {
-      const fuelingOpsData = transactions.map(op => {
-        // Pokušaj dohvatiti točnu količinu goriva za ovaj MRN iz mrnBreakdown podataka
-        let mrnQuantity = op.quantity_liters;
-        
-        if (op.mrnBreakdown) {
-          try {
-            const mrnData = JSON.parse(op.mrnBreakdown);
-            const mrnEntry = mrnData.find((entry: { mrn: string, quantity: number }) => 
-              entry.mrn === intake.customs_declaration_number
-            );
-            
-            if (mrnEntry) {
-              mrnQuantity = mrnEntry.quantity;
+    // Koristimo fuelingOperations ako su dostupni, u suprotnom fallback na transakcije
+    const fuelingOps = data.fuelingOperations?.length > 0 ? data.fuelingOperations : [];
+    
+    if (fuelingOps.length > 0 || transactions.length > 0) {
+      // Mapiramo operacije točenja u podatke za tablicu
+      const fuelingOpsData = fuelingOps.length > 0 ? 
+        // Ako imamo full fuelingOperations, koristimo njih direktno s tačnim podacima
+        fuelingOps.map(op => {
+          // Pretvaranje stringova u brojeve za ispravno formatiranje
+          const quantity_liters = typeof op.quantity_liters === 'string' ? parseFloat(op.quantity_liters) : op.quantity_liters;
+          const quantity_kg = typeof op.quantity_kg === 'string' ? parseFloat(op.quantity_kg) : op.quantity_kg;
+          const specific_density = typeof op.specific_density === 'string' ? parseFloat(op.specific_density) : op.specific_density;
+          const price_per_kg = typeof op.price_per_kg === 'string' ? parseFloat(op.price_per_kg) : op.price_per_kg;
+          
+          return [
+            formatDateForReport(op.dateTime),
+            op.aircraft_registration || 'N/A',
+            op.airline?.name || 'N/A',
+            op.tip_saobracaja || 'N/A',
+            op.delivery_note_number || 'N/A',
+            typeof quantity_liters === 'number' ? 
+              Math.abs(quantity_liters).toLocaleString('bs-BA') : 'N/A',
+            typeof quantity_kg === 'number' ? 
+              Math.abs(quantity_kg).toLocaleString('bs-BA', { maximumFractionDigits: 2 }) : 'N/A',
+            typeof specific_density === 'number' && specific_density > 0 ? 
+              specific_density.toLocaleString('bs-BA', { maximumFractionDigits: 4 }) : 'N/A',
+            typeof price_per_kg === 'number' ? 
+              price_per_kg.toLocaleString('bs-BA', { maximumFractionDigits: 5 }) : 'N/A',
+            op.destination || 'N/A',
+            op.operator_name || 'N/A'
+          ];
+        }) :
+        // Fallback na transakcije ako nemamo fuelingOperations
+        transactions.map(op => {
+          // Samo za fallback scenarij - koristimo staru logiku
+          const kilograms = op.kgTransacted ?? op.quantity_kg;
+          const density = op.density ?? op.specific_density;
+          
+          // Handle liters: if directly available use that, otherwise calculate from kg/density
+          let liters = op.litersTransacted ?? op.quantity_liters;
+          
+          // For tank transfers where litersTransacted is often 0, we need to calculate from kg
+          if (typeof liters !== 'number' || liters === 0) {
+            if (typeof kilograms === 'number') {
+              // Use density if available, otherwise use a default density of 0.78 for aviation fuel
+              const effectiveDensity = (typeof density === 'number' && density > 0) ? density : 0.78;
+              liters = Math.abs(kilograms) / effectiveDensity;
             }
-          } catch (error) {
-            console.error('Greška pri parsiranju mrnBreakdown podataka:', error);
           }
-        }
-        
+
         return [
-          formatDateForReport(op.dateTime),
-          op.aircraft_registration || 'N/A',
-          op.airline?.name || 'N/A',
-          // Prikazujemo točan tip saobraćaja
-          getTrafficTypeDisplay(op), // Dodano tip saobraćaja
+          formatDateForReport(op.date ?? op.dateTime),
+          op.aircraft_registration || (op.transactionType === 'MOBILE_TO_AIRCRAFT_FUELING' ? 'N/A' : ''),
+          op.airlineName || (op.transactionType === 'MOBILE_TO_AIRCRAFT_FUELING' ? 'N/A' : ''),
+          getTrafficTypeDisplay(op),
           op.delivery_note_number || 'N/A',
-          typeof mrnQuantity === 'number' ? mrnQuantity.toLocaleString('bs-BA') : 'N/A',
-          typeof op.quantity_kg === 'number' ? op.quantity_kg.toLocaleString('bs-BA', { maximumFractionDigits: 2 }) : (typeof op.specific_density === 'number' && typeof mrnQuantity === 'number' ? (mrnQuantity * op.specific_density).toLocaleString('bs-BA', { maximumFractionDigits: 2 }) : 'N/A'),
-          typeof op.specific_density === 'number' ? op.specific_density.toLocaleString('bs-BA', { maximumFractionDigits: 4 }) : 'N/A',
-          // Cijena po kilogramu - pokušaj koristiti cijenu iz MRN-a ako je moguće
-          (() => {
-            // Ako transakcija ima direktno cijenu, prikaži ju
-            if (typeof op.price_per_kg === 'number' && !isNaN(op.price_per_kg)) {
-              return op.price_per_kg.toLocaleString('bs-BA', { maximumFractionDigits: 5 });
-            }
-            
-            // Ako imamo podatke od MRN-a u izvještaju (iz fuel intake zapisa)
-            if (intake && typeof intake.price_per_kg === 'number' && !isNaN(intake.price_per_kg)) {
-              return intake.price_per_kg.toLocaleString('bs-BA', { maximumFractionDigits: 5 });
-            }
-            
-            // Pokušaj pronaći cijenu u povezanim MRN podacima
-            try {
-              if (op.mrnBreakdown) {
-                const mrnDataWithPrice = JSON.parse(op.mrnBreakdown).find(
-                  (entry: any) => entry.price_per_kg && !isNaN(entry.price_per_kg)
-                );
-                
-                if (mrnDataWithPrice && typeof mrnDataWithPrice.price_per_kg === 'number') {
-                  return mrnDataWithPrice.price_per_kg.toLocaleString('bs-BA', { maximumFractionDigits: 5 });
-                }
-              }
-            } catch (e) {
-              // Ignoriraj grešku parsiranja
-            }
-            
-            // Ako nismo uspjeli naći cijenu, prikaži 0.00 umjesto N/A
-            return '0.00';
-          })(),
+          typeof liters === 'number' ? Math.abs(liters).toLocaleString('bs-BA') : 'N/A',
+          typeof kilograms === 'number' ? Math.abs(kilograms).toLocaleString('bs-BA', { maximumFractionDigits: 2 }) : 'N/A',
+          typeof density === 'number' && density > 0 ? density.toLocaleString('bs-BA', { maximumFractionDigits: 4 }) : 'N/A',
+          typeof op.price_per_kg === 'number' ? op.price_per_kg.toLocaleString('bs-BA', { maximumFractionDigits: 5 }) : 'N/A',
           op.destination || 'N/A',
           op.operator_name || 'N/A'
         ];
@@ -704,7 +722,10 @@ const FuelIntakeReport: React.FC = () => {
       doc.addPage();
       
       // Za svaku operaciju točenja goriva dodajemo detaljni izvještaj na zasebnoj stranici
-      transactions.forEach((op: FuelOperation, index: number) => { 
+      // Koristimo fuelingOperations ako su dostupni, u suprotnom fallback na transactions
+      const detailItems = fuelingOps.length > 0 ? fuelingOps : transactions;
+      
+      detailItems.forEach((op: any, index: number) => { 
         // Svaka transakcija nakon prve dobiva novu stranicu
         if (index > 0) {
           doc.addPage();
@@ -731,16 +752,17 @@ const FuelIntakeReport: React.FC = () => {
         doc.setFontSize(10);
         doc.setFont(FONT_NAME, 'normal');
         
+        // Pretvaranje stringova u brojeve za ispravno formatiranje (druga instanca varijabli)
+        const opQuantityLiters = typeof op.quantity_liters === 'string' ? parseFloat(op.quantity_liters) : op.quantity_liters;
+        const opQuantityKg = typeof op.quantity_kg === 'string' ? parseFloat(op.quantity_kg) : op.quantity_kg;
+        const opSpecificDensity = typeof op.specific_density === 'string' ? parseFloat(op.specific_density) : op.specific_density;
+        const opPricePerKg = typeof op.price_per_kg === 'string' ? parseFloat(op.price_per_kg) : op.price_per_kg;
+        
         // Izračunavanje ukupne cijene
         let totalPrice = 0;
-        let quantityKg = 0;
         
-        if (op.quantity_kg && op.price_per_kg) {
-          quantityKg = op.quantity_kg;
-          totalPrice = op.quantity_kg * op.price_per_kg;
-        } else if (op.specific_density && op.quantity_liters && op.price_per_kg) {
-          quantityKg = op.quantity_liters * op.specific_density;
-          totalPrice = quantityKg * op.price_per_kg;
+        if (typeof opQuantityKg === 'number' && typeof opPricePerKg === 'number') {
+          totalPrice = opQuantityKg * opPricePerKg;
         }
         
         // Ekvivalentne cijene u različitim valutama
@@ -775,20 +797,41 @@ const FuelIntakeReport: React.FC = () => {
         
         // Organiziramo podatke o transakciji u dvije kolone za bolju preglednost
         // Prva kolona: osnovni podaci o letu i gorivu
+        // Koristimo već deklarirane varijable iz dijela koda iznad za pretvaranje vrijednosti
+          
         const columnOneData = [
           ['Datum i vrijeme', formatDateTimeForReport(op.dateTime)],
           ['Registracija zrakoplova', op.aircraft_registration || 'N/A'],
           ['Aviokompanija', op.airline?.name || 'N/A'],
-          ['Tip saobraćaja', getTrafficTypeDisplay(op)],
+          ['Tip saobraćaja', op.tip_saobracaja || 'N/A'],
           ['Broj dostavnice', op.delivery_note_number || 'N/A'],
-          ['Količina (L)', op.quantity_liters ? op.quantity_liters.toLocaleString('bs-BA') : 'N/A'],
-          ['Količina (kg)', quantityKg ? quantityKg.toLocaleString('bs-BA', { maximumFractionDigits: 2 }) : 'N/A'],
-          ['Specifična gustoća', op.specific_density ? op.specific_density.toLocaleString('bs-BA', { maximumFractionDigits: 4 }) : 'N/A']
+          ['Količina (L)', (() => {
+            // First try to use direct liter values if available
+            if (typeof opQuantityLiters === 'number' && opQuantityLiters !== 0) {
+              return Math.abs(opQuantityLiters).toLocaleString('bs-BA');
+            }
+            
+            // If no direct liter value, try to calculate from kg
+            if (typeof opQuantityKg === 'number') {
+              // Use density if available, otherwise use a default density of 0.78 for jet fuel
+              const effectiveDensity = (typeof opSpecificDensity === 'number' && opSpecificDensity > 0) 
+                ? opSpecificDensity 
+                : 0.78;
+              
+              return Math.abs(opQuantityKg / effectiveDensity).toLocaleString('bs-BA');
+            }
+            
+            return 'N/A';
+          })()],
+          ['Količina (kg)', typeof opQuantityKg === 'number' ? Math.abs(opQuantityKg).toLocaleString('bs-BA', { maximumFractionDigits: 2 }) : 'N/A'],
+          ['Specifična gustoća', typeof opSpecificDensity === 'number' && opSpecificDensity > 0 
+            ? opSpecificDensity.toLocaleString('bs-BA', { maximumFractionDigits: 4 }) 
+            : 'N/A']
         ];
         
         // Druga kolona: podaci o cijenama i destinaciji
         const columnTwoData = [
-          ['Cijena po kg', op.price_per_kg ? op.price_per_kg.toLocaleString('bs-BA', { maximumFractionDigits: 5 }) + ' ' + (op.currency || 'BAM') : 'N/A'],
+          ['Cijena po kg', opPricePerKg ? opPricePerKg.toLocaleString('bs-BA', { maximumFractionDigits: 5 }) + ' ' + (op.currency || 'BAM') : 'N/A'],
           ['Ukupna cijena', totalPrice ? totalPrice.toLocaleString('bs-BA', { maximumFractionDigits: 2 }) + ' ' + (op.currency || 'BAM') : 'N/A'],
           // Prikazujemo samo relevantne ekvivalente ovisno o originalnoj valuti
           ...(op.currency === 'BAM' ? [
@@ -981,32 +1024,15 @@ const FuelIntakeReport: React.FC = () => {
     doc.setFontSize(12);
     doc.setFont(FONT_NAME, 'bold');
     doc.text('Drenirano gorivo:', 14, yPos + 10);
-    
+
     if (drainedFuel && drainedFuel.length > 0) {
       const drainedFuelTableData = drainedFuel.map((df: any) => {
-        // Pokušaj dohvatiti točnu količinu goriva za ovaj MRN iz mrnBreakdown podataka
-        let mrnQuantity = df.quantityLiters || df.quantity_liters;
-        
-        if (df.mrnBreakdown) {
-          try {
-            const mrnData = JSON.parse(df.mrnBreakdown);
-            const mrnEntry = mrnData.find((entry: { mrn: string, quantity: number }) => 
-              entry.mrn === intake.customs_declaration_number
-            );
-            
-            if (mrnEntry) {
-              mrnQuantity = mrnEntry.quantity;
-            }
-          } catch (error) {
-            console.error('Greška pri parsiranju mrnBreakdown podataka za drenirano gorivo:', error);
-          }
-        }
-        
+        const liters = df.quantityLiters ?? df.quantity_liters;
         return [
-          formatDateTimeForReport(df.dateTime || df.date_drained),
-          mrnQuantity.toLocaleString('bs-BA'),
+          formatDateTimeForReport(df.date_drained ?? df.dateTime),
+          liters ? liters.toLocaleString('bs-BA') : 'N/A',
           df.reason || 'N/A',
-          df.operator_name || (df.user ? df.user.username : 'N/A')
+          df.operator_name || (df.user ? df.user.username : 'N/A'),
         ];
       });
       
@@ -1042,145 +1068,35 @@ const FuelIntakeReport: React.FC = () => {
     doc.setFont(FONT_NAME, 'bold');
     doc.text('Sažetak MRN izvještaja', doc.internal.pageSize.width / 2, yPos, { align: 'center' });
     yPos += 10;
-    
-    // Prikazujemo broj carinske deklaracije
+
     doc.setFontSize(12);
     doc.text(`Carinska deklaracija: ${intake.customs_declaration_number || 'N/A'}`, doc.internal.pageSize.width / 2, yPos, { align: 'center' });
     yPos += 20;
-    
-    // Izračun količine u kilogramima i prosječne gustoće
-    let totalDeliveredKg = 0;
-    let totalIntakeKg = 0;
-    let totalDensity = 0;
-    let operationsWithDensity = 0;
-    
-    console.log('Izračunavam ukupne količine za sažetak izvještaja:');
-    
-    // POTPUNO PRESLOŽIMO IZRAČUN - ali samo za specifični MRN koji je predmet izvještaja
-    // Umjesto sumiranja svih operacija, uzimamo u obzir samo dijelove operacija koji se odnose na trenutni MRN
-    const targetMRN = intake.customs_declaration_number; // MRN koji je predmet izvještaja
-    console.log(`Analiziramo transakcije za specifični MRN: ${targetMRN}`);
-    
-    console.log('Pojedinačni redovi operacija:');
-    transactions.forEach((op: FuelOperation, index: number) => { // Ispravljena referenca i dodani tipovi
-      console.log(`Red ${index + 1}: `, op);
-      
-      // Provjeri ima li operacija MRN breakdown podatke (razdvojene po pojedinim MRN-ovima)
-      let mrnBreakdownData: { mrn: string; quantity: number; kg?: number }[] = [];
-      try {
-        if (op.mrnBreakdown) {
-          mrnBreakdownData = JSON.parse(op.mrnBreakdown);
-          console.log(`  - sadrži MRN breakdown podatke:`, mrnBreakdownData);
-        }
-      } catch (e) {
-        console.warn(`  - neispravan MRN breakdown format:`, op.mrnBreakdown);
-      }
-      
-      // Ako operacija ima MRN breakdown podatke, traži samo količinu za naš ciljani MRN
-      let operationKg = 0;
-      let operationUsesTargetMrn = false;
-      
-      if (mrnBreakdownData.length > 0) {
-        // Traži količinu specifičnu za ciljani MRN
-        const targetMrnEntry = mrnBreakdownData.find(entry => entry.mrn === targetMRN);
-        
-        if (targetMrnEntry) {
-          operationUsesTargetMrn = true;
-          // Ako imamo direktno kg vrijednost u MRN zapisu, koristi ju
-          if (typeof targetMrnEntry.kg === 'number' && !isNaN(targetMrnEntry.kg)) {
-            operationKg = targetMrnEntry.kg;
-            console.log(`  - koristi kg iz MRN podataka: ${operationKg}`);
-          } 
-          // Inače, izračunaj iz količine i gustoće
-          else if (typeof targetMrnEntry.quantity === 'number' && op.specific_density && !isNaN(op.specific_density)) {
-            operationKg = targetMrnEntry.quantity * op.specific_density;
-            console.log(`  - izračunava iz MRN količine: ${targetMrnEntry.quantity} L * ${op.specific_density} = ${operationKg} kg`);
-          }
-        } else {
-          console.log(`  - ne koristi ciljani MRN ${targetMRN}`);
-        }
-      } 
-      // Ako nema MRN breakdown podataka, pretpostavi da je cijela operacija pod ciljanim MRN-om
-      else {
-        operationUsesTargetMrn = true;
-        
-        if (typeof op.quantity_kg === 'number' && !isNaN(op.quantity_kg)) {
-          operationKg = op.quantity_kg;
-          console.log(`  - koristi quantity_kg: ${operationKg}`);
-        } else if (op.specific_density && op.quantity_liters && !isNaN(op.specific_density) && !isNaN(op.quantity_liters)) {
-          operationKg = op.quantity_liters * op.specific_density;
-          console.log(`  - izračunava iz gustoće: ${op.quantity_liters} L * ${op.specific_density} = ${operationKg} kg`);
-        }
-      }
-      
-      // Dodajemo vrijednost totalDeliveredKg samo ako je stvarna vrijednost (nije NaN) i koristi ciljani MRN
-      if (operationUsesTargetMrn && !isNaN(operationKg) && operationKg > 0) {
-        totalDeliveredKg += operationKg;
-        console.log(`  - dodano u ukupno: ${operationKg.toFixed(2)} kg, novo stanje: ${totalDeliveredKg.toFixed(2)} kg`);
-      }
-      
-      // Prosječnu gustoću računamo samo iz operacija koje koriste naš MRN
-      if (operationUsesTargetMrn && op.specific_density && !isNaN(op.specific_density)) {
-        totalDensity += op.specific_density;
-        operationsWithDensity++;
-      }
-    });
-    
-    // Izračunavamo primljeno gorivo u kg (koristeći podatke iz ulaza goriva)
-    if (intake.specific_gravity && intake.quantity_liters_received && 
-        !isNaN(intake.specific_gravity) && !isNaN(intake.quantity_liters_received)) {
-      totalIntakeKg = intake.quantity_liters_received * intake.specific_gravity;
-    } else if (intake.quantity_kg_received && !isNaN(parseFloat(intake.quantity_kg_received))) {
-      totalIntakeKg = parseFloat(intake.quantity_kg_received);
-    }
-    
-    console.log(`Ukupno primljeno (kg): ${totalIntakeKg.toFixed(2)}`);
-    console.log(`Ukupno isporučeno (kg): ${totalDeliveredKg.toFixed(2)}`);
-    
-    // Koristimo originalne podatke za volumene
-    console.log(`Ukupno primljeno (L): ${balance.totalIntakeLiters}`);
-    console.log(`Ukupno isporučeno (L): ${balance.totalOutflowLiters}`);
-    console.log(`Ukupno drenirano (L): ${balance.totalOutflowLiters}`);
-    console.log(`Preostalo (L): ${balance.remainingLiters}`);
-    
-    // Izračun prosječne gustoće
-    const averageDensity = operationsWithDensity > 0 ? totalDensity / operationsWithDensity : 0;
-    
-    // Kreiramo tabelu sa zbirnim podacima - organizirano u kategorije
-    
-    // Header za tabelu
-    doc.setFillColor(41, 128, 185); // Plava boja za header
+
+    // Simplified summary using backend-calculated balance object
+    doc.setFillColor(41, 128, 185);
     doc.rect(30, yPos, doc.internal.pageSize.width - 60, 10, 'F');
-    doc.setTextColor(255, 255, 255); // Bijeli tekst
+    doc.setTextColor(255, 255, 255);
     doc.setFontSize(11);
     doc.text('Sažetak količina goriva', doc.internal.pageSize.width / 2, yPos + 7, { align: 'center' });
-    doc.setTextColor(0, 0, 0); // Vratimo na crnu boju
+    doc.setTextColor(0, 0, 0);
     yPos += 15;
-    
-    // Grupiramo podatke za bolju organizaciju tabele
-    // Važna napomena: Zanemarujemo balance vrijednosti i koristimo isključivo naš precizni izračun
-    // Deklariraj stvarne vrijednosti koje prikazujemo u PDF-u da izbjegnemo korištenje potencijalno netočnih balance vrijednosti
-    const displayIntakeKg = totalIntakeKg;
-    const displayDeliveredKg = totalDeliveredKg;
-    const displayRemainingKg = displayIntakeKg - displayDeliveredKg;
-    
-    console.log('KONAČNE VRIJEDNOSTI ZA PRIKAZ:');
-    console.log(`Težina - Primljeno (kg): ${displayIntakeKg.toFixed(2)}`);
-    console.log(`Težina - Isporučeno (kg): ${displayDeliveredKg.toFixed(2)}`);
-    console.log(`Težina - Preostalo (kg): ${displayRemainingKg.toFixed(2)}`);
-    
+
+    const totalDrainedLiters = drainedFuel.reduce((sum, df) => sum + (df.quantityLiters || df.quantity_liters || 0), 0);
+
     const weightData = [
-      ['Težina - Primljeno (kg)', displayIntakeKg.toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
-      ['Težina - Isporučeno (kg)', displayDeliveredKg.toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
-      ['Težina - Preostalo (kg)', displayRemainingKg.toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
-      ['Prosječna specifična gustoća', averageDensity.toLocaleString('bs-BA', { minimumFractionDigits: 4, maximumFractionDigits: 4 })]
+      ['Težina - Primljeno (kg)', balance.totalIntakeKg.toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
+      ['Težina - Isporučeno (kg)', balance.totalOutflowKg.toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
+      ['Težina - Preostalo (kg)', balance.remainingKg.toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
+      ['Prosječna specifična gustoća', (balance.averageDensity || 0).toLocaleString('bs-BA', { minimumFractionDigits: 4, maximumFractionDigits: 4 })]
     ];
-    
+
     const volumeData = [
       ['Volumen - Primljeno (L)', balance.totalIntakeLiters.toLocaleString('bs-BA')],
       ['Volumen - Isporučeno (L)', balance.totalOutflowLiters.toLocaleString('bs-BA')],
-      ['Volumen - Drenirano (L)', balance.totalOutflowLiters.toLocaleString('bs-BA')],
-      ['Volumen - Preostalo (L)', balance.remainingLiters.toLocaleString('bs-BA')]
+      ['Volumen - Drenirano (L)', totalDrainedLiters.toLocaleString('bs-BA')],
+      ['Volumen - Preostalo (L)', balance.remainingLiters.toLocaleString('bs-BA')],
+      ['Akumulirana varijansa (L)', balance.accumulatedLiterVariance.toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })]
     ];
     
     // Kategorija 1: Podaci o težini (kg)

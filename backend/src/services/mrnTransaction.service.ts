@@ -16,7 +16,7 @@ export interface MrnTransactionData {
   transactionType: MrnTransactionType;
   quantity_kg_transferred: Decimal;
   mrn_customs_number?: string;
-  related_mrn_transaction_id?: number;
+  related_mrn_transaction_id?: string;
   notes?: string;
 }
 
@@ -27,8 +27,21 @@ export interface MrnTransactionData {
  * @param data - Data for the new MRN transaction.
  */
 export const createMrnTransaction = async (tx: PrismaTransactionClient, data: MrnTransactionData) => {
+  // Detaljno logiranje podataka koji se koriste za kreiranje MrnTransactionLeg zapisa
+  logger.info(`📝 Creating MrnTransactionLeg with data:`, {
+    transactionType: data.transactionType,
+    tankFuelByCustomsId: data.tankFuelByCustomsId,
+    mobileTankCustomsId: data.mobileTankCustomsId,
+    quantity_kg_transferred: data.quantity_kg_transferred.toString(),
+    related_mrn_transaction_id: data.related_mrn_transaction_id,
+    mrn_customs_number: data.mrn_customs_number
+  });
+  
+  // Posebno logiranje relatedTransactionId jer je to ključno za povezivanje
+  logger.info(`🔑 relatedTransactionId value: '${data.related_mrn_transaction_id}', type: ${typeof data.related_mrn_transaction_id}`);
+  
   // Note: we're adapting the MrnTransactionData interface to match what the MrnTransactionLeg model expects
-  return tx.mrnTransactionLeg.create({
+  const result = await tx.mrnTransactionLeg.create({
     data: {
       tankFuelByCustomsId: data.tankFuelByCustomsId,
       mobileTankCustomsId: data.mobileTankCustomsId,
@@ -38,9 +51,14 @@ export const createMrnTransaction = async (tx: PrismaTransactionClient, data: Mr
       litersTransactedActual: new Decimal(0), // Will be calculated based on density if needed
       operationalDensityUsed: new Decimal(0), // Will be set correctly if supplied
       literVarianceForThisLeg: new Decimal(0), // Will be calculated if relevant
-      relatedTransactionId: data.related_mrn_transaction_id ? String(data.related_mrn_transaction_id) : undefined
+      relatedTransactionId: data.related_mrn_transaction_id || undefined
     },
   });
+  
+  // Logiranje kreiranog zapisa
+  logger.info(`✅ Created MrnTransactionLeg ID: ${result.id}, relatedTransactionId: '${result.relatedTransactionId}'`);
+  
+  return result;
 };
 
 /**
@@ -100,7 +118,7 @@ export const processMrnDeduction = async (
       mobileTankCustomsId: isMobileSource ? record.id : undefined,
       transactionType,
       quantity_kg_transferred: kgToDeductFromThisRecord.negated(),
-      related_mrn_transaction_id: Number(related_mrn_transaction_id),
+      related_mrn_transaction_id: related_mrn_transaction_id,
       // Za stari interface dodajemo obavezno polje
       mrn_customs_number: record.customs_declaration_number
     };
@@ -140,13 +158,23 @@ export const closeMrnIfDepleted = async (tx: PrismaTransactionClient, recordId: 
       ? record.quantity_kg
       : record.fuelIntakeRecord.quantity_kg_received;
 
-    await tx.mrnClosedVariance.create({
-      data: {
-        customsDeclarationNumber: record.customs_declaration_number,
-        totalKgProcessed: totalKgProcessed,
-        netLiterVariance: record.accumulatedLiterVariance,
-      },
+    // Provjeri postoji li već zapis za ovaj MRN
+    const existingVariance = await tx.mrnClosedVariance.findUnique({
+      where: { customsDeclarationNumber: record.customs_declaration_number }
     });
+
+    if (!existingVariance) {
+      // Samo kreiraj ako ne postoji
+      await tx.mrnClosedVariance.create({
+        data: {
+          customsDeclarationNumber: record.customs_declaration_number,
+          totalKgProcessed: totalKgProcessed,
+          netLiterVariance: record.accumulatedLiterVariance,
+        },
+      });
+    } else {
+      logger.info(`MRN zapis ${record.customs_declaration_number} već ima zapis o zatvaranju. Preskačem kreiranje.`);
+    }
 
     // Check for excess liters that need to be transferred to holding tank
     const remainingLiters = new Decimal(record.remaining_quantity_liters || 0);
