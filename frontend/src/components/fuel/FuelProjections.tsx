@@ -175,7 +175,7 @@ export default function FuelProjections() {
 
         let averageFuelPerOperation = 0;
         if (recentOperations.length > 0) {
-          const totalFuel = recentOperations.reduce((sum, op) => sum + (op.quantity_liters || 0), 0);
+          const totalFuel = recentOperations.reduce((sum, op) => sum + Number(op.quantity_liters || 0), 0);
           averageFuelPerOperation = totalFuel / recentOperations.length;
         }
 
@@ -194,9 +194,10 @@ export default function FuelProjections() {
           operationsAnalyzed: recentOperations.length,
         });
 
-        totalMonthly += monthlyConsumption;
-        totalQuarterly += quarterlyConsumption;
-        totalYearly += yearlyConsumption;
+        // Eksplicitna konverzija u brojeve da izbjegnemo string konkatenaciju
+        totalMonthly += Number(monthlyConsumption);
+        totalQuarterly += Number(quarterlyConsumption);
+        totalYearly += Number(yearlyConsumption);
       }
 
       const newResults = results.sort((a,b) => a.airlineName.localeCompare(b.airlineName) || a.destination.localeCompare(b.destination));

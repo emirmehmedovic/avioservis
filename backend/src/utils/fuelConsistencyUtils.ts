@@ -11,10 +11,19 @@ export interface TankConsistencyResult {
   tankId: number;
   tankName: string;
   isConsistent: boolean;
+  // Liter-based fields
   currentQuantityLiters: Decimal;
-  sumMrnQuantities: Decimal;
-  difference: Decimal;
-  tolerance: Decimal;
+  sumMrnQuantitiesLiters: Decimal;
+  differenceLiters: Decimal;
+  toleranceLiters: Decimal;
+  isConsistentByLiters: boolean;
+  // Kilogram-based fields (primarni način provjere)
+  currentQuantityKg: Decimal;
+  sumMrnQuantitiesKg: Decimal;
+  differenceKg: Decimal;
+  toleranceKg: Decimal;
+  isConsistentByKg: boolean;
+  // MRN records
   mrnRecords: {
     id: number;
     customsDeclarationNumber: string;
@@ -39,7 +48,12 @@ export async function verifyTankConsistency(
   
   const tank = await client.fixedStorageTanks.findUnique({
     where: { id: tankId },
-    select: { id: true, tank_name: true, current_quantity_liters: true }
+    select: { 
+      id: true, 
+      tank_name: true, 
+      current_quantity_liters: true,
+      current_quantity_kg: true // Dodajemo polje za kilograme
+    }
   });
   
   if (!tank) {
@@ -66,23 +80,73 @@ export async function verifyTankConsistency(
       dateAdded: r.date_added,
   }));
   
-  const sumMrnQuantities = mrnRecords.reduce(
+  // Filtriramo zapise s negativnim vrijednostima i logiramo ih
+  const validMrnRecords = mrnRecords.filter(record => {
+    const hasNegativeValues = 
+      (record.remainingQuantityLiters && record.remainingQuantityLiters.isNegative()) || 
+      (record.remainingQuantityKg && record.remainingQuantityKg.isNegative());
+    
+    if (hasNegativeValues) {
+      logger.warn(
+        `Ignoring negative values in MRN record ID=${record.id}, ` +
+        `MRN=${record.customsDeclarationNumber}: ` +
+        `L=${record.remainingQuantityLiters}, ` +
+        `KG=${record.remainingQuantityKg}`
+      );
+      return false; // Ignorirajmo zapise s negativnim vrijednostima
+    }
+    return true;
+  });
+  
+  // 1. Izračun po litrima (original, ali s većom tolerancijom)
+  const sumMrnQuantitiesLiters = validMrnRecords.reduce(
     (sum, record) => sum.plus(record.remainingQuantityLiters),
     new Decimal(0)
   );
   
   const currentQuantityLiters = new Decimal(tank.current_quantity_liters);
-  const difference = currentQuantityLiters.minus(sumMrnQuantities).abs();
-  const tolerance = Decimal.max(currentQuantityLiters.mul(0.005), new Decimal(50)); // 0.5% or 50L, whichever is greater.
-  const isConsistent = difference.lessThanOrEqualTo(tolerance);
+  const differenceLiters = currentQuantityLiters.minus(sumMrnQuantitiesLiters).abs();
+  // Povećavamo toleranciju za litre na 2% ili 200L
+  const toleranceLiters = Decimal.max(currentQuantityLiters.mul(0.02), new Decimal(200)); 
+  const isConsistentByLiters = differenceLiters.lessThanOrEqualTo(toleranceLiters);
 
+  // 2. Izračun po kilogramima (novi primarni način)
+  const sumMrnQuantitiesKg = validMrnRecords.reduce(
+    (sum, record) => {
+      if (record.remainingQuantityKg === null) return sum;
+      return sum.plus(record.remainingQuantityKg);
+    },
+    new Decimal(0)
+  );
+  
+  const currentQuantityKg = new Decimal(tank.current_quantity_kg);
+  const differenceKg = currentQuantityKg.minus(sumMrnQuantitiesKg).abs();
+  // Manja tolerancija za kilograme: 0.1% ili 20kg
+  const toleranceKg = Decimal.max(currentQuantityKg.mul(0.001), new Decimal(20)); 
+  const isConsistentByKg = differenceKg.lessThanOrEqualTo(toleranceKg);
+
+  // Tank je konzistentan ako je konzistentan po kilogramima (primarni kriterij)
+  // ILI ako je konzistentan po litrama (sekundarni kriterij)
+  const isConsistent = isConsistentByKg || isConsistentByLiters;
+
+  // Ažuriramo logiranje
   if (!isConsistent) {
     logger.warn(
-      `Tank ${tank.tank_name} (ID: ${tankId}) is inconsistent. ` +
-      `Difference: ${difference.toFixed(2)} L, ` +
-      `Tank Qty: ${currentQuantityLiters.toFixed(2)} L, ` +
-      `MRN Sum: ${sumMrnQuantities.toFixed(2)} L, ` +
-      `Tolerance: ${tolerance.toFixed(2)} L`
+      `Tank ${tank.tank_name} (ID: ${tankId}) is inconsistent. \n` +
+      `KG: Difference: ${differenceKg.toFixed(2)} kg, ` +
+      `Tank: ${currentQuantityKg.toFixed(2)} kg, ` +
+      `MRN Sum: ${sumMrnQuantitiesKg.toFixed(2)} kg, ` +
+      `Tolerance: ${toleranceKg.toFixed(2)} kg \n` +
+      `Liters: Difference: ${differenceLiters.toFixed(2)} L, ` +
+      `Tank: ${currentQuantityLiters.toFixed(2)} L, ` +
+      `MRN Sum: ${sumMrnQuantitiesLiters.toFixed(2)} L, ` +
+      `Tolerance: ${toleranceLiters.toFixed(2)} L`
+    );
+  } else if (isConsistentByKg && !isConsistentByLiters) {
+    // Specifičan log ako je konzistentan samo po kg
+    logger.info(
+      `Tank ${tank.tank_name} (ID: ${tankId}) is consistent by KG but not by liters. ` +
+      `This is acceptable due to temperature/volume variations.`
     );
   }
 
@@ -90,11 +154,17 @@ export async function verifyTankConsistency(
     tankId: tank.id,
     tankName: tank.tank_name,
     isConsistent,
+    isConsistentByKg,
+    isConsistentByLiters,
     currentQuantityLiters,
-    sumMrnQuantities,
-    difference,
-    tolerance,
-    mrnRecords, // Use the correctly mapped records.
+    sumMrnQuantitiesLiters,
+    differenceLiters,
+    toleranceLiters,
+    currentQuantityKg,
+    sumMrnQuantitiesKg,
+    differenceKg,
+    toleranceKg,
+    mrnRecords: validMrnRecords, // Koristimo filtrirane zapise
   };
 }
 

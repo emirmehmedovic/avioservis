@@ -52,11 +52,12 @@ export async function processExcessFuelExchange(
   sourceMrn: string, 
   sourceMrnDensity: number | null
 ): Promise<ExcessFuelExchangeResult> {
-  logger.info(`Započinjem zamjenu viška goriva: ${excessLiters.toFixed(3)}L iz mobilnog tanka ID=${mobileId}, MRN=${sourceMrn}`);
+  // Poboljšano logiranje za lakše praćenje i dijagnosticiranje problema
+  logger.info(`Započinjem zamjenu viška goriva: ${excessLiters.toFixed(3)}L iz mobilnog tanka ID=${mobileId}, MRN=${sourceMrn}, MRN_ID=${sourceMrnId}`);
 
   // Provjeri jesu li parametri validni
   if (!mobileId || !sourceMrnId || excessLiters <= 0) {
-    logger.warn(`Nevaljani parametri za zamjenu viška: mobileId=${mobileId}, excessLiters=${excessLiters}, sourceMrnId=${sourceMrnId}`);
+    logger.warn(`Nevaljani parametri za zamjenu viška goriva: mobileId=${mobileId}, excessLiters=${excessLiters}, sourceMrnId=${sourceMrnId}`);
     return {
       success: false,
       transferredLiters: 0,
@@ -73,7 +74,7 @@ export async function processExcessFuelExchange(
   
   // Ako gustoća nije proslijeđena, pokušaj je dohvatiti iz MRN zapisa
   if (!density) {
-    logger.warn(`Nedostaje podatak o gustoći goriva za MRN ${sourceMrn}, pokušavam dohvatiti iz baze`);
+    logger.warn('Nedostaje podatak o gustoći goriva za MRN ' + sourceMrn + ', pokušavam dohvatiti iz baze');
     try {
       const mrnRecord = await prisma.mobileTankCustoms.findUnique({
         where: { id: sourceMrnId }
@@ -94,11 +95,37 @@ export async function processExcessFuelExchange(
   }
   
   try {
+    // Prvo provjeravamo stanje mobilnog tanka prije bilo kakvih promjena
+    const mobileTankInitialState = await prisma.mobileTankCustoms.findUnique({
+      where: { id: sourceMrnId }
+    });
+    
+    if (!mobileTankInitialState) {
+      throw new Error(`MRN zapis s ID=${sourceMrnId} ne postoji u bazi`);
+    }
+    
+    const initialRemainingLiters = mobileTankInitialState.remaining_quantity_liters;
+    
+    // Validacija: ima li dovoljno litara za transfer
+    if (initialRemainingLiters.lessThan(excessLiters)) {
+      logger.warn(`Nedovoljno litara u mobilnom tanku za transfer viška: tankId=${mobileId}, mrnId=${sourceMrnId}, available=${initialRemainingLiters.toString()}, requested=${excessLiters}`);
+      
+      return {
+        success: false,
+        transferredLiters: 0,
+        transferredKg: 0,
+        sourceMrn,
+        targetMrn: "",
+        targetFixedTankId: 0,
+        error: `Nedovoljno goriva u mobilnom tanku (dostupno: ${initialRemainingLiters.toString()}L, potrebno: ${excessLiters}L).`
+      };
+    }
+    
     // Korak 1: Dobavi fiksirani spremnik s najmanje iskorištenim gorivom (FIFO princip)
     const fifoFixedTank = await getFixedTankWithOldestFuel(excessLiters);
 
     if (!fifoFixedTank || !fifoFixedTank.tankId || !fifoFixedTank.mrnId) {
-      logger.error(`[processExcessFuelExchange] Nije pronađen odgovarajući fiksni tank za zamjenu viška.`);
+      logger.error(`Nije pronađen odgovarajući fiksni tank za zamjenu viška.`);
       return {
         success: false,
         transferredLiters: 0,
@@ -110,24 +137,40 @@ export async function processExcessFuelExchange(
       };
     }
 
-    logger.info(`[processExcessFuelExchange] Pronađen odgovarajući fiksni tank ID=${fifoFixedTank.tankId} s MRN=${fifoFixedTank.mrnNumber}`);
-    
-    const density = sourceMrnDensity;
+    logger.info(`Pronađen odgovarajući fiksni tank ID=${fifoFixedTank.tankId} s MRN=${fifoFixedTank.mrnNumber}`);
     
     // Koristimo transakciju da osiguramo atomičnost operacija
     return await prisma.$transaction(async (tx) => {
       // KORAK 1: Smanjiti količinu u mobilnom tanku MRN zapisu (višak koji se uklanja)
-      await tx.mobileTankCustoms.update({
+      // Prvo eksplicitno dohvatiti trenutno stanje
+      const currentMobileTank = await tx.mobileTankCustoms.findUnique({
+        where: { id: sourceMrnId }
+      });
+      
+      if (!currentMobileTank) {
+        throw new Error(`MRN zapis s ID=${sourceMrnId} ne postoji u transakciji`);
+      }
+      
+      const currentRemainingLiters = currentMobileTank.remaining_quantity_liters;
+      const newRemainingLiters = currentRemainingLiters.sub(new Decimal(excessLiters.toString()));
+      
+      if (newRemainingLiters.isNegative()) {
+        throw new Error(`Operacija bi rezultirala negativnim stanjem litara u MRN zapisu`);
+      }
+      
+      // Umjesto dekrementa koristimo apsolutnu vrijednost što je sigurnije
+      const updatedMobileTank = await tx.mobileTankCustoms.update({
         where: { id: sourceMrnId },
         data: {
-          remaining_quantity_liters: { decrement: new Decimal(excessLiters.toString()) }
+          remaining_quantity_liters: newRemainingLiters
           // ne mijenjamo kg jer je već 0
         }
       });
-      logger.debug(`[processExcessFuelExchange] Smanjen višak od ${excessLiters}L u mobilnom tanku MRN ID=${sourceMrnId}`);
+      
+      // Detaljno logiranje za dijagnostiku
+      logger.info(`Smanjeno stanje litara u mobilnom tanku MRN: tankId=${mobileId}, mrnId=${sourceMrnId}, before=${currentRemainingLiters.toString()}, after=${updatedMobileTank.remaining_quantity_liters.toString()}, difference=${excessLiters}`);
 
       // KORAK 2: Transfer viška litara u fiksni tank i kreiranje zapisa o rezervnom gorivu
-      // Izračunaj kg ekvivalent na temelju gustoće iz MRN zapisa
       // Dohvati izvorni MRN zapis kako bismo dobili gustoću
       const sourceMrnRecord = await tx.mobileTankCustoms.findUnique({
         where: { id: sourceMrnId }
@@ -161,17 +204,46 @@ export async function processExcessFuelExchange(
       // KORAK 3: Prenesi istu količinu litara s ispravnim kg iz fiksnog u mobilni tank
       const substitutionLiters = excessLiters;
       const substitutionKg = substitutionLiters * fifoFixedTank.density;
-      logger.debug(`[processExcessFuelExchange] Izračunata zamjenska količina: ${substitutionLiters}L / ${substitutionKg}kg (gustoća: ${fifoFixedTank.density})`);
+      logger.info(`Izračunata zamjenska količina: ${substitutionLiters}L / ${substitutionKg}kg (gustoća: ${fifoFixedTank.density})`);
       
-      // 3.1 Umanjiti količinu goriva u MRN zapisu fiksnog tanka
-      await tx.tankFuelByCustoms.update({
+      // 3.1 Dohvatiti i provjeriti trenutno stanje MRN zapisa fiksnog tanka
+      const currentFixedTankMrn = await tx.tankFuelByCustoms.findUnique({
+        where: { id: fifoFixedTank.mrnId }
+      });
+      
+      if (!currentFixedTankMrn) {
+        throw new Error(`Nije pronađen MRN zapis u fiksnom tanku s ID=${fifoFixedTank.mrnId}`);
+      }
+      
+      // Validacija: ima li dovoljno litara i kg za transfer
+      if (currentFixedTankMrn.remaining_quantity_liters.lessThan(substitutionLiters) || 
+          !currentFixedTankMrn.remaining_quantity_kg || 
+          currentFixedTankMrn.remaining_quantity_kg.lessThan(substitutionKg)) {
+        
+        const availableKg = currentFixedTankMrn.remaining_quantity_kg ? 
+          currentFixedTankMrn.remaining_quantity_kg.toString() : 
+          '0';
+          
+        throw new Error(`Nedovoljno goriva u fiksnom tanku za transfer: potrebno ${substitutionLiters}L/${substitutionKg}kg, dostupno ${currentFixedTankMrn.remaining_quantity_liters}L/${availableKg}kg`);
+      }
+      
+      // Izračunaj nove vrijednosti količine i umanjenje koristeći apsolutne vrijednosti
+      const newFixedTankLiters = currentFixedTankMrn.remaining_quantity_liters.sub(new Decimal(substitutionLiters.toString()));
+      
+      // Sigurno rukovanje s remaining_quantity_kg koji može biti null
+      const currentKg = currentFixedTankMrn.remaining_quantity_kg ?? new Decimal(0);
+      const newFixedTankKg = currentKg.sub(new Decimal(substitutionKg.toString()));
+      
+      // Ažurirati MRN zapis fiksnog tanka
+      const updatedFixedTankMrn = await tx.tankFuelByCustoms.update({
         where: { id: fifoFixedTank.mrnId },
         data: {
-          remaining_quantity_liters: { decrement: new Decimal(substitutionLiters.toString()) },
-          remaining_quantity_kg: { decrement: new Decimal(substitutionKg.toString()) }
+          remaining_quantity_liters: newFixedTankLiters,
+          remaining_quantity_kg: newFixedTankKg
         }
       });
-      logger.debug(`Umanjeno: ${substitutionLiters}L / ${substitutionKg}kg u fiksnom tanku MRN ID=${fifoFixedTank.mrnId}`);
+      
+      logger.info(`Umanjeno stanje u fiksnom tanku MRN ID=${fifoFixedTank.mrnId}: ${currentFixedTankMrn.remaining_quantity_liters}L -> ${updatedFixedTankMrn.remaining_quantity_liters}L, ${currentFixedTankMrn.remaining_quantity_kg}kg -> ${updatedFixedTankMrn.remaining_quantity_kg}kg`);
 
       // 3.2 Dodati novi MRN zapis u mobilni tank
       const mobileTankMrn = await tx.mobileTankCustoms.create({
@@ -209,15 +281,34 @@ export async function processExcessFuelExchange(
       });
       logger.info(`Kreiran zapis o transferu goriva u mobilni tank: ID=${transferRecord.id}, ${substitutionLiters}L / ${substitutionKg}kg`);
 
-      // 3.4 Ažuriraj stanje fiksnog tanka
-      await tx.fixedStorageTanks.update({
+      // 3.4 Ažuriraj stanje fiksnog tanka - dohvati prvo trenutno stanje
+      const currentFixedTank = await tx.fixedStorageTanks.findUnique({
+        where: { id: fifoFixedTank.tankId }
+      });
+      
+      if (!currentFixedTank) {
+        throw new Error(`Nije pronađen fiksni tank s ID=${fifoFixedTank.tankId}`);
+      }
+      
+      // Izračunaj nove vrijednosti
+      const newTankLiters = currentFixedTank.current_quantity_liters - substitutionLiters;
+      const newTankKg = currentFixedTank.current_quantity_kg - substitutionKg;
+      
+      // Validacija da ne idemo u negativu
+      if (newTankLiters < 0 || newTankKg < 0) {
+        throw new Error(`Ažuriranje fiksnog tanka bi rezultiralo negativnim stanjem: L=${newTankLiters}, kg=${newTankKg}`);
+      }
+      
+      // Ažurirati fiksni tank s apsolutnim vrijednostima
+      const updatedFixedTank = await tx.fixedStorageTanks.update({
         where: { id: fifoFixedTank.tankId },
         data: {
-          current_quantity_liters: { decrement: substitutionLiters },
-          current_quantity_kg: { decrement: substitutionKg },
+          current_quantity_liters: newTankLiters,
+          current_quantity_kg: newTankKg
         }
       });
-      logger.debug(`Ažuriran fiksni tank ID=${fifoFixedTank.tankId}: umanjeno ${substitutionLiters}L / ${substitutionKg}kg`);
+      
+      logger.info(`Ažuriran fiksni tank ID=${fifoFixedTank.tankId}: ${currentFixedTank.current_quantity_liters}L/${currentFixedTank.current_quantity_kg}kg -> ${updatedFixedTank.current_quantity_liters}L/${updatedFixedTank.current_quantity_kg}kg`);
 
       // 3.5 Ažuriraj stanje mobilnog tanka - prvo izračunajmo točno stanje na temelju MRN zapisa
       // Dohvati sve aktivne MRN zapise za ovaj mobilni tank NAKON promjena
@@ -227,26 +318,43 @@ export async function processExcessFuelExchange(
           remaining_quantity_liters: { gt: 0 }
         }
       });
-
+      
       // Zbroji ukupne količine iz svih aktivnih MRN zapisa
       const totalLiters = activeMrnRecords.reduce(
-        (sum, record) => sum + parseFloat(record.remaining_quantity_liters.toString()), 
+        (sum: number, record: any) => sum + parseFloat(record.remaining_quantity_liters.toString()), 
         0
       );
+      
       const totalKg = activeMrnRecords.reduce(
-        (sum, record) => sum + parseFloat(record.remaining_quantity_kg.toString()), 
+        (sum: number, record: any) => {
+          // Sigurna obrada za moguće null vrijednosti
+          const kg = record.remaining_quantity_kg ? 
+            parseFloat(record.remaining_quantity_kg.toString()) : 
+            0;
+          return sum + kg;
+        }, 
         0
       );
 
+      // Dohvati trenutno stanje mobilnog tanka za usporedbu
+      const currentMobileTankState = await tx.fuelTank.findUnique({
+        where: { id: mobileId }
+      });
+      
+      if (!currentMobileTankState) {
+        throw new Error(`Nije pronađen mobilni tank s ID=${mobileId}`);
+      }
+      
       // Postavi točno stanje u mobilnom tanku umjesto inkrementiranja
-      await tx.fuelTank.update({
+      const updatedMobileState = await tx.fuelTank.update({
         where: { id: mobileId },
         data: {
           current_liters: totalLiters,
           current_kg: totalKg,
         }
       });
-      logger.debug(`Ažuriran mobilni tank ID=${mobileId}: postavljeno točno stanje ${totalLiters}L / ${totalKg}kg na temelju MRN zapisa`);
+      
+      logger.info(`Ažuriran mobilni tank ID=${mobileId} prema MRN zapisima: ${currentMobileTankState.current_liters}L/${currentMobileTankState.current_kg}kg -> ${updatedMobileState.current_liters}L/${updatedMobileState.current_kg}kg`);
 
       logger.info(`Uspješna zamjena viška: ${substitutionLiters.toFixed(3)}L / ${substitutionKg.toFixed(3)}kg iz fiksnog tanka ${fifoFixedTank.tankId} u mobilni tank ${mobileId}`);
       

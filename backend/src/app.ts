@@ -38,6 +38,7 @@ import fuelOperationLogRoutes from './routes/fuelOperationLog.routes'; // Rute z
 import fuelConsistencyRoutes from './routes/fuelConsistency.routes'; // Rute za upravljanje nekonzistentnostima goriva
 import reserveFuelRoutes from './routes/reserveFuel.routes'; // Rute za upravljanje rezervnim gorivom
 import fuelExcessRoutes from './routes/fuelExcess.routes'; // Rute za ručnu obradu viška goriva
+import financialReportsRoutes from './routes/financialReports.routes'; // Rute za finansijske izvještaje
 
 const app = express();
 
@@ -98,6 +99,7 @@ app.use('/api/documents', documentsRouter); // Mount new secure documents router
 app.use('/api/activities', activityRoutes);
 app.use('/api/fuel-price-rules', fuelPriceRuleRoutes); // Registracija ruta za pravila o cijenama goriva
 app.use('/api/fuel-projection-presets', fuelProjectionPresetRoutes);
+app.use('/api/reports/financial', reportingLimiter, financialReportsRoutes); // Registracija ruta za finansijske izvještaje
 app.use('/api/valve-tests', valveTestRoutes); // Registracija ruta za ILPCV i HECPV testove ventila
 
 app.get('/', (req, res) => {

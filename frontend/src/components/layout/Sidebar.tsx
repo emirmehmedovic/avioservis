@@ -27,6 +27,7 @@ import {
   FileText, // Added FileText for activities
   Droplet, // Added Droplet for fuel status
   ShieldAlert, // Added ShieldAlert for fuel consistency
+  DollarSign, // Added DollarSign for financial reports
 } from 'lucide-react';
 
 // Define new user roles for specific access
@@ -46,6 +47,7 @@ const baseNavItems = [
   { name: 'Lokacije', href: '/dashboard/locations', icon: MapPin, roles: ['ADMIN'] },
   { name: 'Avio gorivo', href: '/dashboard/fuel', icon: Fuel, roles: ['ADMIN', 'KONTROLA'] },
   { name: 'Izvještaji', href: '/dashboard/reports', icon: ClipboardList, roles: ['ADMIN', 'KONTROLA'] },
+  { name: 'Finansijski izvještaji', href: '/dashboard/financial-reports', icon: DollarSign, roles: ['ADMIN', 'KONTROLA'] },
   { name: 'Statistika i projekcije', href: '/dashboard/statistics', icon: Activity, roles: ['ADMIN', 'KONTROLA'] },
   { name: 'Aktivnosti', href: '/aktivnosti', icon: FileText, roles: ['ADMIN', 'KONTROLA'] },
   { name: 'Carina', href: '/dashboard/customs', icon: ShieldCheck, roles: ['ADMIN', 'CARINA'] },

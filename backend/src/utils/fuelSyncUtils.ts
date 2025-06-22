@@ -85,8 +85,8 @@ export async function syncTankFuelData(
       wasConsistent: true,
       initialState: {
         tankQuantity: consistencyResult.currentQuantityLiters,
-        mrnTotalQuantity: consistencyResult.sumMrnQuantities,
-        difference: consistencyResult.difference
+        mrnTotalQuantity: consistencyResult.sumMrnQuantitiesLiters,
+        difference: consistencyResult.differenceLiters
       },
       strategy
     };
@@ -101,8 +101,8 @@ export async function syncTankFuelData(
     wasConsistent: false,
     initialState: {
       tankQuantity: consistencyResult.currentQuantityLiters,
-      mrnTotalQuantity: consistencyResult.sumMrnQuantities,
-      difference: consistencyResult.difference
+      mrnTotalQuantity: consistencyResult.sumMrnQuantitiesLiters,
+      difference: consistencyResult.differenceLiters
     },
     strategy,
     adjustments: {
@@ -121,17 +121,17 @@ export async function syncTankFuelData(
     await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       if (strategy === SyncStrategy.ADJUST_TANK_QUANTITY) {
         // Prilagodi količinu goriva u tanku da odgovara sumi MRN zapisa
-        const adjustmentAmount = consistencyResult.sumMrnQuantities.sub(consistencyResult.currentQuantityLiters);
+        const adjustmentAmount = consistencyResult.sumMrnQuantitiesLiters.sub(consistencyResult.currentQuantityLiters);
         
         await tx.fixedStorageTanks.update({
           where: { id: tankId },
-          data: { current_quantity_liters: consistencyResult.sumMrnQuantities.toNumber() }
+          data: { current_quantity_liters: consistencyResult.sumMrnQuantitiesLiters.toNumber() }
         });
         
         result.adjustments!.tankAdjusted = true;
         result.adjustments!.tankAdjustmentAmount = adjustmentAmount;
         
-        logger.info(`Prilagođena količina tanka ${consistencyResult.tankName} (ID: ${tankId}): ${consistencyResult.currentQuantityLiters} L -> ${consistencyResult.sumMrnQuantities} L`);
+        logger.info(`Prilagođena količina tanka ${consistencyResult.tankName} (ID: ${tankId}): ${consistencyResult.currentQuantityLiters} L -> ${consistencyResult.sumMrnQuantitiesLiters} L`);
         
         // Logiraj sinhronizaciju u SystemLog
         await (tx as any).systemLog.create({
@@ -141,7 +141,7 @@ export async function syncTankFuelData(
               tankId,
               strategy,
               initialTankQuantity: consistencyResult.currentQuantityLiters.toNumber(),
-              newTankQuantity: consistencyResult.sumMrnQuantities.toNumber(),
+              newTankQuantity: consistencyResult.sumMrnQuantitiesLiters.toNumber(),
               adjustment: adjustmentAmount.toNumber(),
               timestamp: new Date()
             }),
@@ -160,7 +160,7 @@ export async function syncTankFuelData(
         });
         
         // Izračunaj koliko treba prilagoditi (negativno: smanjiti, pozitivno: povećati)
-        let adjustmentNeeded = consistencyResult.currentQuantityLiters.sub(consistencyResult.sumMrnQuantities);
+        let adjustmentNeeded = consistencyResult.currentQuantityLiters.sub(consistencyResult.sumMrnQuantitiesLiters);
         
         // Prilagodi MRN zapise počevši od najnovijih
         for (const record of mrnRecords) {
@@ -221,8 +221,8 @@ export async function syncTankFuelData(
       const finalConsistencyResult = await verifyTankConsistency(tankId, tx);
       result.finalState = {
         tankQuantity: finalConsistencyResult.currentQuantityLiters,
-        mrnTotalQuantity: finalConsistencyResult.sumMrnQuantities,
-        difference: finalConsistencyResult.difference
+        mrnTotalQuantity: finalConsistencyResult.sumMrnQuantitiesLiters,
+        difference: finalConsistencyResult.differenceLiters
       };
     }, {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable

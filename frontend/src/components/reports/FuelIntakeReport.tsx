@@ -49,6 +49,16 @@ interface MrnTransaction {
   specific_density?: number;
 }
 
+// Interfejs za stavku unutar mrnBreakdown JSON stringa
+interface MrnBreakdownEntry {
+  mrn: string;
+  kg?: number;
+  liters?: number;
+  quantity?: number;
+  quantity_kg?: number;
+  tankId?: number;
+}
+
 import toast from 'react-hot-toast';
 import { ArrowDownTrayIcon, DocumentTextIcon, PrinterIcon } from '@heroicons/react/24/outline';
 import { FileText } from 'lucide-react';
@@ -332,7 +342,7 @@ const FuelIntakeReport: React.FC = () => {
                 }
                 
                 if (mrnBreakdownData.length > 0) {
-                  const targetMrnEntry = mrnBreakdownData.find(entry => entry.mrn === targetMRN);
+                  const targetMrnEntry = mrnBreakdownData.find((entry: MrnBreakdownEntry) => entry.mrn === targetMRN);
                   
                   if (targetMrnEntry) {
                     operationUsesTargetMrn = true;
@@ -644,7 +654,24 @@ const FuelIntakeReport: React.FC = () => {
         fuelingOps.map(op => {
           // Pretvaranje stringova u brojeve za ispravno formatiranje
           const quantity_liters = typeof op.quantity_liters === 'string' ? parseFloat(op.quantity_liters) : op.quantity_liters;
-          const quantity_kg = typeof op.quantity_kg === 'string' ? parseFloat(op.quantity_kg) : op.quantity_kg;
+          // Pokušavamo naći kilažu specifičnu za trenutni MRN iz mrnBreakdown ako postoji
+          let quantity_kg;
+          try {
+            if (op.mrnBreakdown) {
+              const mrnBreakdownData = JSON.parse(op.mrnBreakdown);
+              const targetMrnEntry = mrnBreakdownData.find((entry: MrnBreakdownEntry) => entry.mrn === intake.customs_declaration_number);
+              if (targetMrnEntry && typeof targetMrnEntry.kg === 'number') {
+                quantity_kg = targetMrnEntry.kg;
+              }
+            }
+          } catch (error) {
+            console.error('Greška pri parsiranju mrnBreakdown za PDF:', error);
+          }
+
+          // Fallback na ukupnu kilažu ako nemamo podatak specifičan za MRN
+          if (quantity_kg === undefined) {
+            quantity_kg = typeof op.quantity_kg === 'string' ? parseFloat(op.quantity_kg) : op.quantity_kg;
+          }
           const specific_density = typeof op.specific_density === 'string' ? parseFloat(op.specific_density) : op.specific_density;
           const price_per_kg = typeof op.price_per_kg === 'string' ? parseFloat(op.price_per_kg) : op.price_per_kg;
           
@@ -668,8 +695,24 @@ const FuelIntakeReport: React.FC = () => {
         }) :
         // Fallback na transakcije ako nemamo fuelingOperations
         transactions.map(op => {
-          // Samo za fallback scenarij - koristimo staru logiku
-          const kilograms = op.kgTransacted ?? op.quantity_kg;
+          // Tražimo kilažu specifičnu za trenutni MRN
+          let kilograms;
+          try {
+            if (op.mrnBreakdown) {
+              const mrnBreakdownData = JSON.parse(op.mrnBreakdown);
+              const targetMrnEntry = mrnBreakdownData.find((entry: MrnBreakdownEntry) => entry.mrn === intake.customs_declaration_number);
+              if (targetMrnEntry && typeof targetMrnEntry.kg === 'number') {
+                kilograms = targetMrnEntry.kg;
+              }
+            }
+          } catch (error) {
+            console.error('Greška pri parsiranju mrnBreakdown za PDF fallback:', error);
+          }
+
+          // Fallback na ukupnu kilažu ako nemamo podatak specifičan za MRN
+          if (kilograms === undefined) {
+            kilograms = op.kgTransacted ?? op.quantity_kg;
+          }
           const density = op.density ?? op.specific_density;
           
           // Handle liters: if directly available use that, otherwise calculate from kg/density

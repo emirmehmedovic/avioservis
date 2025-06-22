@@ -157,9 +157,9 @@ export const correctTankInconsistency = async (req: Request, res: Response): Pro
       else if (action === 'adjustTank') {
         // Podešavanje količine goriva u tanku
         // Konvertirati sumMrnQuantities iz stringa u broj za Prisma update
-        const targetQuantity = parseFloat(String(consistency.sumMrnQuantities));
+        const targetQuantity = parseFloat(String(consistency.sumMrnQuantitiesLiters));
         
-        logger.info(`Ažuriranje količine goriva u tanku ID ${tankId} na ${targetQuantity} L (konvertirano iz "${consistency.sumMrnQuantities}")`);
+        logger.info(`Ažuriranje količine goriva u tanku ID ${tankId} na ${targetQuantity} L (konvertirano iz "${consistency.sumMrnQuantitiesLiters}")`);
         
         await tx.fixedStorageTanks.update({
           where: { id: tankId },
@@ -168,8 +168,8 @@ export const correctTankInconsistency = async (req: Request, res: Response): Pro
       }
       else if (action === 'createBalancingMrn') {
         // Kreiraj novi MRN zapis za balansiranje razlike
-        const difference = consistency.difference;
-        const direction = consistency.currentQuantityLiters > consistency.sumMrnQuantities ? 'positive' : 'negative';
+        const difference = consistency.differenceLiters;
+        const direction = consistency.currentQuantityLiters > consistency.sumMrnQuantitiesLiters ? 'positive' : 'negative';
         // Koristimo .abs() metodu Decimal objekta umjesto Math.abs koji radi samo s number tipom
         const quantityToAdd = difference.abs();
         
@@ -196,8 +196,8 @@ export const correctTankInconsistency = async (req: Request, res: Response): Pro
             action,
             beforeCorrection: {
               tankQuantity: consistency.currentQuantityLiters,
-              mrnSum: consistency.sumMrnQuantities,
-              difference: consistency.difference
+              mrnSum: consistency.sumMrnQuantitiesLiters,
+              difference: consistency.differenceLiters
             },
             notes
           }),
