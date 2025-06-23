@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { FuelingOperation } from '../types';
 import { formatDate, API_BASE_URL, generatePDFInvoice } from '../utils/helpers';
 
@@ -8,6 +10,20 @@ interface OperationDetailsModalProps {
 }
 
 const OperationDetailsModal: React.FC<OperationDetailsModalProps> = ({ operation, onClose }) => {
+  const router = useRouter();
+  const { authUser } = useAuth();
+
+  // Check if user has permission to view this operation
+  useEffect(() => {
+    if (!authUser) {
+      router.push('/login');
+      onClose();
+    }
+  }, [authUser, router, onClose]);
+
+  if (!authUser) {
+    return null; // Or a loading spinner
+  }
   return (
     <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-0">

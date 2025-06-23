@@ -9,15 +9,17 @@ import { UserRole } from '@/types';
 const PAGE_ACCESS_MAP: Record<string, UserRole[]> = {
   '/dashboard': [UserRole.ADMIN],
   '/dashboard/vehicles': [UserRole.ADMIN],
-  '/dashboard/fuel': [UserRole.ADMIN, UserRole.KONTROLA],
-  '/dashboard/reports': [UserRole.ADMIN, UserRole.KONTROLA],
+  '/dashboard/fuel': [UserRole.ADMIN, UserRole.KONTROLA, UserRole.FUEL_OPERATOR],
+  '/dashboard/fuel/projections': [UserRole.ADMIN, UserRole.KONTROLA, UserRole.FUEL_OPERATOR],
+  '/dashboard/reports': [UserRole.ADMIN, UserRole.KONTROLA, UserRole.FUEL_OPERATOR],
+  '/dashboard/statistics': [UserRole.ADMIN, UserRole.KONTROLA, UserRole.FUEL_OPERATOR],
   '/dashboard/financial-reports': [UserRole.ADMIN, UserRole.KONTROLA],
   '/dashboard/customs': [UserRole.ADMIN, UserRole.CARINA],
   '/dashboard/airport': [UserRole.ADMIN, UserRole.AERODROM],
   '/dashboard/companies': [UserRole.ADMIN],
   '/dashboard/locations': [UserRole.ADMIN],
   '/dashboard/users': [UserRole.ADMIN],
-  '/aktivnosti': [UserRole.ADMIN, UserRole.KONTROLA],
+  '/aktivnosti': [UserRole.ADMIN, UserRole.KONTROLA, UserRole.FUEL_OPERATOR],
 };
 
 // Component to check if user has access to the current page

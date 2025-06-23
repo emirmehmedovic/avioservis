@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
-import { getAirlines, clearAirlinesCache, fetchWithAuth } from '@/lib/apiService'; // Added fetchWithAuth back
+import { getAirlines, clearAirlinesCache, fetchWithAuth } from '@/lib/apiService';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Airline {
   id: number;
@@ -14,11 +16,16 @@ interface Airline {
 }
 
 export default function AirlineManagement() {
+  const router = useRouter();
+  const { authUser } = useAuth();
   const [airlines, setAirlines] = useState<Airline[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentAirline, setCurrentAirline] = useState<Airline | null>(null);
+
+  // Check if user has permission to edit
+  const canEdit = authUser?.role === 'ADMIN' || authUser?.role === 'KONTROLA';
 
   // Form state
   const [formData, setFormData] = useState({
@@ -31,8 +38,14 @@ export default function AirlineManagement() {
   });
 
   useEffect(() => {
-    fetchAirlines();
-  }, []);
+    // Only fetch if user is authenticated
+    if (authUser) {
+      fetchAirlines();
+    } else {
+      // If not authenticated, redirect to login
+      router.push('/login');
+    }
+  }, [authUser, router]);
 
   const fetchAirlines = async () => {
     try {
@@ -84,6 +97,11 @@ export default function AirlineManagement() {
 
   const handleAddAirline = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!canEdit) {
+      toast.error('Nemate ovlaštenje za dodavanje avio kompanija');
+      return;
+    }
     
     try {
       if (!formData.name.trim()) {

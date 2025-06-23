@@ -2,7 +2,7 @@ import express from 'express';
 import { createFuelDrainRecord, getAllFuelDrainRecords, getFuelDrainRecordById } from '../controllers/fuelDrain.controller';
 import { reverseFuelDrainTransaction } from '../controllers/fuelDrainReverse.controller';
 import { processFuelDrainSale } from '../controllers/fuelDrainSale.controller';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, checkRole } from '../middleware/auth';
 import { validateDrainRecord } from '../validators/fuelDrain.validator';
 import { validateDrainReverseTransaction } from '../validators/fuelDrainReverse.validator';
 import { validateDrainSaleTransaction } from '../validators/fuelDrainSale.validator';
@@ -10,8 +10,9 @@ import { Request, Response, NextFunction } from 'express';
 
 const router = express.Router();
 
-// All routes require authentication
+// All routes require authentication and specific roles
 router.use(authenticateToken);
+router.use(checkRole(['ADMIN', 'KONTROLA', 'FUEL_OPERATOR']));
 
 // Middleware to log request body
 const logRequestBody = (req: Request, res: Response, next: NextFunction): void => {

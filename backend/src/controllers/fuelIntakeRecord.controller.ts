@@ -975,9 +975,16 @@ export const deleteFuelIntakeRecord = async (req: AuthRequest, res: Response, ne
   try {
     const { id } = req.params;
     const parsedId = parseInt(id);
+    const userRole = req.user?.role;
 
     if (isNaN(parsedId)) {
       res.status(400).json({ message: "Invalid ID format." });
+      return;
+    }
+    
+    // Check if user has permission to delete
+    if (userRole !== 'ADMIN' && userRole !== 'KONTROLA' && userRole !== 'FUEL_OPERATOR') {
+      res.status(403).json({ message: 'Nedozvoljen pristup. Nemate ovlaštenje za brisanje zapisa.' });
       return;
     }
     

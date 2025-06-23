@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as fuelExcessController from '../controllers/fuelExcess.controller';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, checkRole } from '../middleware/auth';
 
 const router = Router();
 
@@ -41,7 +41,11 @@ const router = Router();
  *       500:
  *         description: Greška na serveru
  */
-router.post('/excess', authenticateToken, fuelExcessController.processExcessFuel);
+router.post('/excess', 
+  authenticateToken, 
+  checkRole(['ADMIN', 'KONTROLA', 'FUEL_OPERATOR']),
+  fuelExcessController.processExcessFuel
+);
 
 /**
  * @swagger
@@ -57,6 +61,10 @@ router.post('/excess', authenticateToken, fuelExcessController.processExcessFuel
  *       500:
  *         description: Greška na serveru
  */
-router.get('/excess/history', authenticateToken, fuelExcessController.getExcessFuelHistory);
+router.get('/excess/history', 
+  authenticateToken, 
+  checkRole(['ADMIN', 'KONTROLA', 'FUEL_OPERATOR']),
+  fuelExcessController.getExcessFuelHistory
+);
 
 export default router;

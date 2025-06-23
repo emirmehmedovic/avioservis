@@ -3,12 +3,15 @@ import { Router } from 'express';
 import { createFuelTransferToTankerRules } from '../validators/fuelTransferToTanker.validators';
 import { createFuelTransferToTanker } from '../controllers/fuelTransferToTanker.controller';
 import { validate } from '../validators/validate';
+import { authenticateToken, checkRole } from '../middleware/auth';
 
 const router = Router();
 
 // const uploadTransferDocument = createUploader('fuel_transfers'); // Not needed
 
 router.post('/',
+  authenticateToken,
+  checkRole(['ADMIN', 'KONTROLA', 'FUEL_OPERATOR']),
   // uploadTransferDocument.single('document'), // Removed multer middleware
   createFuelTransferToTankerRules,
   validate,

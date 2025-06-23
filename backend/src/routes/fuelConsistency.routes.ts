@@ -11,8 +11,8 @@ const router = express.Router();
 
 // Svi endpointi zahtijevaju autentikaciju
 router.use(authenticateToken);
-// Samo administratori mogu pristupiti ovim rutama
-router.use(checkRole(['ADMIN']));
+// Administratori, kontrola i operateri goriva mogu pristupiti ovim rutama
+router.use(checkRole(['ADMIN', 'KONTROLA', 'FUEL_OPERATOR']));
 
 // GET /api/fuel-consistency/tanks - provjera konzistentnosti svih tankova
 router.get('/tanks', getAllTanksConsistencyCheck);

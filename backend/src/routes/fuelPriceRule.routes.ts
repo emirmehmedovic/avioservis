@@ -1,17 +1,19 @@
-import { Router, RequestHandler } from 'express'; // Dodaj RequestHandler
+import { Router, RequestHandler } from 'express';
 import { 
   findFuelPriceRule, 
   createFuelPriceRule, 
   getAllFuelPriceRules,
-  updateFuelPriceRule // Import updateFuelPriceRule
-} from '../controllers/fuelPriceRule.controller'; // Import getAllFuelPriceRules
-// Ovdje možete dodati middleware za autentifikaciju/autorizaciju ako je potrebno
-// import { protect, authorize } from '../middleware/auth'; 
+  updateFuelPriceRule
+} from '../controllers/fuelPriceRule.controller';
+import { authenticateToken, checkRole } from '../middleware/auth'; 
 
 const router = Router();
 
+// Apply authentication and authorization to all routes
+router.use(authenticateToken);
+router.use(checkRole(['ADMIN', 'KONTROLA', 'FUEL_OPERATOR']));
+
 // Ruta: GET /api/fuel-price-rules/find?airlineId=X&currency=Y
-// Ako imate 'protect' middleware: router.get('/find', protect, findFuelPriceRule);
 router.get('/find', findFuelPriceRule as RequestHandler);
 
 // Nova ruta: POST /api/fuel-price-rules

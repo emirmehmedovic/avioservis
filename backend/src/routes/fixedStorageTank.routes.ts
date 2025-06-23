@@ -21,10 +21,16 @@ import {
   transferFuelBetweenFixedTanksRules, 
   validate 
 } from '../validators/fixedStorageTank.validators';
-// import { authenticateToken } from '../middleware/auth.middleware'; // Optional: Add if authentication is needed
-// import { authorizeRole } from '../middleware/role.middleware'; // Optional: Add if role-based access is needed
+import { authenticateToken } from '../middleware/auth';
+import { checkRole } from '../middleware/auth';
 
 const router = Router();
+
+// Apply authentication middleware to all routes
+router.use(authenticateToken);
+
+// Apply role-based access control for all routes
+router.use(checkRole(['ADMIN', 'KONTROLA', 'FUEL_OPERATOR']));
 
 // Multer setup for file uploads
 const UPLOAD_TEMP_DIR = path.join(__dirname, '..', '..', 'uploads', 'temp');

@@ -28,8 +28,8 @@ export default function ReportsPage() {
 
   useEffect(() => {
     if (!isLoading && authUser) {
-      if (authUser.role !== 'ADMIN' && authUser.role !== 'KONTROLA') {
-        router.push('/dashboard'); // Or a dedicated 'access-denied' page
+      if (authUser.role !== 'ADMIN' && authUser.role !== 'KONTROLA' && authUser.role !== 'FUEL_OPERATOR') {
+        router.push('/dashboard');
       }
     }
     if (!isLoading && !authUser) {
@@ -37,7 +37,7 @@ export default function ReportsPage() {
     }
   }, [authUser, isLoading, router]);
 
-  if (isLoading || (!authUser || (authUser.role !== 'ADMIN' && authUser.role !== 'KONTROLA'))) {
+  if (isLoading || (!authUser || (authUser.role !== 'ADMIN' && authUser.role !== 'KONTROLA' && authUser.role !== 'FUEL_OPERATOR'))) {
     return (
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-[#2c2c2c] to-[#1a1a1a]">
         <div className="animate-pulse flex flex-col items-center">

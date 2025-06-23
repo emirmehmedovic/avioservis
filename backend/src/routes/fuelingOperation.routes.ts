@@ -9,7 +9,7 @@ import {
 import { createFuelingOperationRules, updateFuelingOperationRules, validate } from '../validators/fuelingOperation.validators';
 import { uploadMultipleFuelingDocuments } from '../middleware/fuelingDocumentUpload';
 import { Request, Response, NextFunction } from 'express';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, checkRole } from '../middleware/auth';
 
 const router = Router();
 
@@ -23,6 +23,9 @@ const router = Router();
 
 // Apply authentication middleware to all routes
 router.use(authenticateToken);
+
+// Apply role-based access control for all routes
+router.use(checkRole(['ADMIN', 'KONTROLA', 'FUEL_OPERATOR']));
 
 router.post('/', 
   uploadMultipleFuelingDocuments, 

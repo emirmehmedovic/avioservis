@@ -499,7 +499,7 @@ export default function FuelIntakeDisplay() {
                             </svg>
                           )}
                         </Button>
-                        {(authUser?.role === 'ADMIN' || authUser?.role === 'KONTROLA') && (
+                        {(authUser?.role === 'ADMIN' || authUser?.role === 'KONTROLA' || authUser?.role === 'FUEL_OPERATOR') && (
                           <Button 
                             variant="outline" 
                             size="icon" 

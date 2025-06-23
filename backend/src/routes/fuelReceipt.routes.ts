@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, checkRole } from '../middleware/auth';
 import { createUploader } from '../utils/file.utils';
 import { createFuelReceiptRules, validate } from '../validators/fuelReceipt.validators';
 import { createFuelReceipt } from '../controllers/fuelReceipt.controller'; // Kreirat ćemo ovaj kontroler
@@ -11,7 +11,8 @@ const router = Router();
 const uploadReceipt = createUploader('fuel_receipts');
 
 router.post('/', 
-  authenticateToken, // Add authentication middleware
+  authenticateToken,
+  checkRole(['ADMIN', 'KONTROLA', 'FUEL_OPERATOR']),
   uploadReceipt.single('document'), // 'document' je ime polja u form-data za fajl
   createFuelReceiptRules, 
   validate, 

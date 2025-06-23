@@ -46,9 +46,9 @@ router.post('/airlines', authenticateToken, checkRole(['ADMIN', 'FUEL_OPERATOR']
 router.put('/airlines/:id', authenticateToken, checkRole(['ADMIN', 'FUEL_OPERATOR']), airlineController.updateAirline);
 router.delete('/airlines/:id', authenticateToken, checkRole(['ADMIN']), airlineController.deleteAirline);
 
-// MRN routes
-router.get('/mrn-report/:mrn', authenticateToken, fuelIntakeRecordController.getMrnReport);
-router.get('/mrn-balances', authenticateToken, fuelIntakeRecordController.getMrnBalances);
+// MRN routes - Allow FUEL_OPERATOR to access MRN reports and balances
+router.get('/mrn-report/:mrn', authenticateToken, checkRole(['ADMIN', 'KONTROLA', 'FUEL_OPERATOR']), fuelIntakeRecordController.getMrnReport);
+router.get('/mrn-balances', authenticateToken, checkRole(['ADMIN', 'KONTROLA', 'FUEL_OPERATOR']), fuelIntakeRecordController.getMrnBalances);
 
 // Fuel Intake Record routes
 router.post('/intake-records', 
@@ -75,9 +75,9 @@ router.delete('/intake-records/:id',
     fuelIntakeRecordController.deleteFuelIntakeRecord
 );
 
-// Fuel Reports routes
-router.get('/reports/statistics', authenticateToken, (req, res) => fuelReportController.getFuelStatistics(req, res));
-router.get('/reports/export', authenticateToken, (req, res) => fuelReportController.exportFuelData(req, res));
+// Fuel Reports routes - Allow FUEL_OPERATOR to access reports
+router.get('/reports/statistics', authenticateToken, checkRole(['ADMIN', 'KONTROLA', 'FUEL_OPERATOR']), (req, res) => fuelReportController.getFuelStatistics(req, res));
+router.get('/reports/export', authenticateToken, checkRole(['ADMIN', 'KONTROLA', 'FUEL_OPERATOR']), (req, res) => fuelReportController.exportFuelData(req, res));
 
 // Fuel Consistency Check routes
 router.get('/admin/consistency-check', 
