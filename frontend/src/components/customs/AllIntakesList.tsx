@@ -48,7 +48,8 @@ export default function AllIntakesList({
       setIntakeList(data || []);
       
       // Calculate total quantity
-      const total = data?.reduce((sum, transaction) => sum + transaction.quantityLiters, 0) || 0;
+      // Ensure quantityLiters is treated as a number to prevent string concatenation
+      const total = data?.reduce((sum, transaction) => sum + Number(transaction.quantityLiters || 0), 0) || 0;
       setTotalQuantity(total);
     } catch (err: any) {
       setError(err.message || 'Greška pri dohvatu liste prijema.');
