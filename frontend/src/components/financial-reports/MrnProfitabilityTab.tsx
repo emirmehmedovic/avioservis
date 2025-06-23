@@ -162,7 +162,18 @@ export function MrnProfitabilityTab() {
         {reportData && (
           <ExportButton 
             data={reportData.items} 
-            filename={`mrn-profitabilnost-${format(new Date(), 'yyyy-MM-dd')}`} 
+            filename={`mrn-profitabilnost-${format(new Date(), 'yyyy-MM-dd')}`}
+            title="Izvještaj o profitabilnosti po MRN"
+            pdfHeaders={[
+              'MRN', 'Datum nabavke', 'Količina (L)', 'Količina (kg)',
+              'Trošak (BAM)', 'Prihod (BAM)', 'Profit (BAM)', 'Marža (%)'
+            ]}
+            pdfDataFields={[
+              'mrn', 'intakeDate', 'quantity_liters', 'quantity_kg',
+              'cost', 'revenue', 'profit', 'margin'
+            ]}
+            columnWidths={[40, 25, 20, 20, 25, 25, 25, 20]}
+            orientation="landscape"
           />
         )}
       </div>

@@ -184,6 +184,17 @@ export function DestinationProfitabilityTab() {
           <ExportButton 
             data={reportData} 
             filename={`destinacija-profitabilnost-${format(new Date(), 'yyyy-MM-dd')}`} 
+            title="Izvještaj o profitabilnosti po destinaciji"
+            pdfHeaders={[
+              'Destinacija', 'Broj letova', 'Količina (L)', 'Količina (kg)',
+              'Prihod (BAM)', 'Trošak (BAM)', 'Profit (BAM)', 'Marža (%)'
+            ]}
+            pdfDataFields={[
+              'destination', 'flightCount', 'quantity_liters', 'quantity_kg',
+              'revenue', 'cost', 'profit', 'margin'
+            ]}
+            columnWidths={[50, 20, 20, 20, 25, 25, 25, 20]}
+            orientation="landscape"
           />
         )}
       </div>
