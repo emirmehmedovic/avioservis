@@ -24,26 +24,40 @@ export default function FinancialReportsPage() {
   const [activeTab, setActiveTab] = useState<string>('mrn-profitability');
 
   useEffect(() => {
-    console.log('DEBUG - authUser:', authUser);
     console.log('DEBUG - isLoading:', isLoading);
-    console.log('DEBUG - authUser role:', authUser?.role);
-    console.log('DEBUG - Role check:', authUser?.role !== 'ADMIN' && authUser?.role !== 'KONTROLA');
+    console.log('DEBUG - authUser complete object:', JSON.stringify(authUser, null, 2));
     
-    if (!isLoading && authUser) {
-      if (authUser.role !== 'ADMIN' && authUser.role !== 'KONTROLA') {
-        console.log('DEBUG - Redirecting to dashboard due to insufficient permissions');
-        router.push('/dashboard'); // Redirekcija za korisnike bez pristupa
+    if (!isLoading) {
+      if (!authUser) {
+        console.log('DEBUG - No authUser, redirecting to login');
+        router.push('/login');
       } else {
-        console.log('DEBUG - User has correct permissions, staying on page');
+        // Get the role and handle possible undefined or null values
+        const role = authUser.role || '';
+        // Make comparison case-insensitive
+        const normalizedRole = role.toUpperCase();
+        console.log('DEBUG - Normalized role:', normalizedRole);
+        
+        // Check if role is ADMIN or KONTROLA (case-insensitive)
+        const hasAccess = normalizedRole === 'ADMIN' || normalizedRole === 'KONTROLA';
+        console.log('DEBUG - Has access?', hasAccess);
+        
+        if (!hasAccess) {
+          console.log('DEBUG - Redirecting to dashboard due to insufficient permissions');
+          router.push('/dashboard'); // Redirekcija za korisnike bez pristupa
+        } else {
+          console.log('DEBUG - User has correct permissions, staying on page');
+        }
       }
-    }
-    if (!isLoading && !authUser) {
-      console.log('DEBUG - No authUser, redirecting to login');
-      router.push('/login');
     }
   }, [authUser, isLoading, router]);
 
-  if (isLoading || (!authUser || (authUser.role !== 'ADMIN' && authUser.role !== 'KONTROLA'))) {
+  // Use the same normalized role check logic for consistent behavior
+  const role = authUser?.role || '';
+  const normalizedRole = role.toUpperCase();
+  const hasAccess = normalizedRole === 'ADMIN' || normalizedRole === 'KONTROLA';
+  
+  if (isLoading || !authUser || !hasAccess) {
     return (
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-[#2c2c2c] to-[#1a1a1a]">
         <div className="animate-pulse flex flex-col items-center">
