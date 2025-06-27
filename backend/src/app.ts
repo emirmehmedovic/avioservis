@@ -39,6 +39,8 @@ import fuelConsistencyRoutes from './routes/fuelConsistency.routes'; // Rute za 
 import reserveFuelRoutes from './routes/reserveFuel.routes'; // Rute za upravljanje rezervnim gorivom
 import fuelExcessRoutes from './routes/fuelExcess.routes'; // Rute za ručnu obradu viška goriva
 import financialReportsRoutes from './routes/financialReports.routes'; // Rute za finansijske izvještaje
+import rezervoarRoutes from './routes/rezervoar.routes'; // Rute za rezervoare
+import planKalibracijeRoutes from './routes/planKalibracije.routes'; // Rute za plan kalibracije
 
 const app = express();
 
@@ -101,6 +103,8 @@ app.use('/api/fuel-price-rules', fuelPriceRuleRoutes); // Registracija ruta za p
 app.use('/api/fuel-projection-presets', fuelProjectionPresetRoutes);
 app.use('/api/reports/financial', reportingLimiter, financialReportsRoutes); // Registracija ruta za finansijske izvještaje
 app.use('/api/valve-tests', valveTestRoutes); // Registracija ruta za ILPCV i HECPV testove ventila
+app.use('/api/rezervoari', rezervoarRoutes); // Registracija ruta za rezervoare
+app.use('/api/plan-kalibracije', planKalibracijeRoutes); // Registracija ruta za plan kalibracije
 
 app.get('/', (req, res) => {
   res.send('Backend radi!');

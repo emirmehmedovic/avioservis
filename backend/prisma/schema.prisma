@@ -18,10 +18,10 @@ model User {
   lockUntil             DateTime?
   activities            Activity[]
   fuelDrainRecords      FuelDrainRecord[]
-  fuelReceipts          FuelReceipt[]
-  systemLogs            SystemLog[]
-  fuelTransfersToTanker FuelTransferToTanker[]
   fuelOperationLogs     FuelOperationLog[]
+  fuelReceipts          FuelReceipt[]
+  fuelTransfersToTanker FuelTransferToTanker[]
+  systemLogs            SystemLog[]
 }
 
 model Company {
@@ -88,9 +88,6 @@ model Vehicle {
   adr_vazi_do                                          DateTime?
   crijeva_za_tocenje                                   String?
   kapacitet_cisterne                                   Decimal?            @db.Decimal(12, 3)
-  capacity_kg                                          Decimal?            @db.Decimal(12, 3)
-  current_liters                                       Decimal?            @db.Decimal(12, 3)
-  current_kg                                           Decimal?            @db.Decimal(12, 3)
   periodicni_pregled_vazi_do                           DateTime?           @map("periodicni_pregled_vazi_do")
   registrovano_do                                      DateTime?
   tip_filtera                                          String?
@@ -191,6 +188,9 @@ model Vehicle {
   torque_wrench_calibration_valid_until                DateTime?
   water_chemical_test_date                             DateTime?
   water_chemical_test_valid_until                      DateTime?
+  capacity_kg                                          Decimal?            @db.Decimal(12, 3)
+  current_kg                                           Decimal?            @db.Decimal(12, 3)
+  current_liters                                       Decimal?            @db.Decimal(12, 3)
   filterDocuments                                      FilterDocument[]
   fuelingOperations                                    FuelingOperation[]
   hoseDocuments                                        HoseDocument[]
@@ -255,7 +255,6 @@ model FixedStorageTanks {
   createdAt                 DateTime               @default(now())
   updatedAt                 DateTime               @updatedAt
   current_quantity_liters   Float                  @default(0)
-  current_quantity_kg       Float                  @default(0) // Dodano polje za praćenje količine u kilogramima
   status                    FixedTankStatus        @default(ACTIVE)
   tank_name                 String                 @unique
   tank_identifier           String?                @unique
@@ -266,6 +265,7 @@ model FixedStorageTanks {
   serial_number             String?
   year_of_manufacture       Int?
   identificationDocumentUrl String?
+  current_quantity_kg       Float                  @default(0)
   affectedTankTransactions  FixedTankTransfers[]   @relation("AffectedTankTransactions")
   counterpartyTransfers     FixedTankTransfers[]   @relation("CounterpartyTankForTransfer")
   drainRecords              FuelDrainRecord[]
@@ -288,16 +288,16 @@ model FuelIntakeRecords {
   quantity_kg_received         Decimal
   specific_gravity             Float?
   fuel_type                    String
-  refinery_name                String?
   supplier_name                String?
   delivery_note_number         String?
   customs_declaration_number   String?
-  price_per_kg                 Float?
-  currency                     String?
-  total_price                  Float?
   createdAt                    DateTime              @default(now())
   updatedAt                    DateTime              @updatedAt
   fuel_category                String?               @default("Domaće tržište")
+  refinery_name                String?
+  price_per_kg                 Float?
+  currency                     String?
+  total_price                  Float?
   fixedTankTransfers           FixedTankTransfers[]
   documents                    FuelIntakeDocuments[]
   tankFuelByCustoms            TankFuelByCustoms[]
@@ -324,14 +324,14 @@ model FuelIntakeDocuments {
 model FixedTankTransfers {
   id                          Int                   @id @default(autoincrement())
   fuel_intake_record_id       Int?
-  quantity_liters_transferred Decimal           @db.Decimal(12, 3)
-  quantity_kg_transferred     Decimal           @db.Decimal(12, 3)
+  quantity_liters_transferred Decimal               @db.Decimal(12, 3)
   transfer_datetime           DateTime              @default(now())
   notes                       String?
   activity_type               FixedTankActivityType
   affected_fixed_tank_id      Int
   counterparty_fixed_tank_id  Int?
   internal_transfer_pair_id   String?               @db.Uuid
+  quantity_kg_transferred     Decimal               @db.Decimal(12, 3)
   affectedFixedTank           FixedStorageTanks     @relation("AffectedTankTransactions", fields: [affected_fixed_tank_id], references: [id])
   counterpartyFixedTank       FixedStorageTanks?    @relation("CounterpartyTankForTransfer", fields: [counterparty_fixed_tank_id], references: [id])
   fuelIntakeRecord            FuelIntakeRecords?    @relation(fields: [fuel_intake_record_id], references: [id], onDelete: Cascade)
@@ -380,31 +380,31 @@ model ServiceItem {
   type            ServiceItemType
   description     String?
   replaced        Boolean         @default(false)
-  currentDate     DateTime?
-  nextDate        DateTime?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
+  currentDate     DateTime?
+  nextDate        DateTime?
   serviceRecord   ServiceRecord   @relation(fields: [serviceRecordId], references: [id], onDelete: Cascade)
 }
 
 model ValveTestRecord {
-  id                        Int           @id @default(autoincrement())
-  vehicleId                 Int
-  testType                  ValveTestType
-  testDate                  DateTime
-  vehicleNumber             String
-  fuelHoseType              String
-  fuelHoseProductionDate    DateTime?
-  maxFlowRate               Float?
-  pressureReading           Float?
-  maxPressureDuringClosing  Float?
-  pressureAtZeroFlow        Float?
+  id                         Int           @id @default(autoincrement())
+  vehicleId                  Int
+  testType                   ValveTestType
+  testDate                   DateTime
+  vehicleNumber              String
+  fuelHoseType               String
+  fuelHoseProductionDate     DateTime?
+  maxFlowRate                Float?
+  pressureReading            Float?
+  maxPressureDuringClosing   Float?
+  pressureAtZeroFlow         Float?
   pressureAfterThirtySeconds Float?
-  pressureIncrease          Float?
-  notes                     String?
-  createdAt                 DateTime      @default(now())
-  updatedAt                 DateTime      @updatedAt
-  vehicle                   Vehicle       @relation(fields: [vehicleId], references: [id])
+  pressureIncrease           Float?
+  notes                      String?
+  createdAt                  DateTime      @default(now())
+  updatedAt                  DateTime      @updatedAt
+  vehicle                    Vehicle       @relation(fields: [vehicleId], references: [id])
 
   @@index([vehicleId])
   @@index([testDate])
@@ -418,12 +418,12 @@ model FuelTank {
   capacity_liters       Decimal
   createdAt             DateTime               @default(now())
   current_liters        Decimal
-  current_kg            Decimal                @default(0) // Dodano polje za praćenje količine u kilogramima
   fuel_type             String
   identifier            String                 @unique
   updatedAt             DateTime               @updatedAt
   image_url             String?
-  is_deleted            Boolean                @default(false) // Polje za "soft delete" funkcionalnost
+  current_kg            Decimal                @default(0)
+  is_deleted            Boolean                @default(false)
   drainRecords          FuelDrainRecord[]
   refills               FuelTankRefill[]
   fuelTransfersAsTarget FuelTransferToTanker[] @relation("TransferToFuelTank")
@@ -485,7 +485,7 @@ model FuelTransferToTanker {
   notes                    String?
   userId                   Int
   targetFuelTankId         Int
-  mrnBreakdown             String?           // JSON string sa MRN podacima
+  mrnBreakdown             String?
   sourceFixedStorageTank   FixedStorageTanks @relation(fields: [sourceFixedStorageTankId], references: [id])
   targetFuelTank           FuelTank          @relation("TransferToFuelTank", fields: [targetFuelTankId], references: [id])
   user                     User              @relation(fields: [userId], references: [id])
@@ -506,7 +506,7 @@ model FuelDrainRecord {
   userId             Int
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
-  mrnBreakdown       String?            // JSON string za praćenje MRN podataka u operacijama istakanja
+  mrnBreakdown       String?
   sourceFixedTank    FixedStorageTanks? @relation(fields: [sourceFixedTankId], references: [id])
   sourceMobileTank   FuelTank?          @relation(fields: [sourceMobileTankId], references: [id])
   user               User               @relation(fields: [userId], references: [id])
@@ -553,11 +553,11 @@ model FuelingOperation {
   specific_density      Decimal            @default(0.8) @db.Decimal(10, 6)
   total_amount          Decimal            @db.Decimal(15, 5)
   discount_percentage   Float?
-  usd_exchange_rate     Decimal?           @db.Decimal(15, 6)
   delivery_note_number  String?
-  mrnBreakdown          String?            // JSON string sa MRN podacima
-  exd_number            String?            @db.VarChar(50) // EXD broj za avio gorivo
-  k_number              String?            @db.VarChar(50) // K broj za avio gorivo
+  mrnBreakdown          String?
+  usd_exchange_rate     Decimal?           @db.Decimal(15, 6)
+  exd_number            String?            @db.VarChar(50)
+  k_number              String?            @db.VarChar(50)
   documents             AttachedDocument[]
   aircraft              Vehicle?           @relation(fields: [aircraftId], references: [id])
   airline               Airline            @relation(fields: [airlineId], references: [id])
@@ -618,22 +618,22 @@ model FuelProjectionPreset {
 }
 
 model TankFuelByCustoms {
-  id                         Int               @id @default(autoincrement())
+  id                         Int                 @id @default(autoincrement())
   fixed_tank_id              Int
   fuel_intake_record_id      Int
   customs_declaration_number String
-  quantity_liters            Decimal           @db.Decimal(12, 3)
-  remaining_quantity_liters  Decimal           @db.Decimal(12, 3)
-  quantity_kg                Decimal?          @db.Decimal(12, 3)
-  remaining_quantity_kg      Decimal?          @db.Decimal(12, 3)
-  density_at_intake          Decimal?          @db.Decimal(8, 4)
+  quantity_liters            Decimal             @db.Decimal(12, 3)
   date_added                 DateTime
-  createdAt                  DateTime          @default(now())
-  updatedAt                  DateTime          @updatedAt
-  fixedTank                  FixedStorageTanks @relation(fields: [fixed_tank_id], references: [id])
-  fuelIntakeRecord           FuelIntakeRecords @relation(fields: [fuel_intake_record_id], references: [id], onDelete: Cascade)
-  accumulatedLiterVariance   Decimal           @default(0) @db.Decimal(12, 3)
+  remaining_quantity_liters  Decimal             @db.Decimal(12, 3)
+  createdAt                  DateTime            @default(now())
+  updatedAt                  DateTime            @updatedAt
+  density_at_intake          Decimal?            @db.Decimal(8, 4)
+  quantity_kg                Decimal?            @db.Decimal(12, 3)
+  remaining_quantity_kg      Decimal?            @db.Decimal(12, 3)
+  accumulatedLiterVariance   Decimal             @default(0) @db.Decimal(12, 3)
   transactionLegs            MrnTransactionLeg[]
+  fixedTank                  FixedStorageTanks   @relation(fields: [fixed_tank_id], references: [id])
+  fuelIntakeRecord           FuelIntakeRecords   @relation(fields: [fuel_intake_record_id], references: [id], onDelete: Cascade)
 
   @@index([fixed_tank_id])
   @@index([fuel_intake_record_id])
@@ -642,21 +642,20 @@ model TankFuelByCustoms {
 }
 
 model MobileTankCustoms {
-  id                         Int      @id @default(autoincrement())
+  id                         Int                 @id @default(autoincrement())
   mobile_tank_id             Int
   customs_declaration_number String
-  quantity_kg                Decimal  @db.Decimal(12, 3)
-  remaining_quantity_kg      Decimal  @db.Decimal(12, 3)
-  quantity_liters            Decimal  @db.Decimal(12, 3)
-  remaining_quantity_liters  Decimal  @db.Decimal(12, 3)
-  density_at_intake          Decimal  @db.Decimal(8, 4)
-  supplier_name              String?  // Dodano novo polje
+  quantity_liters            Decimal             @db.Decimal(12, 3)
   date_added                 DateTime
-  createdAt                  DateTime @default(now())
-  updatedAt                  DateTime @updatedAt
-
-  mobileTank                 FuelTank          @relation(fields: [mobile_tank_id], references: [id])
-  accumulatedLiterVariance   Decimal           @default(0) @db.Decimal(12, 3)
+  remaining_quantity_liters  Decimal             @db.Decimal(12, 3)
+  createdAt                  DateTime            @default(now())
+  updatedAt                  DateTime            @updatedAt
+  density_at_intake          Decimal             @db.Decimal(8, 4)
+  quantity_kg                Decimal             @db.Decimal(12, 3)
+  remaining_quantity_kg      Decimal             @db.Decimal(12, 3)
+  supplier_name              String?
+  accumulatedLiterVariance   Decimal             @default(0) @db.Decimal(12, 3)
+  mobileTank                 FuelTank            @relation(fields: [mobile_tank_id], references: [id])
   transactionLegs            MrnTransactionLeg[]
 
   @@index([mobile_tank_id, customs_declaration_number])
@@ -673,8 +672,8 @@ model MrnTransactionLeg {
   operationalDensityUsed  Decimal            @db.Decimal(8, 4)
   literVarianceForThisLeg Decimal            @db.Decimal(12, 3)
   timestamp               DateTime           @default(now())
-  tankFuelByCustoms       TankFuelByCustoms? @relation(fields: [tankFuelByCustomsId], references: [id], onDelete: Cascade)
   mobileTankCustoms       MobileTankCustoms? @relation(fields: [mobileTankCustomsId], references: [id], onDelete: Cascade)
+  tankFuelByCustoms       TankFuelByCustoms? @relation(fields: [tankFuelByCustomsId], references: [id], onDelete: Cascade)
 
   @@index([tankFuelByCustomsId])
   @@index([mobileTankCustomsId])
@@ -691,10 +690,159 @@ model MrnClosedVariance {
   updatedAt                DateTime @updatedAt
 }
 
+model SystemLog {
+  id        Int         @id @default(autoincrement())
+  timestamp DateTime    @default(now())
+  action    String
+  details   String
+  severity  LogSeverity @default(INFO)
+  userId    Int?
+  user      User?       @relation(fields: [userId], references: [id])
+
+  @@index([timestamp])
+  @@index([action])
+  @@index([severity])
+  @@index([userId])
+}
+
+model FuelOperationLog {
+  id               Int               @id @default(autoincrement())
+  timestamp        DateTime          @default(now())
+  operationType    FuelOperationType
+  description      String
+  details          String
+  stateBefore      String
+  stateAfter       String
+  sourceEntityType String
+  sourceEntityId   Int
+  targetEntityType String?
+  targetEntityId   Int?
+  quantityLiters   Float
+  fuelType         String
+  success          Boolean           @default(true)
+  errorMessage     String?
+  userId           Int?
+  transactionId    String?
+  user             User?             @relation(fields: [userId], references: [id])
+
+  @@index([timestamp])
+  @@index([operationType])
+  @@index([sourceEntityType, sourceEntityId])
+  @@index([targetEntityType, targetEntityId])
+  @@index([userId])
+  @@index([success])
+}
+
+model TankReserveFuel {
+  id                     Int       @id @default(autoincrement())
+  tank_id                Int
+  tank_type              String
+  source_mrn             String
+  source_mrn_id          Int
+  quantity_liters        Decimal   @db.Decimal(12, 3)
+  is_excess              Boolean
+  created_at             DateTime  @default(now())
+  is_dispensed           Boolean   @default(false)
+  dispensed_at           DateTime?
+  dispensed_by           String?
+  notes                  String?
+  reference_operation_id Int?
+
+  @@index([tank_id, tank_type])
+  @@index([source_mrn])
+  @@index([is_dispensed])
+  @@index([created_at])
+  @@map("tank_reserve_fuel")
+}
+
+model Rezervoar {
+  id                             Int      @id @default(autoincrement())
+  naziv_rezervoara               String
+  mjesto_koristenja              String
+  id_broj                        String   @unique
+  vlasnik                        String
+  oblik_rezervoara               String
+  kapacitet                      Decimal  @db.Decimal(12, 3)
+  materijal_izgradnje            String
+  zastita_unutrasnjeg_rezervoara String
+  datum_kalibracije              DateTime
+  dimenzije_l                    Decimal  @db.Decimal(8, 3)
+  dimenzije_w                    Decimal  @db.Decimal(8, 3)
+  dimenzije_h                    Decimal  @db.Decimal(8, 3)
+  napomene                       String?
+  dokument_url                   String?
+  kreiran                        DateTime @default(now())
+  azuriran                       DateTime @updatedAt
+
+  @@map("rezervoari")
+}
+
+model PlanKalibracije {
+  id                                    Int      @id @default(autoincrement())
+  naziv_opreme                          String
+  vlasnik_opreme                        String
+  mjesto_koristenja_opreme              String
+  identifikacijski_broj                 String   @unique
+  
+  // Volumetar - posebni nazivi da se ne preklapaju
+  volumetar_kalibracija_od              DateTime?
+  volumetar_kalibracija_do              DateTime?
+  
+  // Glavni volumetar  
+  glavni_volumetar_kalibracija_od       DateTime?
+  glavni_volumetar_kalibracija_do       DateTime?
+  
+  // Mjerači pritiska (manometri)
+  manometri_kalibracija_od              DateTime?
+  manometri_kalibracija_do              DateTime?
+  
+  // Crijevo za punjenje
+  crijevo_punjenje_kalibracija_od       DateTime?
+  crijevo_punjenje_kalibracija_do       DateTime?
+  
+  // Glavni manometar
+  glavni_manometar_kalibracija_od       DateTime?
+  glavni_manometar_kalibracija_do       DateTime?
+  
+  // Termometar
+  termometar_kalibracija_od             DateTime?
+  termometar_kalibracija_do             DateTime?
+  
+  // Hidrometar
+  hidrometar_kalibracija_od             DateTime?
+  hidrometar_kalibracija_do             DateTime?
+  
+  // Električni denziometar
+  elektricni_denziometar_kalibracija_od DateTime?
+  elektricni_denziometar_kalibracija_do DateTime?
+  
+  // Mjerač provodljivosti
+  mjerac_provodljivosti_kalibracija_od  DateTime?
+  mjerac_provodljivosti_kalibracija_do  DateTime?
+  
+  // Mjerač otpora provoda
+  mjerac_otpora_provoda_kalibracija_od  DateTime?
+  mjerac_otpora_provoda_kalibracija_do  DateTime?
+  
+  // Moment ključ
+  moment_kljuc_kalibracija_od           DateTime?
+  moment_kljuc_kalibracija_do           DateTime?
+  
+  // Shal detector
+  shal_detector_kalibracija_od          DateTime?
+  shal_detector_kalibracija_do          DateTime?
+  
+  // Dodatne informacije
+  napomene                              String?
+  dokumenti_url                         String?
+  kreiran                               DateTime @default(now())
+  azuriran                              DateTime @updatedAt
+  
+  @@map("plan_kalibracije")
+}
+
 enum MrnTransactionType {
   INITIAL_INTAKE
-  TRANSFER_TO_TANKER_OUT // Odlazna transakcija iz fiksnog tanka
-  TRANSFER_TO_TANKER_IN // Dolazna transakcija u mobilni tanker
   FIXED_TO_MOBILE_TRANSFER_OUT
   FIXED_TO_MOBILE_TRANSFER_IN
   MOBILE_TO_AIRCRAFT_FUELING
@@ -702,8 +850,10 @@ enum MrnTransactionType {
   FUEL_DRAIN_FROM_MOBILE
   ADJUSTMENT_PLUS
   ADJUSTMENT_MINUS
+  TRANSFER_TO_TANKER_OUT
+  TRANSFER_TO_TANKER_IN
   MANUAL_EXCESS_FUEL_SALE
-  EXCESS_TRANSFER_OUT // Automatski transfer viška litara u holding tank
+  EXCESS_TRANSFER_OUT
 }
 
 enum Role {
@@ -754,43 +904,30 @@ enum ValveTestType {
 }
 
 enum ServiceItemType {
-  // Existing hose types
   HOSE_HD63
   HOSE_HD38
   HOSE_TW75
   HOSE_LEAK_TEST
-  
-  // Calibration items
   VOLUMETER
   MANOMETER
   HECPV_ILCPV
   SIX_MONTH_CHECK
-  
-  // Filter related
   FILTER
   FILTER_ANNUAL_INSPECTION
   FILTER_EW_SENSOR_INSPECTION
-  
-  // Calibration and tests
   THERMOMETER_CALIBRATION
   HYDROMETER_CALIBRATION
   CONDUCTIVITY_METER_CALIBRATION
   RESISTANCE_METER_CALIBRATION
   MAIN_FLOW_METER_CALIBRATION
   TORQUE_WRENCH_CALIBRATION
-  
-  // Hose tests
   OVERWING_HOSE_TEST
   UNDERWING_HOSE_TEST
   HD38_PRESSURE_TEST
   HD63_PRESSURE_TEST
   TW75_PRESSURE_TEST
-  
-  // Regular checks
-  QUARTERLY_INSPECTION  // tromjesecni_pregled
+  QUARTERLY_INSPECTION
   WATER_CHEMICAL_TEST
-  
-  // Vehicle components
   TACHOGRAPH_CALIBRATION
   OIL_CHANGE
   BRAKE_SERVICE
@@ -798,19 +935,12 @@ enum ServiceItemType {
   ENGINE_SERVICE
   ELECTRICAL_SERVICE
   GENERAL_SERVICE
-  
-  // Tanker tests
   TANKER_CALIBRATION
   TANKER_PRESSURE_TEST
   TANKER_FIRE_SAFETY_TEST
-  
-  // Work orders
   WORK_ORDER
-  
-  // Other
   OTHER
 }
-
 
 enum LogSeverity {
   DEBUG
@@ -818,23 +948,6 @@ enum LogSeverity {
   WARNING
   ERROR
   CRITICAL
-}
-
-model SystemLog {
-  id          Int         @id @default(autoincrement())
-  timestamp   DateTime    @default(now())
-  action      String
-  details     String      @db.Text
-  severity    LogSeverity @default(INFO)
-  userId      Int?
-  
-  // Relacije
-  user        User?       @relation(fields: [userId], references: [id])
-  
-  @@index([timestamp])
-  @@index([action])
-  @@index([severity])
-  @@index([userId])
 }
 
 enum FuelOperationType {
@@ -846,58 +959,4 @@ enum FuelOperationType {
   DRAIN_REVERSE
   ADJUSTMENT
   SYNC
-}
-
-model FuelOperationLog {
-  id                 Int               @id @default(autoincrement())
-  timestamp          DateTime          @default(now())
-  operationType      FuelOperationType
-  description        String
-  details            String            @db.Text // JSON string sa detaljima operacije
-  stateBefore        String            @db.Text // JSON string stanja prije operacije
-  stateAfter         String            @db.Text // JSON string stanja nakon operacije
-  sourceEntityType   String            // Tip entiteta na kojem se vrši operacija (npr. "FixedStorageTank")
-  sourceEntityId     Int               // ID entiteta na kojem se vrši operacija
-  targetEntityType   String?           // Opcioni tip entiteta destinacije (npr. kod transfera)
-  targetEntityId     Int?              // Opcioni ID entiteta destinacije
-  quantityLiters     Float             // Količina goriva na kojoj se vrši operacija
-  fuelType           String            // Tip goriva (JET-A1, itd.)
-  success            Boolean           @default(true) // Da li je operacija uspješno izvršena
-  errorMessage       String?           @db.Text // Poruka greške ako operacija nije uspješna
-  userId             Int?              // Korisnik koji je izvršio operaciju
-  transactionId      String?           // Identifikator transakcije (ako postoji)
-
-  // Relacije
-  user               User?             @relation(fields: [userId], references: [id])
-
-  // Indeksi za brže pretraživanje
-  @@index([timestamp])
-  @@index([operationType])
-  @@index([sourceEntityType, sourceEntityId])
-  @@index([targetEntityType, targetEntityId])
-  @@index([userId])
-  @@index([success])
-}
-
-
-// Model za evidenciju rezervnog goriva u tankovima (višak/manjak litara)
-model TankReserveFuel {
-  id                Int       @id @default(autoincrement())
-  tank_id           Int      // ID tanka
-  tank_type         String   // "fixed" ili "mobile"
-  source_mrn        String   // Originalni MRN broj iz kojeg je gorivo ostalo
-  source_mrn_id     Int      // ID originalnog MRN zapisa
-  quantity_liters   Decimal  @db.Decimal(12, 3) // Preostale litre (može biti pozitivno ili negativno)
-  is_excess         Boolean  // true: višak (ostale litre), false: manjak
-  created_at        DateTime @default(now())
-  is_dispensed      Boolean  @default(false) // Označava je li ovo gorivo iskorišteno posebnom operacijom
-  dispensed_at      DateTime?
-  dispensed_by      String?  // Korisnik koji je odobrio istočenje
-  reference_operation_id Int? // ID operacije koja je koristila ovaj balans (ako je potrošeno)
-  notes             String?
-  
-  @@index([tank_id, tank_type])
-  @@index([source_mrn])
-  @@index([is_dispensed])
-  @@index([created_at])
 }

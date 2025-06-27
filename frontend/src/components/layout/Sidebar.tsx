@@ -28,6 +28,8 @@ import {
   Droplet, // Added Droplet for fuel status
   ShieldAlert, // Added ShieldAlert for fuel consistency
   DollarSign, // Added DollarSign for financial reports
+  Container, // Added Container for reservoirs
+  Calendar, // Added Calendar for calibration plans
 } from 'lucide-react';
 
 // Define new user roles for specific access
@@ -43,6 +45,8 @@ enum CustomRole {
 const baseNavItems = [
   { name: 'Početna', href: '/dashboard', icon: Home, roles: ['ADMIN'] },
   { name: 'Vozila', href: '/dashboard/vehicles', icon: Car, roles: ['ADMIN'] },
+  { name: 'Rezervoari', href: '/dashboard/rezervoari', icon: Container, roles: ['ADMIN'] },
+  { name: 'Plan kalibracije', href: '/dashboard/plan-kalibracije', icon: Calendar, roles: ['ADMIN'] },
   { name: 'Firme', href: '/dashboard/companies', icon: Building2, roles: ['ADMIN'] },
   { name: 'Lokacije', href: '/dashboard/locations', icon: MapPin, roles: ['ADMIN'] },
   { name: 'Avio gorivo', href: '/dashboard/fuel', icon: Fuel, roles: ['ADMIN', 'KONTROLA', 'FUEL_OPERATOR'] },
