@@ -841,6 +841,25 @@ model PlanKalibracije {
   @@map("plan_kalibracije")
 }
 
+model OstalaOprema {
+  id                    Int      @id @default(autoincrement())
+  naziv                 String   // Naziv opreme
+  mesto_koristenja      String?  // Mjesto korištenja
+  vlasnik              String?  // Vlasnik
+  standard_opreme      String?  // Standard opreme
+  snaga                String?  // Snaga
+  protok_kapacitet     String?  // Protok/kapacitet
+  sigurnosne_sklopke   String?  // Sigurnosne sklopke
+  prinudno_zaustavljanje String? // Prinudno zaustavljanje
+  napomena             String?  // Napomena
+  dokument_url         String?  // URL uploadovanog dokumenta
+  
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@map("OstalaOprema")
+}
+
 enum MrnTransactionType {
   INITIAL_INTAKE
   FIXED_TO_MOBILE_TRANSFER_OUT

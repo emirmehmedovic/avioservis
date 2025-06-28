@@ -30,6 +30,7 @@ import {
   DollarSign, // Added DollarSign for financial reports
   Container, // Added Container for reservoirs
   Calendar, // Added Calendar for calibration plans
+  Wrench, // Added Wrench for ostala oprema
 } from 'lucide-react';
 
 // Define new user roles for specific access
@@ -47,6 +48,7 @@ const baseNavItems = [
   { name: 'Vozila', href: '/dashboard/vehicles', icon: Car, roles: ['ADMIN'] },
   { name: 'Rezervoari', href: '/dashboard/rezervoari', icon: Container, roles: ['ADMIN'] },
   { name: 'Plan kalibracije', href: '/dashboard/plan-kalibracije', icon: Calendar, roles: ['ADMIN'] },
+  { name: 'Ostala oprema', href: '/dashboard/ostala-oprema', icon: Wrench, roles: ['ADMIN'] },
   { name: 'Firme', href: '/dashboard/companies', icon: Building2, roles: ['ADMIN'] },
   { name: 'Lokacije', href: '/dashboard/locations', icon: MapPin, roles: ['ADMIN'] },
   { name: 'Avio gorivo', href: '/dashboard/fuel', icon: Fuel, roles: ['ADMIN', 'KONTROLA', 'FUEL_OPERATOR'] },

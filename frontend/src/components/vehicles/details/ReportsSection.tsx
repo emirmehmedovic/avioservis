@@ -47,6 +47,23 @@ const ReportsSection: React.FC<ReportsSectionProps> = ({ vehicle }) => {
       return 'N/A';
     }
   };
+
+  // Helper function to format values, handling empty strings, null, undefined
+  const formatValue = (value: any, unit?: string) => {
+    // Check for null, undefined, empty string, or whitespace-only string
+    if (value === null || value === undefined || value === '' || (typeof value === 'string' && value.trim() === '')) {
+      return 'N/A';
+    }
+    
+    // Convert to string and trim
+    const stringValue = String(value).trim();
+    if (stringValue === '') {
+      return 'N/A';
+    }
+    
+    // Add unit if provided
+    return unit ? `${stringValue} ${unit}` : stringValue;
+  };
   
   // Register Noto Sans font for proper Bosnian character support
   const registerFont = (doc: jsPDF) => {
@@ -103,6 +120,13 @@ const ReportsSection: React.FC<ReportsSectionProps> = ({ vehicle }) => {
   // Generate PDF report with all vehicle data
   const generatePdfReport = (language: 'bs' | 'en' = 'bs') => {
     try {
+      // Debug: Log vehicle data to see what we're working with
+      console.log('Vehicle data for PDF generation:', vehicle);
+      console.log('chassis_number:', vehicle.chassis_number);
+      console.log('vessel_plate_no:', vehicle.vessel_plate_no);
+      console.log('euro_norm:', vehicle.euro_norm);
+      console.log('flow_rate:', vehicle.flow_rate);
+      
       // Create new PDF document
       const doc = new jsPDF();
       
