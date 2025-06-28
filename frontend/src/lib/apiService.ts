@@ -316,6 +316,20 @@ export const uploadVehicleImage = async (vehicleId: string, file: File): Promise
   });
 };
 
+// Funkcija za brisanje slike vozila
+export const deleteVehicleImage = async (vehicleId: string, imageId: number): Promise<{ message: string }> => {
+  return fetchWithAuth<{ message: string }>(`${API_BASE_URL}/api/vehicles/${vehicleId}/images/${imageId}`, {
+    method: 'DELETE',
+  });
+};
+
+// Funkcija za postavljanje glavne slike vozila
+export const setMainVehicleImage = async (vehicleId: string, imageId: number): Promise<{ message: string; image: VehicleImage }> => {
+  return fetchWithAuth<{ message: string; image: VehicleImage }>(`${API_BASE_URL}/api/vehicles/${vehicleId}/images/${imageId}/set-main`, {
+    method: 'PATCH',
+  });
+};
+
 // Add deleteVehicle function
 export async function deleteVehicle(id: number): Promise<{ message: string }> {
   return fetchWithAuth(`${API_BASE_URL}/api/vehicles/${id}`, {

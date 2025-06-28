@@ -268,6 +268,92 @@ router.post('/:vehicleId/images', authenticateToken, uploadVehicleImage.single('
   }
 });
 
+// Endpoint za brisanje slike vozila
+router.delete('/:vehicleId/images/:imageId', authenticateToken, async (req: express.Request, res: express.Response): Promise<void> => {
+  const { vehicleId, imageId } = req.params;
+
+  try {
+    // Provjeri postoji li slika
+    const image = await prisma.vehicleImage.findFirst({
+      where: {
+        id: parseInt(imageId),
+        vehicleId: parseInt(vehicleId)
+      }
+    });
+
+    if (!image) {
+      res.status(404).json({ error: 'Slika nije pronađena.' });
+      return;
+    }
+
+    // Obriši sliku iz baze
+    await prisma.vehicleImage.delete({
+      where: { id: parseInt(imageId) }
+    });
+
+    // Pokušaj obrisati fizičku sliku (ako postoji)
+    try {
+      const imagePath = path.join(__dirname, '../../public', image.imageUrl);
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
+    } catch (fileError) {
+      console.error('Greška prilikom brisanja slike:', fileError);
+      // Nastavi s brisanjem iz baze čak i ako brisanje slike ne uspije
+    }
+
+    res.json({ message: 'Slika uspješno obrisana.' });
+  } catch (error) {
+    console.error('Greška prilikom brisanja slike:', error);
+    res.status(500).json({ error: 'Greška na serveru prilikom brisanja slike.' });
+  }
+});
+
+// Endpoint za postavljanje glavne slike vozila
+router.patch('/:vehicleId/images/:imageId/set-main', authenticateToken, async (req: express.Request, res: express.Response): Promise<void> => {
+  const { vehicleId, imageId } = req.params;
+
+  try {
+    // Provjeri postoji li slika
+    const image = await prisma.vehicleImage.findFirst({
+      where: {
+        id: parseInt(imageId),
+        vehicleId: parseInt(vehicleId)
+      }
+    });
+
+    if (!image) {
+      res.status(404).json({ error: 'Slika nije pronađena.' });
+      return;
+    }
+
+    // Koristi transakciju da osigura konzistentnost
+    await prisma.$transaction(async (tx) => {
+      // Prvo ukloni glavnu sliku sa svih slika vozila
+      await tx.vehicleImage.updateMany({
+        where: { vehicleId: parseInt(vehicleId) },
+        data: { isMainImage: false }
+      });
+
+      // Zatim postavi novu glavnu sliku
+      await tx.vehicleImage.update({
+        where: { id: parseInt(imageId) },
+        data: { isMainImage: true }
+      });
+    });
+
+    // Vraćaj ažuriranu sliku
+    const updatedImage = await prisma.vehicleImage.findUnique({
+      where: { id: parseInt(imageId) }
+    });
+
+    res.json({ message: 'Glavna slika uspješno postavljena.', image: updatedImage });
+  } catch (error) {
+    console.error('Greška prilikom postavljanja glavne slike:', error);
+    res.status(500).json({ error: 'Greška na serveru prilikom postavljanja glavne slike.' });
+  }
+});
+
 // Konfiguracija za upload dokumenata filtera
 
 // Konfiguracija za spremanje dokumenata filtera

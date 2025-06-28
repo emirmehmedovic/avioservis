@@ -343,8 +343,23 @@ export const getMrnReport = async (req: Request, res: Response): Promise<void> =
         
         totalOutflowKg += Math.abs(kgTransacted);
         
-        // Privremeno koristimo litersTransactedActual ako postoji
-        if (litersTransacted > 0) {
+        // Pokušaj dohvatiti originalnu količinu litara iz povezane FuelingOperation
+        let originalLiters = 0;
+        if (leg.relatedTransactionId && !isNaN(parseInt(leg.relatedTransactionId))) {
+          const fuelingOpId = parseInt(leg.relatedTransactionId);
+          const fuelingOp = fuelingOperations.find(op => op.id === fuelingOpId);
+          if (fuelingOp && fuelingOp.quantity_liters) {
+            // Koristi originalnu quantity_liters iz FuelingOperation umjesto litersTransactedActual
+            originalLiters = Number(fuelingOp.quantity_liters);
+            logger.info(`  - Koristi originalnu quantity_liters iz FuelingOperation: ${originalLiters} L`);
+          }
+        }
+        
+        // Koristi originalnu količinu litara ako je dostupna, inače fallback
+        if (originalLiters > 0) {
+          totalOutflowLiters += originalLiters;
+          logger.info(`  - Za outflow koristimo originalnu quantity_liters: ${originalLiters} L`);
+        } else if (litersTransacted > 0) {
           totalOutflowLiters += litersTransacted;
           logger.info(`  - Za outflow koristimo litersTransacted: ${litersTransacted} L`);
         } else {
@@ -402,13 +417,23 @@ export const getMrnReport = async (req: Request, res: Response): Promise<void> =
         }
       }
       
+      // Za transakcije točenja, pokušaj koristiti originalnu količinu litara iz FuelingOperation
+      let finalLitersValue = litersTransacted;
+      if (leg.transactionType === MrnTransactionType.MOBILE_TO_AIRCRAFT_FUELING && leg.relatedTransactionId && !isNaN(parseInt(leg.relatedTransactionId))) {
+        const fuelingOpId = parseInt(leg.relatedTransactionId);
+        const fuelingOp = fuelingOperations.find(op => op.id === fuelingOpId);
+        if (fuelingOp && fuelingOp.quantity_liters) {
+          finalLitersValue = Number(fuelingOp.quantity_liters);
+        }
+      }
+
       // Oblikuj objekt za povijest transakcija
       return {
         id: leg.id,
         date: leg.timestamp,
         transactionType: leg.transactionType,
         kgTransacted,
-        litersTransacted,
+        litersTransacted: finalLitersValue,
         density: leg.operationalDensityUsed ? Number(leg.operationalDensityUsed) : null,
         customsDeclaration: leg.tankFuelByCustoms?.customs_declaration_number || null,
         mrnBreakdown, 

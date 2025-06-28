@@ -2,8 +2,8 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
-// Odredišni folder za slike vozila
-const vehicleImageStorageDir = path.join(__dirname, '../../private_uploads/vehicles');
+// Odredišni folder za slike vozila (u public/uploads za Nginx)
+const vehicleImageStorageDir = path.join(__dirname, '../../public/uploads/vehicles');
 
 // Osiguraj da folder postoji
 if (!fs.existsSync(vehicleImageStorageDir)) {

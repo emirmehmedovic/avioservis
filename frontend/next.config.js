@@ -26,6 +26,12 @@ const nextConfig = {
         port: '3001',
         pathname: '/uploads/vehicles/**',
       },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3001',
+        pathname: '/api/documents/vehicles/**',
+      },
     ],
   },
   async rewrites() {

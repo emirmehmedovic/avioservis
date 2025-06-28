@@ -204,11 +204,12 @@ model Vehicle {
 }
 
 model VehicleImage {
-  id         Int      @id @default(autoincrement())
-  imageUrl   String
-  vehicleId  Int
-  uploadedAt DateTime @default(now())
-  vehicle    Vehicle  @relation(fields: [vehicleId], references: [id])
+  id          Int      @id @default(autoincrement())
+  imageUrl    String
+  vehicleId   Int
+  uploadedAt  DateTime @default(now())
+  isMainImage Boolean  @default(false)
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
 }
 
 model TechnicalDocument {

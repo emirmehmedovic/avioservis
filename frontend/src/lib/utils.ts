@@ -102,12 +102,12 @@ export function formatNumber(value: number | null | undefined): string {
 }
 
 /**
- * Constructs a secure URL for accessing private files through the backend API.
- * It transforms a path like '/uploads/vehicles/image.jpg' into
- * a full URL pointing to the secure serving endpoint.
+ * Constructs a secure URL for accessing files.
+ * Vehicle images are served directly via Nginx from public/uploads/
+ * Other documents are served through secure API endpoints.
  *
  * @param filePath The original path to the file from the database, e.g., /uploads/vehicles/my-image.jpg
- * @returns The full, secure URL for the file, or a placeholder if the path is invalid.
+ * @returns The full URL for the file, or a placeholder if the path is invalid.
  */
 export const getSecureFileUrl = (filePath: string | null | undefined): string => {
   if (!filePath) {
@@ -115,11 +115,21 @@ export const getSecureFileUrl = (filePath: string | null | undefined): string =>
     return '/images/placeholder.png';
   }
 
-  // The filePath from the DB is expected to be like '/uploads/vehicles/image.jpg'.
-  // We need to extract the part after '/uploads/'.
-  const securePath = filePath.startsWith('/uploads/') ? filePath.substring('/uploads/'.length) : filePath;
-
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
+  // Vehicle images are served directly via Nginx (public/uploads/vehicles/)
+  if (filePath.includes('/uploads/vehicles/')) {
+    return `${apiBaseUrl}${filePath}`;
+  }
+
+  // Vehicle documents are served directly via Nginx (public/uploads/*)
+  if (filePath.includes('/uploads/filter_documents/') || 
+      filePath.includes('/uploads/technical_documents/') || 
+      filePath.includes('/uploads/hose_documents/')) {
+    return `${apiBaseUrl}${filePath}`;
+  }
+
+  // Other files (like fueling operation documents) are served through secure API
+  const securePath = filePath.startsWith('/uploads/') ? filePath.substring('/uploads/'.length) : filePath;
   return `${apiBaseUrl}/api/documents/${securePath}`;
 };

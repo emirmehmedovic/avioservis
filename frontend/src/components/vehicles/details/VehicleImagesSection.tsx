@@ -6,7 +6,7 @@ import { FaCamera, FaUpload, FaStar, FaTrash } from 'react-icons/fa';
 import Card from './Card';
 import Image from 'next/image';
 import { toast } from 'react-toastify';
-import { uploadVehicleImage } from '@/lib/apiService';
+import { uploadVehicleImage, deleteVehicleImage, setMainVehicleImage } from '@/lib/apiService';
 import { getSecureFileUrl } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 
@@ -55,6 +55,32 @@ const VehicleImagesSection: React.FC<VehicleImagesSectionProps> = ({
       toast.error('Greška pri uploadu slike.');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleDeleteImage = async (imageId: number) => {
+    if (!confirm('Jeste li sigurni da želite obrisati ovu sliku?')) {
+      return;
+    }
+
+    try {
+      await deleteVehicleImage(vehicleId.toString(), imageId);
+      toast.success('Slika uspješno obrisana!');
+      onImageUploaded(); // Refresh images
+    } catch (error) {
+      console.error("Greška pri brisanju slike:", error);
+      toast.error('Greška pri brisanju slike.');
+    }
+  };
+
+  const handleSetMainImage = async (imageId: number) => {
+    try {
+      await setMainVehicleImage(vehicleId.toString(), imageId);
+      toast.success('Glavna slika uspješno postavljena!');
+      onImageUploaded(); // Refresh images
+    } catch (error) {
+      console.error("Greška pri postavljanju glavne slike:", error);
+      toast.error('Greška pri postavljanju glavne slike.');
     }
   };
 
@@ -130,7 +156,7 @@ const VehicleImagesSection: React.FC<VehicleImagesSectionProps> = ({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onSetMainImage(image.id);
+                          handleSetMainImage(image.id);
                         }}
                         className="p-2 bg-yellow-500 text-white rounded-full hover:bg-yellow-600 transition-colors"
                         title="Postavi kao glavnu sliku"
@@ -141,10 +167,7 @@ const VehicleImagesSection: React.FC<VehicleImagesSectionProps> = ({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Handle delete image functionality
-                        if (confirm('Jeste li sigurni da želite obrisati ovu sliku?')) {
-                          // Call delete API and refresh images
-                        }
+                        handleDeleteImage(image.id);
                       }}
                       className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
                       title="Obriši sliku"
