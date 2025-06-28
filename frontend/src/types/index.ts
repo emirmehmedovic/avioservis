@@ -130,6 +130,11 @@ export interface Vehicle {
   tanker_last_fire_safety_test_date?: Date | string | null;
   tanker_next_fire_safety_test_date?: Date | string | null;
 
+  // Kapacitet i trenutno stanje goriva
+  capacity_kg?: number | null;
+  current_kg?: number | null;
+  current_liters?: number | null;
+
   // Enhanced Filter Information
   filter_vessel_number?: string | null;
   filter_annual_inspection_date?: Date | string | null;

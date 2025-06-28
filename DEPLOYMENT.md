@@ -124,9 +124,9 @@ sudo npm install -g pm2
     Add the following environment variable. This tells your Next.js app where the backend API is located.
 
     ```env
-    NEXT_PUBLIC_API_URL="http://your_domain.com/api"
+    NEXT_PUBLIC_API_BASE_URL="http://your_domain.com"
     ```
-    *Note: We will configure Nginx to proxy requests from `/api` to the backend.*
+    *Note: We will configure Nginx to proxy requests from `/api` and `/uploads` to the backend.*
 
 4.  **Build the project:**
     ```bash
@@ -180,6 +180,22 @@ This configuration will serve your frontend application and forward all requests
             proxy_set_header Connection 'upgrade';
             proxy_set_header Host $host;
             proxy_cache_bypass $http_upgrade;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # Handle file uploads and downloads
+        location /uploads {
+            proxy_pass http://localhost:4000; # Backend port
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_cache_bypass $http_upgrade;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
         }
 
         # Handle frontend requests

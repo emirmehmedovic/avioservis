@@ -273,8 +273,8 @@ router.post('/:vehicleId/images', authenticateToken, uploadVehicleImage.single('
 // Konfiguracija za spremanje dokumenata filtera
 const filterDocumentStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // Direktorij za spremanje dokumenata filtera
-    const uploadDir = path.join(__dirname, '../../uploads/filter_documents');
+    // Direktorij za spremanje dokumenata filtera (u public/uploads za Nginx)
+    const uploadDir = path.join(__dirname, '../../public/uploads/filter_documents');
     // Osiguraj da direktorij postoji
     fs.mkdirSync(uploadDir, { recursive: true });
     cb(null, uploadDir);
@@ -378,8 +378,8 @@ router.delete('/:vehicleId/filter-documents/:documentId', authenticateToken, asy
 // Konfiguracija za spremanje tehničkih dokumenata
 const technicalDocumentStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // Direktorij za spremanje tehničkih dokumenata
-    const uploadDir = path.join(__dirname, '../../uploads/technical_documents');
+    // Direktorij za spremanje tehničkih dokumenata (u public/uploads za Nginx)
+    const uploadDir = path.join(__dirname, '../../public/uploads/technical_documents');
     // Osiguraj da direktorij postoji
     fs.mkdirSync(uploadDir, { recursive: true });
     cb(null, uploadDir);
@@ -483,8 +483,8 @@ router.delete('/:vehicleId/technical-documents/:documentId', authenticateToken, 
 // Konfiguracija za spremanje dokumenata crijeva
 const hoseDocumentStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // Direktorij za spremanje dokumenata crijeva
-    const uploadDir = path.join(__dirname, '../../uploads/hose_documents');
+    // Direktorij za spremanje dokumenata crijeva (u public/uploads za Nginx)
+    const uploadDir = path.join(__dirname, '../../public/uploads/hose_documents');
     // Osiguraj da direktorij postoji
     fs.mkdirSync(uploadDir, { recursive: true });
     cb(null, uploadDir);

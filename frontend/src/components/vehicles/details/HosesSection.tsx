@@ -298,6 +298,16 @@ const HosesSection: React.FC<HosesSectionProps> = ({
             icon={<FaCalendarCheck />} 
           />
           <DatePairItem 
+            baseLabel="6-mjesečna provjera" 
+            lastDate={vehicle.last_6_month_check_date} 
+            nextDate={vehicle.next_6_month_check_date} 
+            vehicleId={vehicle.id} 
+            lastDateFieldName="last_6_month_check_date" 
+            nextDateFieldName="next_6_month_check_date" 
+            onUpdate={onUpdate} 
+            icon={<FaCalendarCheck />} 
+          />
+          <DatePairItem 
             baseLabel="Umjeravanje manometrom" 
             lastDate={vehicle.manometer_calibration_date} 
             nextDate={vehicle.manometer_calibration_valid_until} 
@@ -321,7 +331,7 @@ const HosesSection: React.FC<HosesSectionProps> = ({
       </div>
 
       {/* Sekcija za zamjene crijeva */}
-      <div>
+      <div className="mb-6">
         <h3 className="text-sm uppercase tracking-wider text-gray-500 font-semibold mb-3 px-1 flex items-center">
           <FaCalendarDay className="mr-2 text-blue-500" /> Zamjene crijeva
         </h3>
@@ -356,6 +366,112 @@ const HosesSection: React.FC<HosesSectionProps> = ({
             onUpdate={onUpdate} 
             icon={<FaCalendarAlt />} 
           />
+        </div>
+      </div>
+
+      {/* Sekcija za detalje HD38, HD63, TW75 crijeva */}
+      <div className="mb-6">
+        <h3 className="text-sm uppercase tracking-wider text-gray-500 font-semibold mb-3 px-1 flex items-center">
+          <FaWrench className="mr-2 text-blue-500" /> Detalji specifičnih crijeva
+        </h3>
+        
+        {/* HD63 Crijeva */}
+        <div className="mb-4">
+          <h4 className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-2 px-1">HD63 Crijeva</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <EditableItem 
+              label="Broj crijeva HD63" 
+              value={vehicle.broj_crijeva_hd63} 
+              icon={<FaTag />} 
+              vehicleId={vehicle.id} 
+              fieldName="broj_crijeva_hd63" 
+              onUpdate={onUpdate} 
+            />
+            <EditableItem 
+              label="Godina proizvodnje" 
+              value={vehicle.godina_proizvodnje_crijeva_hd63} 
+              icon={<FaCalendarAlt />} 
+              vehicleId={vehicle.id} 
+              fieldName="godina_proizvodnje_crijeva_hd63" 
+              type="number"
+              onUpdate={onUpdate} 
+            />
+            <EditableItem 
+              label="Datum testiranja pritiska" 
+              value={vehicle.datum_testiranja_pritiska_crijeva_hd63} 
+              icon={<FaWrench />} 
+              vehicleId={vehicle.id} 
+              fieldName="datum_testiranja_pritiska_crijeva_hd63" 
+              type="date"
+              onUpdate={onUpdate} 
+            />
+          </div>
+        </div>
+
+        {/* HD38 Crijeva */}
+        <div className="mb-4">
+          <h4 className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-2 px-1">HD38 Crijeva</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <EditableItem 
+              label="Broj crijeva HD38" 
+              value={vehicle.broj_crijeva_hd38} 
+              icon={<FaTag />} 
+              vehicleId={vehicle.id} 
+              fieldName="broj_crijeva_hd38" 
+              onUpdate={onUpdate} 
+            />
+            <EditableItem 
+              label="Godina proizvodnje" 
+              value={vehicle.godina_proizvodnje_crijeva_hd38} 
+              icon={<FaCalendarAlt />} 
+              vehicleId={vehicle.id} 
+              fieldName="godina_proizvodnje_crijeva_hd38" 
+              type="number"
+              onUpdate={onUpdate} 
+            />
+            <EditableItem 
+              label="Datum testiranja pritiska" 
+              value={vehicle.datum_testiranja_pritiska_crijeva_hd38} 
+              icon={<FaWrench />} 
+              vehicleId={vehicle.id} 
+              fieldName="datum_testiranja_pritiska_crijeva_hd38" 
+              type="date"
+              onUpdate={onUpdate} 
+            />
+          </div>
+        </div>
+
+        {/* TW75 Crijeva */}
+        <div className="mb-4">
+          <h4 className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-2 px-1">TW75 Crijeva</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <EditableItem 
+              label="Broj crijeva TW75" 
+              value={vehicle.broj_crijeva_tw75} 
+              icon={<FaTag />} 
+              vehicleId={vehicle.id} 
+              fieldName="broj_crijeva_tw75" 
+              onUpdate={onUpdate} 
+            />
+            <EditableItem 
+              label="Godina proizvodnje" 
+              value={vehicle.godina_proizvodnje_crijeva_tw75} 
+              icon={<FaCalendarAlt />} 
+              vehicleId={vehicle.id} 
+              fieldName="godina_proizvodnje_crijeva_tw75" 
+              type="number"
+              onUpdate={onUpdate} 
+            />
+            <EditableItem 
+              label="Datum testiranja pritiska" 
+              value={vehicle.datum_testiranja_pritiska_crijeva_tw75} 
+              icon={<FaWrench />} 
+              vehicleId={vehicle.id} 
+              fieldName="datum_testiranja_pritiska_crijeva_tw75" 
+              type="date"
+              onUpdate={onUpdate} 
+            />
+          </div>
         </div>
       </div>
 

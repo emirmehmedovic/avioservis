@@ -240,22 +240,42 @@ const ReportsSection: React.FC<ReportsSectionProps> = ({ vehicle }) => {
         
         const tankerInfoData = language === 'bs' ? [
           ['Kapacitet cisterne', vehicle.kapacitet_cisterne ? `${vehicle.kapacitet_cisterne} L` : 'N/A'],
+          ['Kapacitet (kg)', vehicle.capacity_kg ? `${vehicle.capacity_kg} kg` : 'N/A'],
+          ['Trenutno stanje (kg)', vehicle.current_kg ? `${vehicle.current_kg} kg` : 'N/A'],
+          ['Trenutno stanje (L)', vehicle.current_liters ? `${vehicle.current_liters} L` : 'N/A'],
           ['Tip filtera', vehicle.tip_filtera || 'N/A'],
           ['Crijeva za točenje', vehicle.crijeva_za_tocenje || 'N/A'],
           ['Tip vozila', vehicle.vehicle_type || 'N/A'],
           ['Tip cisterne', vehicle.tanker_type || 'N/A'],
+          ['Material cisterne', vehicle.tanker_material || 'N/A'],
+          ['Broj odjeljaka cisterne', vehicle.tanker_compartments?.toString() || 'N/A'],
           ['Vrsta punjenja', vehicle.fueling_type || 'N/A'],
           ['Tip punjenja', vehicle.loading_type || 'N/A'],
-          ['Tip kamiona', vehicle.truck_type || 'N/A']
+          ['Tip kamiona', vehicle.truck_type || 'N/A'],
+          ['Opis vozila', vehicle.vehicle_description || 'N/A'],
+          ['Zadnji pritisni test cisterne', formatDate(vehicle.tanker_last_pressure_test_date)],
+          ['Sljedeći pritisni test cisterne', formatDate(vehicle.tanker_next_pressure_test_date)],
+          ['Zadnji test protivpožarne sigurnosti', formatDate(vehicle.tanker_last_fire_safety_test_date)],
+          ['Sljedeći test protivpožarne sigurnosti', formatDate(vehicle.tanker_next_fire_safety_test_date)]
         ] : [
           ['Tanker Capacity', vehicle.kapacitet_cisterne ? `${vehicle.kapacitet_cisterne} L` : 'N/A'],
+          ['Capacity (kg)', vehicle.capacity_kg ? `${vehicle.capacity_kg} kg` : 'N/A'],
+          ['Current Level (kg)', vehicle.current_kg ? `${vehicle.current_kg} kg` : 'N/A'],
+          ['Current Level (L)', vehicle.current_liters ? `${vehicle.current_liters} L` : 'N/A'],
           ['Filter Type', vehicle.tip_filtera || 'N/A'],
           ['Fueling Hoses', vehicle.crijeva_za_tocenje || 'N/A'],
           ['Vehicle Type', vehicle.vehicle_type || 'N/A'],
           ['Tanker Type', vehicle.tanker_type || 'N/A'],
+          ['Tanker Material', vehicle.tanker_material || 'N/A'],
+          ['Tanker Compartments', vehicle.tanker_compartments?.toString() || 'N/A'],
           ['Fueling Type', vehicle.fueling_type || 'N/A'],
           ['Loading Type', vehicle.loading_type || 'N/A'],
-          ['Truck Type', vehicle.truck_type || 'N/A']
+          ['Truck Type', vehicle.truck_type || 'N/A'],
+          ['Vehicle Description', vehicle.vehicle_description || 'N/A'],
+          ['Last Tanker Pressure Test', formatDate(vehicle.tanker_last_pressure_test_date)],
+          ['Next Tanker Pressure Test', formatDate(vehicle.tanker_next_pressure_test_date)],
+          ['Last Fire Safety Test', formatDate(vehicle.tanker_last_fire_safety_test_date)],
+          ['Next Fire Safety Test', formatDate(vehicle.tanker_next_fire_safety_test_date)]
         ];
         
         // Use autoTable as a standalone function
