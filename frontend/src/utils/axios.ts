@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Kreiraj instancu axios-a sa defaultnim postavkama
 export const axiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001',
   timeout: 15000, // 15 sekundi timeout
   headers: {
     'Content-Type': 'application/json',
