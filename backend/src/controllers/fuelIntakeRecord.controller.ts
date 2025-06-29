@@ -343,15 +343,36 @@ export const getMrnReport = async (req: Request, res: Response): Promise<void> =
         
         totalOutflowKg += Math.abs(kgTransacted);
         
-        // Pokušaj dohvatiti originalnu količinu litara iz povezane FuelingOperation
+        // Pokušaj dohvatiti MRN-specifičnu količinu litara iz povezane FuelingOperation
         let originalLiters = 0;
         if (leg.relatedTransactionId && !isNaN(parseInt(leg.relatedTransactionId))) {
           const fuelingOpId = parseInt(leg.relatedTransactionId);
           const fuelingOp = fuelingOperations.find(op => op.id === fuelingOpId);
-          if (fuelingOp && fuelingOp.quantity_liters) {
-            // Koristi originalnu quantity_liters iz FuelingOperation umjesto litersTransactedActual
-            originalLiters = Number(fuelingOp.quantity_liters);
-            logger.info(`  - Koristi originalnu quantity_liters iz FuelingOperation: ${originalLiters} L`);
+          if (fuelingOp) {
+            // Prva opcija: pokušaj izvući MRN-specifične litre iz mrnBreakdown
+            let mrnSpecificLiters = 0;
+            if (fuelingOp.mrnBreakdown) {
+              try {
+                const mrnBreakdownData = JSON.parse(fuelingOp.mrnBreakdown);
+                const targetMrnEntry = mrnBreakdownData.find((entry: any) => entry.mrn === intakeRecord.customs_declaration_number);
+                if (targetMrnEntry && typeof targetMrnEntry.quantity === 'number') {
+                  mrnSpecificLiters = targetMrnEntry.quantity;
+                  logger.info(`  - Koristi MRN-specifične litre iz mrnBreakdown: ${mrnSpecificLiters} L za MRN ${intakeRecord.customs_declaration_number}`);
+                }
+              } catch (error) {
+                logger.warn(`  - Greška pri parsiranju mrnBreakdown za operaciju ${fuelingOpId}:`, error);
+              }
+            }
+            
+            // Ako imamo MRN-specifične litre, koristi ih
+            if (mrnSpecificLiters > 0) {
+              originalLiters = mrnSpecificLiters;
+            } 
+            // Inače fallback na ukupne litre (stara logika)
+            else if (fuelingOp.quantity_liters) {
+              originalLiters = Number(fuelingOp.quantity_liters);
+              logger.info(`  - Fallback na ukupne quantity_liters iz FuelingOperation: ${originalLiters} L (nema MRN breakdown)`);
+            }
           }
         }
         
@@ -417,13 +438,32 @@ export const getMrnReport = async (req: Request, res: Response): Promise<void> =
         }
       }
       
-      // Za transakcije točenja, pokušaj koristiti originalnu količinu litara iz FuelingOperation
+      // Za transakcije točenja, pokušaj koristiti MRN-specifičnu količinu litara iz FuelingOperation
       let finalLitersValue = litersTransacted;
       if (leg.transactionType === MrnTransactionType.MOBILE_TO_AIRCRAFT_FUELING && leg.relatedTransactionId && !isNaN(parseInt(leg.relatedTransactionId))) {
         const fuelingOpId = parseInt(leg.relatedTransactionId);
         const fuelingOp = fuelingOperations.find(op => op.id === fuelingOpId);
-        if (fuelingOp && fuelingOp.quantity_liters) {
-          finalLitersValue = Number(fuelingOp.quantity_liters);
+        if (fuelingOp) {
+          // Pokušaj izvući MRN-specifične litre iz mrnBreakdown
+          let mrnSpecificLiters = 0;
+          if (fuelingOp.mrnBreakdown) {
+            try {
+              const mrnBreakdownData = JSON.parse(fuelingOp.mrnBreakdown);
+              const targetMrnEntry = mrnBreakdownData.find((entry: any) => entry.mrn === intakeRecord.customs_declaration_number);
+              if (targetMrnEntry && typeof targetMrnEntry.quantity === 'number') {
+                mrnSpecificLiters = targetMrnEntry.quantity;
+              }
+            } catch (error) {
+              logger.warn(`  - Greška pri parsiranju mrnBreakdown za transaction history operaciju ${fuelingOpId}:`, error);
+            }
+          }
+          
+          // Koristi MRN-specifične litre ako su dostupni, inače fallback
+          if (mrnSpecificLiters > 0) {
+            finalLitersValue = mrnSpecificLiters;
+          } else if (fuelingOp.quantity_liters) {
+            finalLitersValue = Number(fuelingOp.quantity_liters);
+          }
         }
       }
 
