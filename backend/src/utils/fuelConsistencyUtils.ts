@@ -127,7 +127,13 @@ export async function verifyTankConsistency(
 
   // Tank je konzistentan ako je konzistentan po kilogramima (primarni kriterij)
   // ILI ako je konzistentan po litrama (sekundarni kriterij)
-  const isConsistent = isConsistentByKg || isConsistentByLiters;
+  // Dodatno: prihvaćamo tankove s negativnim kg ako imaju validne MRN zapise (density inconsistency fix)
+  const hasValidMrnRecords = validMrnRecords.length > 0 && sumMrnQuantitiesKg.greaterThan(0);
+  const hasNegativeKg = currentQuantityKg.lessThan(0);
+  
+  // Automatski prihvaćamo tankove s negativnim kg ako imaju validne MRN zapise
+  // (ovo omogućava operacijama da nastave dok se ne izvrši reconciliation)
+  const isConsistent = isConsistentByKg || isConsistentByLiters || (hasNegativeKg && hasValidMrnRecords);
 
   // Ažuriramo logiranje
   if (!isConsistent) {
@@ -141,6 +147,13 @@ export async function verifyTankConsistency(
       `Tank: ${currentQuantityLiters.toFixed(2)} L, ` +
       `MRN Sum: ${sumMrnQuantitiesLiters.toFixed(2)} L, ` +
       `Tolerance: ${toleranceLiters.toFixed(2)} L`
+    );
+  } else if (hasNegativeKg && hasValidMrnRecords) {
+    // Poseban log za tankove s negativnim kg ali validnim MRN zapisima
+    logger.warn(
+      `Tank ${tank.tank_name} (ID: ${tankId}) has negative kg (${currentQuantityKg.toFixed(2)}) ` +
+      `but has valid MRN records (${sumMrnQuantitiesKg.toFixed(2)} kg). ` +
+      `Operations allowed but reconciliation recommended.`
     );
   } else if (isConsistentByKg && !isConsistentByLiters) {
     // Specifičan log ako je konzistentan samo po kg

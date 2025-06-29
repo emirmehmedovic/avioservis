@@ -42,6 +42,7 @@ import financialReportsRoutes from './routes/financialReports.routes'; // Rute z
 import rezervoarRoutes from './routes/rezervoar.routes'; // Rute za rezervoare
 import planKalibracijeRoutes from './routes/planKalibracije.routes'; // Rute za plan kalibracije
 import ostalaOpremaRoutes from './routes/ostalaOprema.routes'; // Rute za ostalu opremu
+import densityReconciliationRoutes from './routes/densityReconciliation.routes'; // Rute za density reconciliation
 
 const app = express();
 
@@ -107,6 +108,7 @@ app.use('/api/valve-tests', valveTestRoutes); // Registracija ruta za ILPCV i HE
 app.use('/api/rezervoari', rezervoarRoutes); // Registracija ruta za rezervoare
 app.use('/api/plan-kalibracije', planKalibracijeRoutes); // Registracija ruta za plan kalibracije
 app.use('/api/ostala-oprema', ostalaOpremaRoutes); // Registracija ruta za ostalu opremu
+app.use('/api/density-reconciliation', sensitiveOperationsLimiter, densityReconciliationRoutes); // Registracija ruta za density reconciliation
 
 app.get('/', (req, res) => {
   res.send('Backend radi!');
