@@ -227,6 +227,43 @@ const GeneralInfoSection: React.FC<GeneralInfoSectionProps> = ({ vehicle, onUpda
             />
           </div>
         </div>
+
+        {/* Licence i certifikati - Sekcija */}
+        <div>
+          <h3 className="text-lg font-medium text-gray-800 mb-3 pb-2 border-b border-gray-200">
+            <FaIdCard className="inline-block mr-2 text-indigo-500" /> 
+            Licence i certifikati
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <EditableItem 
+              label="Licenca - datum izdavanja" 
+              value={vehicle.licenca_datum_izdavanja} 
+              icon={<FaCalendarAlt />} 
+              vehicleId={vehicle.id} 
+              fieldName="licenca_datum_izdavanja" 
+              type="date" 
+              onUpdate={onUpdate} 
+            />
+            <EditableItem 
+              label="Licenca važi do" 
+              value={vehicle.licenca_vazi_do} 
+              icon={<FaCalendarAlt />} 
+              vehicleId={vehicle.id} 
+              fieldName="licenca_vazi_do" 
+              type="date" 
+              onUpdate={onUpdate} 
+            />
+            <EditableItem 
+              label="CWD datum isteka" 
+              value={vehicle.datum_isteka_cwd} 
+              icon={<FaCalendarAlt />} 
+              vehicleId={vehicle.id} 
+              fieldName="datum_isteka_cwd" 
+              type="date" 
+              onUpdate={onUpdate} 
+            />
+          </div>
+        </div>
       </div>
     </Card>
   );

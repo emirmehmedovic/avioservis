@@ -16,7 +16,8 @@ import {
   FaTruck,
   FaWarehouse,
   FaArrowCircleUp,
-  FaArrowCircleDown
+  FaArrowCircleDown,
+  FaIndustry
 } from 'react-icons/fa';
 import Card from './Card';
 import EditableItem from './EditableItem';
@@ -71,6 +72,14 @@ const TankerSpecificationSection: React.FC<TankerSpecificationSectionProps> = ({
               icon={<FaWarehouse />} 
               vehicleId={vehicle.id} 
               fieldName="tanker_type" 
+              onUpdate={onUpdate} 
+            />
+            <EditableItem 
+              label="Material cisterne" 
+              value={vehicle.tanker_material} 
+              icon={<FaIndustry />} 
+              vehicleId={vehicle.id} 
+              fieldName="tanker_material" 
               onUpdate={onUpdate} 
             />
           </div>
@@ -234,6 +243,62 @@ const TankerSpecificationSection: React.FC<TankerSpecificationSectionProps> = ({
               icon={<FaCalendarAlt />} 
               vehicleId={vehicle.id} 
               fieldName="periodicni_pregled_vazi_do" 
+              type="date" 
+              onUpdate={onUpdate} 
+            />
+          </div>
+        </div>
+
+        {/* Test pritiska tanka */}
+        <div>
+          <h3 className="text-lg font-medium text-gray-800 mb-3 pb-2 border-b border-gray-200">
+            <FaShippingFast className="inline-block mr-2 text-indigo-500" /> 
+            Test pritiska tanka
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <EditableItem 
+              label="Posljednji test pritiska" 
+              value={vehicle.tanker_last_pressure_test_date} 
+              icon={<FaCalendarAlt />} 
+              vehicleId={vehicle.id} 
+              fieldName="tanker_last_pressure_test_date" 
+              type="date" 
+              onUpdate={onUpdate} 
+            />
+            <EditableItem 
+              label="Sljedeći test pritiska" 
+              value={vehicle.tanker_next_pressure_test_date} 
+              icon={<FaCalendarAlt />} 
+              vehicleId={vehicle.id} 
+              fieldName="tanker_next_pressure_test_date" 
+              type="date" 
+              onUpdate={onUpdate} 
+            />
+          </div>
+        </div>
+
+        {/* Kalibracija cisterne */}
+        <div>
+          <h3 className="text-lg font-medium text-gray-800 mb-3 pb-2 border-b border-gray-200">
+            <FaTachometerAlt className="inline-block mr-2 text-indigo-500" /> 
+            Kalibracija cisterne
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <EditableItem 
+              label="Posljednja kalibracija cisterne" 
+              value={vehicle.cisterna_zadnja_kalibracija} 
+              icon={<FaCalendarAlt />} 
+              vehicleId={vehicle.id} 
+              fieldName="cisterna_zadnja_kalibracija" 
+              type="date" 
+              onUpdate={onUpdate} 
+            />
+            <EditableItem 
+              label="Sljedeća kalibracija cisterne" 
+              value={vehicle.cisterna_naredna_kalibracija} 
+              icon={<FaCalendarAlt />} 
+              vehicleId={vehicle.id} 
+              fieldName="cisterna_naredna_kalibracija" 
               type="date" 
               onUpdate={onUpdate} 
             />

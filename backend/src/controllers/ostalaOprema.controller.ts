@@ -586,18 +586,21 @@ export const generateFullReport = async (req: Request, res: Response): Promise<v
   try {
     const { opremaIds } = req.body;
     
-    if (!Array.isArray(opremaIds) || opremaIds.length === 0) {
-      res.status(400).json({ message: 'Lista ID-jeva opreme je obavezna' });
-      return;
+    // Fetch all oprema or specific ones if IDs are provided
+    let opremaList;
+    if (Array.isArray(opremaIds) && opremaIds.length > 0) {
+      opremaList = await prisma.ostalaOprema.findMany({
+        where: {
+          id: { in: opremaIds }
+        },
+        orderBy: { naziv: 'asc' }
+      });
+    } else {
+      // If no IDs provided, fetch all oprema
+      opremaList = await prisma.ostalaOprema.findMany({
+        orderBy: { naziv: 'asc' }
+      });
     }
-
-    // Fetch all oprema
-    const opremaList = await prisma.ostalaOprema.findMany({
-      where: {
-        id: { in: opremaIds }
-      },
-      orderBy: { naziv: 'asc' }
-    });
 
     if (opremaList.length === 0) {
       res.status(404).json({ message: 'Oprema nije pronađena' });

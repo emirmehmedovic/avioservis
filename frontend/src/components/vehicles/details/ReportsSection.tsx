@@ -20,6 +20,13 @@ const ReportsSection: React.FC<ReportsSectionProps> = ({ vehicle }) => {
   const [serviceRecords, setServiceRecords] = useState<ServiceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
+  // Debug: Log when vehicle prop changes
+  React.useEffect(() => {
+    console.log('*** REPORTS SECTION: Vehicle prop updated ***');
+    console.log('tip_filtera in ReportsSection:', vehicle.tip_filtera);
+    console.log('Vehicle object timestamp:', vehicle.updated_at);
+  }, [vehicle]);
+  
   // Fetch service records when component mounts
   useEffect(() => {
     const fetchServiceRecords = async () => {
@@ -48,16 +55,25 @@ const ReportsSection: React.FC<ReportsSectionProps> = ({ vehicle }) => {
     }
   };
 
-  // Helper function to format values, handling empty strings, null, undefined
+  // Helper function to format values, handling empty strings, null, undefined, and Decimal objects
   const formatValue = (value: any, unit?: string) => {
     // Check for null, undefined, empty string, or whitespace-only string
     if (value === null || value === undefined || value === '' || (typeof value === 'string' && value.trim() === '')) {
       return 'N/A';
     }
     
+    // Handle Prisma Decimal objects (they have toString() method)
+    if (value && typeof value === 'object' && typeof value.toString === 'function') {
+      const stringValue = value.toString().trim();
+      if (stringValue === '' || stringValue === '0' || stringValue === 'null') {
+        return 'N/A';
+      }
+      return unit ? `${stringValue} ${unit}` : stringValue;
+    }
+    
     // Convert to string and trim
     const stringValue = String(value).trim();
-    if (stringValue === '') {
+    if (stringValue === '' || stringValue === 'null' || stringValue === 'undefined') {
       return 'N/A';
     }
     
@@ -119,13 +135,21 @@ const ReportsSection: React.FC<ReportsSectionProps> = ({ vehicle }) => {
   
   // Generate PDF report with all vehicle data
   const generatePdfReport = (language: 'bs' | 'en' = 'bs') => {
+    console.log('PDF generation started for language:', language);
+    console.log('Function called, vehicle object exists:', !!vehicle);
+    
     try {
       // Debug: Log vehicle data to see what we're working with
       console.log('Vehicle data for PDF generation:', vehicle);
-      console.log('chassis_number:', vehicle.chassis_number);
-      console.log('vessel_plate_no:', vehicle.vessel_plate_no);
-      console.log('euro_norm:', vehicle.euro_norm);
-      console.log('flow_rate:', vehicle.flow_rate);
+      
+      // Test specifically tip_filtera since user says it's filled but shows as N/A
+      console.log('*** TIP FILTERA ANALYSIS ***');
+      console.log('tip_filtera value:', vehicle.tip_filtera);
+      console.log('tip_filtera type:', typeof vehicle.tip_filtera);
+      console.log('tip_filtera === null:', vehicle.tip_filtera === null);
+      console.log('tip_filtera === undefined:', vehicle.tip_filtera === undefined);
+      console.log('tip_filtera === "":', vehicle.tip_filtera === "");
+      console.log('********************************');
       
       // Create new PDF document
       const doc = new jsPDF();
@@ -207,12 +231,12 @@ const ReportsSection: React.FC<ReportsSectionProps> = ({ vehicle }) => {
       doc.setFont(FONT_NAME, 'bold');
       doc.text(language === 'bs' ? 'Broj šasije:' : 'Chassis Number:', leftMargin, yPos);
       doc.setFont(FONT_NAME, 'normal');
-      doc.text(vehicle.chassis_number || 'N/A', valueX, yPos); yPos += lineHeight;
+      doc.text(formatValue(vehicle.chassis_number), valueX, yPos); yPos += lineHeight;
       
       doc.setFont(FONT_NAME, 'bold');
       doc.text(language === 'bs' ? 'Broj posude:' : 'Vessel Plate Number:', leftMargin, yPos);
       doc.setFont(FONT_NAME, 'normal');
-      doc.text(vehicle.vessel_plate_no || 'N/A', valueX, yPos); yPos += lineHeight;
+      doc.text(formatValue(vehicle.vessel_plate_no), valueX, yPos); yPos += lineHeight;
       
       if (vehicle.notes) {
         doc.setFont(FONT_NAME, 'bold');
@@ -239,39 +263,33 @@ const ReportsSection: React.FC<ReportsSectionProps> = ({ vehicle }) => {
         doc.setFontSize(10);
         
         const tankerInfoData = language === 'bs' ? [
-          ['Kapacitet cisterne', vehicle.kapacitet_cisterne ? `${vehicle.kapacitet_cisterne} L` : 'N/A'],
-          ['Kapacitet (kg)', vehicle.capacity_kg ? `${vehicle.capacity_kg} kg` : 'N/A'],
-          ['Trenutno stanje (kg)', vehicle.current_kg ? `${vehicle.current_kg} kg` : 'N/A'],
-          ['Trenutno stanje (L)', vehicle.current_liters ? `${vehicle.current_liters} L` : 'N/A'],
-          ['Tip filtera', vehicle.tip_filtera || 'N/A'],
-          ['Crijeva za točenje', vehicle.crijeva_za_tocenje || 'N/A'],
-          ['Tip vozila', vehicle.vehicle_type || 'N/A'],
-          ['Tip cisterne', vehicle.tanker_type || 'N/A'],
-          ['Material cisterne', vehicle.tanker_material || 'N/A'],
-          ['Broj odjeljaka cisterne', vehicle.tanker_compartments?.toString() || 'N/A'],
-          ['Vrsta punjenja', vehicle.fueling_type || 'N/A'],
-          ['Tip punjenja', vehicle.loading_type || 'N/A'],
-          ['Tip kamiona', vehicle.truck_type || 'N/A'],
-          ['Opis vozila', vehicle.vehicle_description || 'N/A'],
-          ['Zadnji pritisni test cisterne', formatDate(vehicle.tanker_last_pressure_test_date)],
+          ['Kapacitet cisterne (L)', formatValue(vehicle.kapacitet_cisterne)],
+          ['Broj odjeljaka', formatValue(vehicle.tanker_compartments)],
+          ['Tip tanka', formatValue(vehicle.tanker_type)],
+          ['Material cisterne', formatValue(vehicle.tanker_material)],
+          ['Posljednja kalibracija cisterne', formatDate(vehicle.cisterna_zadnja_kalibracija)],
+          ['Sljedeća kalibracija cisterne', formatDate(vehicle.cisterna_naredna_kalibracija)],
+          ['Tip vozila', formatValue(vehicle.vehicle_type)],
+          ['Vrsta punjenja', formatValue(vehicle.fueling_type)],
+          ['Tip punjenja', formatValue(vehicle.loading_type)],
+          ['Tip kamiona', formatValue(vehicle.truck_type)],
+          ['Opis vozila', formatValue(vehicle.vehicle_description)],
+          ['Posljednji pritisni test cisterne', formatDate(vehicle.tanker_last_pressure_test_date)],
           ['Sljedeći pritisni test cisterne', formatDate(vehicle.tanker_next_pressure_test_date)],
-          ['Zadnji test protivpožarne sigurnosti', formatDate(vehicle.tanker_last_fire_safety_test_date)],
+          ['Posljednji test protivpožarne sigurnosti', formatDate(vehicle.tanker_last_fire_safety_test_date)],
           ['Sljedeći test protivpožarne sigurnosti', formatDate(vehicle.tanker_next_fire_safety_test_date)]
         ] : [
-          ['Tanker Capacity', vehicle.kapacitet_cisterne ? `${vehicle.kapacitet_cisterne} L` : 'N/A'],
-          ['Capacity (kg)', vehicle.capacity_kg ? `${vehicle.capacity_kg} kg` : 'N/A'],
-          ['Current Level (kg)', vehicle.current_kg ? `${vehicle.current_kg} kg` : 'N/A'],
-          ['Current Level (L)', vehicle.current_liters ? `${vehicle.current_liters} L` : 'N/A'],
-          ['Filter Type', vehicle.tip_filtera || 'N/A'],
-          ['Fueling Hoses', vehicle.crijeva_za_tocenje || 'N/A'],
-          ['Vehicle Type', vehicle.vehicle_type || 'N/A'],
-          ['Tanker Type', vehicle.tanker_type || 'N/A'],
-          ['Tanker Material', vehicle.tanker_material || 'N/A'],
-          ['Tanker Compartments', vehicle.tanker_compartments?.toString() || 'N/A'],
-          ['Fueling Type', vehicle.fueling_type || 'N/A'],
-          ['Loading Type', vehicle.loading_type || 'N/A'],
-          ['Truck Type', vehicle.truck_type || 'N/A'],
-          ['Vehicle Description', vehicle.vehicle_description || 'N/A'],
+          ['Tanker Capacity', formatValue(vehicle.kapacitet_cisterne, 'L')],
+          ['Filter Type', formatValue(vehicle.tip_filtera)],
+          ['Fueling Hoses', formatValue(vehicle.crijeva_za_tocenje)],
+          ['Vehicle Type', formatValue(vehicle.vehicle_type)],
+          ['Tanker Type', formatValue(vehicle.tanker_type)],
+          ['Tanker Material', formatValue(vehicle.tanker_material)],
+          ['Tanker Compartments', formatValue(vehicle.tanker_compartments)],
+          ['Fueling Type', formatValue(vehicle.fueling_type)],
+          ['Loading Type', formatValue(vehicle.loading_type)],
+          ['Truck Type', formatValue(vehicle.truck_type)],
+          ['Vehicle Description', formatValue(vehicle.vehicle_description)],
           ['Last Tanker Pressure Test', formatDate(vehicle.tanker_last_pressure_test_date)],
           ['Next Tanker Pressure Test', formatDate(vehicle.tanker_next_pressure_test_date)],
           ['Last Fire Safety Test', formatDate(vehicle.tanker_last_fire_safety_test_date)],
@@ -338,39 +356,49 @@ const ReportsSection: React.FC<ReportsSectionProps> = ({ vehicle }) => {
       doc.setFontSize(10);
       
       const technicalData = language === 'bs' ? [
-        ['Euro norma', vehicle.euro_norm || 'N/A'],
-        ['Protok', vehicle.flow_rate ? `${vehicle.flow_rate} L/min` : 'N/A'],
-        ['Podržani tipovi goriva', vehicle.supported_fuel_types || 'N/A'],
-        ['Senzor tehnologija', vehicle.sensor_technology || 'N/A'],
-        ['Godina proizvodnje', vehicle.year_of_manufacture?.toString() || 'N/A'],
-        ['Proizvođač šasije', vehicle.chassis_manufacturer || 'N/A'],
-        ['Tip šasije', vehicle.chassis_type || 'N/A'],
-        ['Proizvođač karoserije', vehicle.body_manufacturer || 'N/A'],
-        ['Tip karoserije', vehicle.body_type || 'N/A'],
-        ['Broj osovina', vehicle.axle_count?.toString() || 'N/A'],
-        ['Nosivost (kg)', vehicle.carrying_capacity_kg?.toString() || 'N/A'],
-        ['Snaga motora (kW)', vehicle.engine_power_kw?.toString() || 'N/A'],
-        ['Zapremina motora (ccm)', vehicle.engine_displacement_ccm?.toString() || 'N/A'],
-        ['Broj sjedišta', vehicle.seat_count?.toString() || 'N/A'],
-        ['Vrsta goriva', vehicle.fuel_type || 'N/A'],
-        ['Odgovorna osoba kontakt', vehicle.responsible_person_contact || 'N/A']
+        ['Snaga motora (kW)', formatValue(vehicle.engine_power_kw)],
+        ['Zapremina motora (ccm)', formatValue(vehicle.engine_displacement_ccm)],
+        ['Broj osovina', formatValue(vehicle.axle_count)],
+        ['Broj sjedišta', formatValue(vehicle.seat_count)],
+        ['Nosivost (kg)', formatValue(vehicle.carrying_capacity_kg)],
+        ['Proizvođač šasije', formatValue(vehicle.chassis_manufacturer)],
+        ['Tip šasije', formatValue(vehicle.chassis_type)],
+        ['Proizvođač nadogradnje', formatValue(vehicle.body_manufacturer)],
+        ['Tip nadogradnje', formatValue(vehicle.body_type)],
+        ['Euro norma', formatValue(vehicle.euro_norm)],
+        ['Protok (L/min)', formatValue(vehicle.flow_rate)],
+                 ['Licenca - datum izdavanja', formatDate(vehicle.licenca_datum_izdavanja)],
+         ['Licenca važi do', formatDate(vehicle.licenca_vazi_do)],
+         ['CWD datum isteka', formatDate(vehicle.datum_isteka_cwd)],
+         ['Tromjesečni pregled - datum', formatDate(vehicle.tromjesecni_pregled_datum)],
+         ['Tromjesečni pregled - važi do', formatDate(vehicle.tromjesecni_pregled_vazi_do)],
+        ['Podržani tipovi goriva', formatValue(vehicle.supported_fuel_types)],
+        ['Senzor tehnologija', formatValue(vehicle.sensor_technology)],
+        ['Godina proizvodnje', formatValue(vehicle.year_of_manufacture)],
+        ['Vrsta goriva', formatValue(vehicle.fuel_type)],
+        ['Odgovorna osoba kontakt', formatValue(vehicle.responsible_person_contact)]
       ] : [
-        ['Euro Norm', vehicle.euro_norm || 'N/A'],
-        ['Flow Rate', vehicle.flow_rate ? `${vehicle.flow_rate} L/min` : 'N/A'],
-        ['Supported Fuel Types', vehicle.supported_fuel_types || 'N/A'],
-        ['Sensor Technology', vehicle.sensor_technology || 'N/A'],
-        ['Year of Manufacture', vehicle.year_of_manufacture?.toString() || 'N/A'],
-        ['Chassis Manufacturer', vehicle.chassis_manufacturer || 'N/A'],
-        ['Chassis Type', vehicle.chassis_type || 'N/A'],
-        ['Body Manufacturer', vehicle.body_manufacturer || 'N/A'],
-        ['Body Type', vehicle.body_type || 'N/A'],
-        ['Axle Count', vehicle.axle_count?.toString() || 'N/A'],
-        ['Carrying Capacity (kg)', vehicle.carrying_capacity_kg?.toString() || 'N/A'],
-        ['Engine Power (kW)', vehicle.engine_power_kw?.toString() || 'N/A'],
-        ['Engine Displacement (ccm)', vehicle.engine_displacement_ccm?.toString() || 'N/A'],
-        ['Seat Count', vehicle.seat_count?.toString() || 'N/A'],
-        ['Fuel Type', vehicle.fuel_type || 'N/A'],
-        ['Responsible Person Contact', vehicle.responsible_person_contact || 'N/A']
+        ['Engine Power (kW)', formatValue(vehicle.engine_power_kw)],
+        ['Engine Displacement (ccm)', formatValue(vehicle.engine_displacement_ccm)],
+        ['Axle Count', formatValue(vehicle.axle_count)],
+        ['Seat Count', formatValue(vehicle.seat_count)],
+        ['Carrying Capacity (kg)', formatValue(vehicle.carrying_capacity_kg)],
+        ['Chassis Manufacturer', formatValue(vehicle.chassis_manufacturer)],
+        ['Chassis Type', formatValue(vehicle.chassis_type)],
+        ['Body Manufacturer', formatValue(vehicle.body_manufacturer)],
+        ['Body Type', formatValue(vehicle.body_type)],
+        ['Euro Norm', formatValue(vehicle.euro_norm)],
+        ['Flow Rate (L/min)', formatValue(vehicle.flow_rate)],
+        ['License - Issue Date', formatDate(vehicle.licenca_datum_izdavanja)],
+        ['License Valid Until', formatDate(vehicle.licenca_vazi_do)],
+        ['CWD Expiry Date', formatDate(vehicle.datum_isteka_cwd)],
+        ['Quarterly Inspection Date', formatDate(vehicle.tromjesecni_pregled_datum)],
+        ['Quarterly Inspection Valid Until', formatDate(vehicle.tromjesecni_pregled_vazi_do)],
+        ['Supported Fuel Types', formatValue(vehicle.supported_fuel_types)],
+        ['Sensor Technology', formatValue(vehicle.sensor_technology)],
+        ['Year of Manufacture', formatValue(vehicle.year_of_manufacture)],
+        ['Fuel Type', formatValue(vehicle.fuel_type)],
+        ['Responsible Person Contact', formatValue(vehicle.responsible_person_contact)]
       ];
       
       // Use autoTable as a standalone function
@@ -394,43 +422,45 @@ const ReportsSection: React.FC<ReportsSectionProps> = ({ vehicle }) => {
       doc.setFontSize(10);
       
       const filterData = language === 'bs' ? [
-        ['Filter instaliran', vehicle.filter_installed ? 'Da' : 'Ne'],
-        ['Datum instalacije filtera', formatDate(vehicle.filter_installation_date)],
-        ['Period validnosti filtera (mjeseci)', vehicle.filter_validity_period_months?.toString() || 'N/A'],
-        ['Broj pločice filtera', vehicle.filter_type_plate_no || 'N/A'],
-        ['Datum zadnjeg godišnjeg pregleda', formatDate(vehicle.last_annual_inspection_date)],
-        ['Standard filtriranja', vehicle.filter_standard || 'N/A'],
-        ['Tip posude filtera', vehicle.filter_vessel_type || 'N/A'],
-        ['Tip uložaka filtera', vehicle.filter_cartridge_type || 'N/A'],
-        ['Tip separatora', vehicle.filter_separator_type || 'N/A'],
-        ['EWS', vehicle.filter_ews || 'N/A'],
-        ['Sigurnosni ventil', vehicle.filter_safety_valve || 'N/A'],
-        ['Ventil ozrake', vehicle.filter_vent_valve || 'N/A'],
-        ['Datum zamjene filtera', formatDate(vehicle.filter_replacement_date)],
-        ['Broj posude filtera', vehicle.filter_vessel_number || 'N/A'],
-        ['Datum godišnjeg pregleda filtera', formatDate(vehicle.filter_annual_inspection_date)],
-        ['Datum sljedećeg godišnjeg pregleda', formatDate(vehicle.filter_next_annual_inspection_date)],
-        ['Datum pregleda EW senzora', formatDate(vehicle.filter_ew_sensor_inspection_date)],
-        ['Datum isteka filtera', formatDate(vehicle.filter_expiry_date)]
+        ['Filter instaliran', formatValue(vehicle.filter_installed ? 'Da' : 'Ne')],
+        ['Tip filtera', formatValue(vehicle.tip_filtera)],
+        ['Tip uložaka', formatValue(vehicle.filter_cartridge_type)],
+        ['Standard filtriranja', formatValue(vehicle.filter_standard)],
+        ['EWS', formatValue(vehicle.filter_ews)],
+        ['Broj pločice', formatValue(vehicle.filter_type_plate_no)],
+        ['Broj posude', formatValue(vehicle.vessel_plate_no)],
+        ['Tip posude', formatValue(vehicle.filter_vessel_type)],
+        ['Broj posude filtera', formatValue(vehicle.filter_vessel_number)],
+                 ['Datum instalacije', formatDate(vehicle.filter_installation_date)],
+         ['Datum isteka', formatDate(vehicle.filter_expiry_date)],
+         ['Datum zamjene', formatDate(vehicle.filter_replacement_date)],
+         ['Datum godišnjeg pregleda', formatDate(vehicle.filter_annual_inspection_date)],
+         ['Sljedeći godišnji pregled', formatDate(vehicle.filter_next_annual_inspection_date)],
+         ['Pregled EW senzora', formatDate(vehicle.filter_ew_sensor_inspection_date)],
+        ['Tip separatora', formatValue(vehicle.filter_separator_type)],
+        ['Sigurnosni ventil', formatValue(vehicle.filter_safety_valve)],
+        ['Ventil ozrake', formatValue(vehicle.filter_vent_valve)],
+        ['Period važenja (mjeseci)', formatValue(vehicle.filter_validity_period_months)]
       ] : [
-        ['Filter Installed', vehicle.filter_installed ? 'Yes' : 'No'],
-        ['Filter Installation Date', formatDate(vehicle.filter_installation_date)],
-        ['Filter Validity Period (months)', vehicle.filter_validity_period_months?.toString() || 'N/A'],
-        ['Filter Plate Number', vehicle.filter_type_plate_no || 'N/A'],
-        ['Last Annual Inspection Date', formatDate(vehicle.last_annual_inspection_date)],
-        ['Filtration Standard', vehicle.filter_standard || 'N/A'],
-        ['Filter Vessel Type', vehicle.filter_vessel_type || 'N/A'],
-        ['Filter Cartridge Type', vehicle.filter_cartridge_type || 'N/A'],
-        ['Separator Type', vehicle.filter_separator_type || 'N/A'],
-        ['EWS', vehicle.filter_ews || 'N/A'],
-        ['Safety Valve', vehicle.filter_safety_valve || 'N/A'],
-        ['Vent Valve', vehicle.filter_vent_valve || 'N/A'],
-        ['Filter Replacement Date', formatDate(vehicle.filter_replacement_date)],
-        ['Filter Vessel Number', vehicle.filter_vessel_number || 'N/A'],
-        ['Filter Annual Inspection Date', formatDate(vehicle.filter_annual_inspection_date)],
-        ['Next Annual Inspection Date', formatDate(vehicle.filter_next_annual_inspection_date)],
-        ['EW Sensor Inspection Date', formatDate(vehicle.filter_ew_sensor_inspection_date)],
-        ['Filter Expiry Date', formatDate(vehicle.filter_expiry_date)]
+        ['Filter Installed', formatValue(vehicle.filter_installed ? 'Yes' : 'No')],
+        ['Filter Type', formatValue(vehicle.tip_filtera)],
+        ['Cartridge Type', formatValue(vehicle.filter_cartridge_type)],
+        ['Filter Standard', formatValue(vehicle.filter_standard)],
+        ['EWS', formatValue(vehicle.filter_ews)],
+        ['Type Plate Number', formatValue(vehicle.filter_type_plate_no)],
+        ['Vessel Plate Number', formatValue(vehicle.vessel_plate_no)],
+        ['Vessel Type', formatValue(vehicle.filter_vessel_type)],
+        ['Filter Vessel Number', formatValue(vehicle.filter_vessel_number)],
+                 ['Installation Date', formatDate(vehicle.filter_installation_date)],
+         ['Expiry Date', formatDate(vehicle.filter_expiry_date)],
+         ['Replacement Date', formatDate(vehicle.filter_replacement_date)],
+         ['Annual Inspection Date', formatDate(vehicle.filter_annual_inspection_date)],
+         ['Next Annual Inspection', formatDate(vehicle.filter_next_annual_inspection_date)],
+         ['EW Sensor Inspection', formatDate(vehicle.filter_ew_sensor_inspection_date)],
+        ['Separator Type', formatValue(vehicle.filter_separator_type)],
+        ['Safety Valve', formatValue(vehicle.filter_safety_valve)],
+        ['Vent Valve', formatValue(vehicle.filter_vent_valve)],
+        ['Validity Period (months)', formatValue(vehicle.filter_validity_period_months)]
       ];
       
       // Use autoTable as a standalone function
@@ -455,99 +485,47 @@ const ReportsSection: React.FC<ReportsSectionProps> = ({ vehicle }) => {
       
       // Combine all hose data
       const hoseData = language === 'bs' ? [
-        // HD63 Hoses
-        ['Broj crijeva HD63', vehicle.broj_crijeva_hd63 || 'N/A'],
-        ['Godina proizvodnje crijeva HD63', vehicle.godina_proizvodnje_crijeva_hd63?.toString() || 'N/A'],
-        ['Datum testiranja pritiska crijeva HD63', formatDate(vehicle.datum_testiranja_pritiska_crijeva_hd63)],
-        ['Datum zadnje zamjene crijeva HD63', formatDate(vehicle.last_hose_hd63_replacement_date)],
-        ['Datum sljedeće zamjene crijeva HD63', formatDate(vehicle.next_hose_hd63_replacement_date)],
-        
-        // HD38 Hoses
-        ['Broj crijeva HD38', vehicle.broj_crijeva_hd38 || 'N/A'],
-        ['Godina proizvodnje crijeva HD38', vehicle.godina_proizvodnje_crijeva_hd38?.toString() || 'N/A'],
-        ['Datum testiranja pritiska crijeva HD38', formatDate(vehicle.datum_testiranja_pritiska_crijeva_hd38)],
-        ['Datum zadnje zamjene crijeva HD38', formatDate(vehicle.last_hose_hd38_replacement_date)],
-        ['Datum sljedeće zamjene crijeva HD38', formatDate(vehicle.next_hose_hd38_replacement_date)],
-        
-        // TW75 Hoses
-        ['Broj crijeva TW75', vehicle.broj_crijeva_tw75 || 'N/A'],
-        ['Godina proizvodnje crijeva TW75', vehicle.godina_proizvodnje_crijeva_tw75?.toString() || 'N/A'],
-        ['Datum testiranja pritiska crijeva TW75', formatDate(vehicle.datum_testiranja_pritiska_crijeva_tw75)],
-        ['Datum zadnje zamjene crijeva TW75', formatDate(vehicle.last_hose_tw75_replacement_date)],
-        ['Datum sljedeće zamjene crijeva TW75', formatDate(vehicle.next_hose_tw75_replacement_date)],
-        
-        // Leak test
-        ['Datum zadnjeg testa curenja crijeva', formatDate(vehicle.last_hose_leak_test_date)],
-        ['Datum sljedećeg testa curenja crijeva', formatDate(vehicle.next_hose_leak_test_date)],
-        
-        // Underwing hoses
-        ['Standard podkrilnog crijeva', vehicle.underwing_hose_standard || 'N/A'],
-        ['Tip podkrilnog crijeva', vehicle.underwing_hose_type || 'N/A'],
-        ['Veličina podkrilnog crijeva', vehicle.underwing_hose_size || 'N/A'],
-        ['Dužina podkrilnog crijeva', vehicle.underwing_hose_length || 'N/A'],
-        ['Promjer podkrilnog crijeva', vehicle.underwing_hose_diameter || 'N/A'],
-        ['Datum proizvodnje podkrilnog crijeva', formatDate(vehicle.underwing_hose_production_date)],
-        ['Datum instalacije podkrilnog crijeva', formatDate(vehicle.underwing_hose_installation_date)],
-        ['Životni vijek podkrilnog crijeva', vehicle.underwing_hose_lifespan || 'N/A'],
-        ['Datum testa podkrilnog crijeva', formatDate(vehicle.underwing_hose_test_date)],
-        
-        // Overwing hoses
-        ['Standard nadkrilnog crijeva', vehicle.overwing_hose_standard || 'N/A'],
-        ['Tip nadkrilnog crijeva', vehicle.overwing_hose_type || 'N/A'],
-        ['Veličina nadkrilnog crijeva', vehicle.overwing_hose_size || 'N/A'],
-        ['Dužina nadkrilnog crijeva', vehicle.overwing_hose_length || 'N/A'],
-        ['Promjer nadkrilnog crijeva', vehicle.overwing_hose_diameter || 'N/A'],
-        ['Datum proizvodnje nadkrilnog crijeva', formatDate(vehicle.overwing_hose_production_date)],
-        ['Datum instalacije nadkrilnog crijeva', formatDate(vehicle.overwing_hose_installation_date)],
-        ['Životni vijek nadkrilnog crijeva', vehicle.overwing_hose_lifespan || 'N/A'],
-        ['Datum testa nadkrilnog crijeva', formatDate(vehicle.overwing_hose_test_date)]
+        ['Crijeva za točenje', formatValue(vehicle.crijeva_za_tocenje)],
+        ['Broj crijeva HD38', formatValue(vehicle.broj_crijeva_hd38)],
+        ['Godina proizvodnje HD38', formatValue(vehicle.godina_proizvodnje_crijeva_hd38)],
+                 ['Test pritiska HD38', formatDate(vehicle.datum_testiranja_pritiska_crijeva_hd38)],
+         ['Broj crijeva HD63', formatValue(vehicle.broj_crijeva_hd63)],
+         ['Godina proizvodnje HD63', formatValue(vehicle.godina_proizvodnje_crijeva_hd63)],
+         ['Test pritiska HD63', formatDate(vehicle.datum_testiranja_pritiska_crijeva_hd63)],
+         ['Broj crijeva TW75', formatValue(vehicle.broj_crijeva_tw75)],
+         ['Godina proizvodnje TW75', formatValue(vehicle.godina_proizvodnje_crijeva_tw75)],
+         ['Test pritiska TW75', formatDate(vehicle.datum_testiranja_pritiska_crijeva_tw75)],
+        ['Nadkrilno - standard', formatValue(vehicle.overwing_hose_standard)],
+        ['Nadkrilno - tip', formatValue(vehicle.overwing_hose_type)],
+        ['Nadkrilno - veličina', formatValue(vehicle.overwing_hose_size)],
+        ['Nadkrilno - dužina', formatValue(vehicle.overwing_hose_length)],
+        ['Nadkrilno - prečnik', formatValue(vehicle.overwing_hose_diameter)],
+        ['Podkrilno - standard', formatValue(vehicle.underwing_hose_standard)],
+        ['Podkrilno - tip', formatValue(vehicle.underwing_hose_type)],
+        ['Podkrilno - veličina', formatValue(vehicle.underwing_hose_size)],
+        ['Podkrilno - dužina', formatValue(vehicle.underwing_hose_length)],
+        ['Podkrilno - prečnik', formatValue(vehicle.underwing_hose_diameter)]
       ] : [
-        // HD63 Hoses
-        ['Number of HD63 Hoses', vehicle.broj_crijeva_hd63 || 'N/A'],
-        ['HD63 Hose Production Year', vehicle.godina_proizvodnje_crijeva_hd63?.toString() || 'N/A'],
-        ['HD63 Hose Pressure Test Date', formatDate(vehicle.datum_testiranja_pritiska_crijeva_hd63)],
-        ['HD63 Hose Last Replacement Date', formatDate(vehicle.last_hose_hd63_replacement_date)],
-        ['HD63 Hose Next Replacement Date', formatDate(vehicle.next_hose_hd63_replacement_date)],
-        
-        // HD38 Hoses
-        ['Number of HD38 Hoses', vehicle.broj_crijeva_hd38 || 'N/A'],
-        ['HD38 Hose Production Year', vehicle.godina_proizvodnje_crijeva_hd38?.toString() || 'N/A'],
-        ['HD38 Hose Pressure Test Date', formatDate(vehicle.datum_testiranja_pritiska_crijeva_hd38)],
-        ['HD38 Hose Last Replacement Date', formatDate(vehicle.last_hose_hd38_replacement_date)],
-        ['HD38 Hose Next Replacement Date', formatDate(vehicle.next_hose_hd38_replacement_date)],
-        
-        // TW75 Hoses
-        ['Number of TW75 Hoses', vehicle.broj_crijeva_tw75 || 'N/A'],
-        ['TW75 Hose Production Year', vehicle.godina_proizvodnje_crijeva_tw75?.toString() || 'N/A'],
-        ['TW75 Hose Pressure Test Date', formatDate(vehicle.datum_testiranja_pritiska_crijeva_tw75)],
-        ['TW75 Hose Last Replacement Date', formatDate(vehicle.last_hose_tw75_replacement_date)],
-        ['TW75 Hose Next Replacement Date', formatDate(vehicle.next_hose_tw75_replacement_date)],
-        
-        // Leak test
-        ['Last Hose Leak Test Date', formatDate(vehicle.last_hose_leak_test_date)],
-        ['Next Hose Leak Test Date', formatDate(vehicle.next_hose_leak_test_date)],
-        
-        // Underwing hoses
-        ['Underwing Hose Standard', vehicle.underwing_hose_standard || 'N/A'],
-        ['Underwing Hose Type', vehicle.underwing_hose_type || 'N/A'],
-        ['Underwing Hose Size', vehicle.underwing_hose_size || 'N/A'],
-        ['Underwing Hose Length', vehicle.underwing_hose_length || 'N/A'],
-        ['Underwing Hose Diameter', vehicle.underwing_hose_diameter || 'N/A'],
-        ['Underwing Hose Production Date', formatDate(vehicle.underwing_hose_production_date)],
-        ['Underwing Hose Installation Date', formatDate(vehicle.underwing_hose_installation_date)],
-        ['Underwing Hose Lifespan', vehicle.underwing_hose_lifespan || 'N/A'],
-        ['Underwing Hose Test Date', formatDate(vehicle.underwing_hose_test_date)],
-        
-        // Overwing hoses
-        ['Overwing Hose Standard', vehicle.overwing_hose_standard || 'N/A'],
-        ['Overwing Hose Type', vehicle.overwing_hose_type || 'N/A'],
-        ['Overwing Hose Size', vehicle.overwing_hose_size || 'N/A'],
-        ['Overwing Hose Length', vehicle.overwing_hose_length || 'N/A'],
-        ['Overwing Hose Diameter', vehicle.overwing_hose_diameter || 'N/A'],
-        ['Overwing Hose Production Date', formatDate(vehicle.overwing_hose_production_date)],
-        ['Overwing Hose Installation Date', formatDate(vehicle.overwing_hose_installation_date)],
-        ['Overwing Hose Lifespan', vehicle.overwing_hose_lifespan || 'N/A'],
-        ['Overwing Hose Test Date', formatDate(vehicle.overwing_hose_test_date)]
+        ['Fueling Hoses', formatValue(vehicle.crijeva_za_tocenje)],
+        ['HD38 Hose Number', formatValue(vehicle.broj_crijeva_hd38)],
+        ['HD38 Production Year', formatValue(vehicle.godina_proizvodnje_crijeva_hd38)],
+                 ['HD38 Pressure Test', formatDate(vehicle.datum_testiranja_pritiska_crijeva_hd38)],
+         ['HD63 Hose Number', formatValue(vehicle.broj_crijeva_hd63)],
+         ['HD63 Production Year', formatValue(vehicle.godina_proizvodnje_crijeva_hd63)],
+         ['HD63 Pressure Test', formatDate(vehicle.datum_testiranja_pritiska_crijeva_hd63)],
+         ['TW75 Hose Number', formatValue(vehicle.broj_crijeva_tw75)],
+         ['TW75 Production Year', formatValue(vehicle.godina_proizvodnje_crijeva_tw75)],
+         ['TW75 Pressure Test', formatDate(vehicle.datum_testiranja_pritiska_crijeva_tw75)],
+        ['Overwing - Standard', formatValue(vehicle.overwing_hose_standard)],
+        ['Overwing - Type', formatValue(vehicle.overwing_hose_type)],
+        ['Overwing - Size', formatValue(vehicle.overwing_hose_size)],
+        ['Overwing - Length', formatValue(vehicle.overwing_hose_length)],
+        ['Overwing - Diameter', formatValue(vehicle.overwing_hose_diameter)],
+        ['Underwing - Standard', formatValue(vehicle.underwing_hose_standard)],
+        ['Underwing - Type', formatValue(vehicle.underwing_hose_type)],
+        ['Underwing - Size', formatValue(vehicle.underwing_hose_size)],
+        ['Underwing - Length', formatValue(vehicle.underwing_hose_length)],
+        ['Underwing - Diameter', formatValue(vehicle.underwing_hose_diameter)]
       ];
       
       // Use autoTable as a standalone function
@@ -571,123 +549,81 @@ const ReportsSection: React.FC<ReportsSectionProps> = ({ vehicle }) => {
       doc.setFontSize(10);
       
       const calibrationData = language === 'bs' ? [
-        // Volumeter calibrations
-        ['Datum zadnje kalibracije volumetra', formatDate(vehicle.last_volumeter_calibration_date)],
-        ['Datum sljedeće kalibracije volumetra', formatDate(vehicle.next_volumeter_calibration_date)],
-        ['Datum kalibracije volumetra', formatDate(vehicle.volumeter_kalibracija_datum)],
-        ['Kalibracija volumetra važi do', formatDate(vehicle.volumeter_kalibracija_vazi_do)],
+        // Osnovne kalibracije
+        ['Posljednja kalibracija volumetra', formatDate(vehicle.last_volumeter_calibration_date)],
+        ['Sljedeća kalibracija volumetra', formatDate(vehicle.next_volumeter_calibration_date)],
+        ['Posljednja kalibracija manometra', formatDate(vehicle.last_manometer_calibration_date)],
+        ['Sljedeća kalibracija manometra', formatDate(vehicle.next_manometer_calibration_date)],
+        ['Posljednji test sigurnosti od požara', formatDate(vehicle.tanker_last_fire_safety_test_date)],
+        ['Sljedeći test sigurnosti od požara', formatDate(vehicle.tanker_next_fire_safety_test_date)],
         
-        // Manometer calibrations
-        ['Datum zadnje kalibracije manometra', formatDate(vehicle.last_manometer_calibration_date)],
-        ['Datum sljedeće kalibracije manometra', formatDate(vehicle.next_manometer_calibration_date)],
-        ['Datum kalibracije manometra', formatDate(vehicle.manometer_calibration_date)],
-        ['Kalibracija manometra važi do', formatDate(vehicle.manometer_calibration_valid_until)],
+        // Tahograf kalibracija
+        ['Posljednja kalibracija tahografa', formatDate(vehicle.tahograf_zadnja_kalibracija)],
+        ['Sljedeća kalibracija tahografa', formatDate(vehicle.tahograf_naredna_kalibracija)],
         
-        // HECPV/ILCPV tests
-        ['Datum zadnjeg HECPV/ILCPV testa', formatDate(vehicle.last_hecpv_ilcpv_test_date)],
-        ['Datum sljedećeg HECPV/ILCPV testa', formatDate(vehicle.next_hecpv_ilcpv_test_date)],
+        // Dodatni datumi kalibracije
+        ['Datum kalibracije hidrometra', formatDate(vehicle.datum_kalibracije_hidrometra)],
+        ['Datum kalibracije moment ključa', formatDate(vehicle.datum_kalibracije_moment_kljuca)],
+        ['Datum kalibracije termometra', formatDate(vehicle.datum_kalibracije_termometra)],
+        ['Datum kalibracije el. provodljivosti', formatDate(vehicle.datum_kalibracije_uredjaja_elektricne_provodljivosti)],
+        ['Manometer kalibracija', formatDate(vehicle.manometer_calibration_date)],
+        ['Manometer kalibracija važi do', formatDate(vehicle.manometer_calibration_valid_until)],
+        ['Volumeter kalibracija', formatDate(vehicle.volumeter_kalibracija_datum)],
+        ['Volumeter kalibracija važi do', formatDate(vehicle.volumeter_kalibracija_vazi_do)],
         
-        // 6-month checks
-        ['Datum zadnje 6-mjesečne provjere', formatDate(vehicle.last_6_month_check_date)],
-        ['Datum sljedeće 6-mjesečne provjere', formatDate(vehicle.next_6_month_check_date)],
-        
-        // Tachograph calibrations
-        ['Zadnja kalibracija tahografa', formatDate(vehicle.tahograf_zadnja_kalibracija)],
-        ['Naredna kalibracija tahografa', formatDate(vehicle.tahograf_naredna_kalibracija)],
-        
-        // Tanker calibrations
-        ['Zadnja kalibracija cisterne', formatDate(vehicle.cisterna_zadnja_kalibracija)],
-        ['Naredna kalibracija cisterne', formatDate(vehicle.cisterna_naredna_kalibracija)],
-        
-        // Water chemical tests
-        ['Datum hemijskog testa vode', formatDate(vehicle.water_chemical_test_date)],
-        ['Hemijski test vode važi do', formatDate(vehicle.water_chemical_test_valid_until)],
-        
-        // Torque wrench calibrations
-        ['Datum kalibracije moment ključa', formatDate(vehicle.torque_wrench_calibration_date || vehicle.datum_kalibracije_moment_kljuca)],
-        ['Kalibracija moment ključa važi do', formatDate(vehicle.torque_wrench_calibration_valid_until)],
-        
-        // Thermometer calibrations
-        ['Datum kalibracije termometra', formatDate(vehicle.thermometer_calibration_date || vehicle.datum_kalibracije_termometra)],
-        ['Kalibracija termometra važi do', formatDate(vehicle.thermometer_calibration_valid_until)],
-        
-        // Hydrometer calibrations
-        ['Datum kalibracije hidrometra', formatDate(vehicle.hydrometer_calibration_date || vehicle.datum_kalibracije_hidrometra)],
-        ['Kalibracija hidrometra važi do', formatDate(vehicle.hydrometer_calibration_valid_until)],
-        
-        // Conductivity meter calibrations
-        ['Datum kalibracije uređaja električne provodljivosti', formatDate(vehicle.conductivity_meter_calibration_date || vehicle.datum_kalibracije_uredjaja_elektricne_provodljivosti)],
-        ['Kalibracija uređaja električne provodljivosti važi do', formatDate(vehicle.conductivity_meter_calibration_valid_until)],
-        
-        // Resistance meter calibrations
-        ['Datum kalibracije mjerača otpora', formatDate(vehicle.resistance_meter_calibration_date)],
-        ['Kalibracija mjerača otpora važi do', formatDate(vehicle.resistance_meter_calibration_valid_until)],
-        
-        // Main flow meter calibrations
-        ['Datum kalibracije glavnog mjerača protoka', formatDate(vehicle.main_flow_meter_calibration_date)],
-        ['Kalibracija glavnog mjerača protoka važi do', formatDate(vehicle.main_flow_meter_calibration_valid_until)],
-        
-        // CWD expiry date
-        ['Datum isteka CWD', formatDate(vehicle.datum_isteka_cwd)]
+        // Kalibracije opreme
+        ['Hemijski test na vodu', formatDate(vehicle.water_chemical_test_date)],
+        ['Hemijski test važi do', formatDate(vehicle.water_chemical_test_valid_until)],
+        ['Moment ključ kalibracija', formatDate(vehicle.torque_wrench_calibration_date)],
+        ['Moment ključ važi do', formatDate(vehicle.torque_wrench_calibration_valid_until)],
+        ['Termometar kalibracija', formatDate(vehicle.thermometer_calibration_date)],
+        ['Termometar važi do', formatDate(vehicle.thermometer_calibration_valid_until)],
+        ['Hidrometar kalibracija', formatDate(vehicle.hydrometer_calibration_date)],
+        ['Hidrometar važi do', formatDate(vehicle.hydrometer_calibration_valid_until)],
+        ['Mjerač el. provodljivosti', formatDate(vehicle.conductivity_meter_calibration_date)],
+        ['Mjerač el. provodljivosti važi do', formatDate(vehicle.conductivity_meter_calibration_valid_until)],
+        ['Mjerač otpora', formatDate(vehicle.resistance_meter_calibration_date)],
+        ['Mjerač otpora važi do', formatDate(vehicle.resistance_meter_calibration_valid_until)],
+        ['Glavni mjerač protoka', formatDate(vehicle.main_flow_meter_calibration_date)],
+        ['Glavni mjerač protoka važi do', formatDate(vehicle.main_flow_meter_calibration_valid_until)]
       ] : [
-        // Volumeter calibrations
-        ['Last Volumeter Calibration Date', formatDate(vehicle.last_volumeter_calibration_date)],
-        ['Next Volumeter Calibration Date', formatDate(vehicle.next_volumeter_calibration_date)],
-        ['Volumeter Calibration Date', formatDate(vehicle.volumeter_kalibracija_datum)],
+                  // Basic calibrations
+          ['Last Volumeter Calibration', formatDate(vehicle.last_volumeter_calibration_date)],
+          ['Next Volumeter Calibration', formatDate(vehicle.next_volumeter_calibration_date)],
+          ['Last Manometer Calibration', formatDate(vehicle.last_manometer_calibration_date)],
+          ['Next Manometer Calibration', formatDate(vehicle.next_manometer_calibration_date)],
+          ['Last Fire Safety Test', formatDate(vehicle.tanker_last_fire_safety_test_date)],
+          ['Next Fire Safety Test', formatDate(vehicle.tanker_next_fire_safety_test_date)],
+          
+          // Tahograph calibration
+          ['Last Tahograph Calibration', formatDate(vehicle.tahograf_zadnja_kalibracija)],
+          ['Next Tahograph Calibration', formatDate(vehicle.tahograf_naredna_kalibracija)],
+          
+          // Additional calibration dates
+          ['Hydrometer Calibration Date', formatDate(vehicle.datum_kalibracije_hidrometra)],
+          ['Torque Wrench Calibration Date', formatDate(vehicle.datum_kalibracije_moment_kljuca)],
+          ['Thermometer Calibration Date', formatDate(vehicle.datum_kalibracije_termometra)],
+          ['Conductivity Device Calibration Date', formatDate(vehicle.datum_kalibracije_uredjaja_elektricne_provodljivosti)],
+          ['Manometer Calibration', formatDate(vehicle.manometer_calibration_date)],
+          ['Manometer Calibration Valid Until', formatDate(vehicle.manometer_calibration_valid_until)],
+          ['Volumeter Calibration', formatDate(vehicle.volumeter_kalibracija_datum)],
         ['Volumeter Calibration Valid Until', formatDate(vehicle.volumeter_kalibracija_vazi_do)],
         
-        // Manometer calibrations
-        ['Last Manometer Calibration Date', formatDate(vehicle.last_manometer_calibration_date)],
-        ['Next Manometer Calibration Date', formatDate(vehicle.next_manometer_calibration_date)],
-        ['Manometer Calibration Date', formatDate(vehicle.manometer_calibration_date)],
-        ['Manometer Calibration Valid Until', formatDate(vehicle.manometer_calibration_valid_until)],
-        
-        // HECPV/ILCPV tests
-        ['Last HECPV/ILCPV Test Date', formatDate(vehicle.last_hecpv_ilcpv_test_date)],
-        ['Next HECPV/ILCPV Test Date', formatDate(vehicle.next_hecpv_ilcpv_test_date)],
-        
-        // 6-month checks
-        ['Last 6-Month Check Date', formatDate(vehicle.last_6_month_check_date)],
-        ['Next 6-Month Check Date', formatDate(vehicle.next_6_month_check_date)],
-        
-        // Tachograph calibrations
-        ['Last Tachograph Calibration', formatDate(vehicle.tahograf_zadnja_kalibracija)],
-        ['Next Tachograph Calibration', formatDate(vehicle.tahograf_naredna_kalibracija)],
-        
-        // Tanker calibrations
-        ['Last Tanker Calibration', formatDate(vehicle.cisterna_zadnja_kalibracija)],
-        ['Next Tanker Calibration', formatDate(vehicle.cisterna_naredna_kalibracija)],
-        
-        // Water chemical tests
-        ['Water Chemical Test Date', formatDate(vehicle.water_chemical_test_date)],
+          // Equipment calibrations
+          ['Water Chemical Test', formatDate(vehicle.water_chemical_test_date)],
         ['Water Chemical Test Valid Until', formatDate(vehicle.water_chemical_test_valid_until)],
-        
-        // Torque wrench calibrations
-        ['Torque Wrench Calibration Date', formatDate(vehicle.torque_wrench_calibration_date || vehicle.datum_kalibracije_moment_kljuca)],
-        ['Torque Wrench Calibration Valid Until', formatDate(vehicle.torque_wrench_calibration_valid_until)],
-        
-        // Thermometer calibrations
-        ['Thermometer Calibration Date', formatDate(vehicle.thermometer_calibration_date || vehicle.datum_kalibracije_termometra)],
-        ['Thermometer Calibration Valid Until', formatDate(vehicle.thermometer_calibration_valid_until)],
-        
-        // Hydrometer calibrations
-        ['Hydrometer Calibration Date', formatDate(vehicle.hydrometer_calibration_date || vehicle.datum_kalibracije_hidrometra)],
-        ['Hydrometer Calibration Valid Until', formatDate(vehicle.hydrometer_calibration_valid_until)],
-        
-        // Conductivity meter calibrations
-        ['Conductivity Meter Calibration Date', formatDate(vehicle.conductivity_meter_calibration_date || vehicle.datum_kalibracije_uredjaja_elektricne_provodljivosti)],
-        ['Conductivity Meter Calibration Valid Until', formatDate(vehicle.conductivity_meter_calibration_valid_until)],
-        
-        // Resistance meter calibrations
-        ['Resistance Meter Calibration Date', formatDate(vehicle.resistance_meter_calibration_date)],
-        ['Resistance Meter Calibration Valid Until', formatDate(vehicle.resistance_meter_calibration_valid_until)],
-        
-        // Main flow meter calibrations
-        ['Main Flow Meter Calibration Date', formatDate(vehicle.main_flow_meter_calibration_date)],
-        ['Main Flow Meter Calibration Valid Until', formatDate(vehicle.main_flow_meter_calibration_valid_until)],
-        
-        // CWD expiry date
-        ['CWD Expiry Date', formatDate(vehicle.datum_isteka_cwd)]
+          ['Torque Wrench Calibration', formatDate(vehicle.torque_wrench_calibration_date)],
+          ['Torque Wrench Valid Until', formatDate(vehicle.torque_wrench_calibration_valid_until)],
+          ['Thermometer Calibration', formatDate(vehicle.thermometer_calibration_date)],
+          ['Thermometer Valid Until', formatDate(vehicle.thermometer_calibration_valid_until)],
+          ['Hydrometer Calibration', formatDate(vehicle.hydrometer_calibration_date)],
+          ['Hydrometer Valid Until', formatDate(vehicle.hydrometer_calibration_valid_until)],
+          ['Conductivity Meter Calibration', formatDate(vehicle.conductivity_meter_calibration_date)],
+          ['Conductivity Meter Valid Until', formatDate(vehicle.conductivity_meter_calibration_valid_until)],
+          ['Resistance Meter Calibration', formatDate(vehicle.resistance_meter_calibration_date)],
+          ['Resistance Meter Valid Until', formatDate(vehicle.resistance_meter_calibration_valid_until)],
+          ['Main Flow Meter Calibration', formatDate(vehicle.main_flow_meter_calibration_date)],
+          ['Main Flow Meter Valid Until', formatDate(vehicle.main_flow_meter_calibration_valid_until)]
       ];
       
       // Use autoTable as a standalone function
@@ -776,7 +712,12 @@ const ReportsSection: React.FC<ReportsSectionProps> = ({ vehicle }) => {
         : `Report_${vehicle.vehicle_name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (error) {
       console.error('Error generating PDF:', error);
-      alert('Došlo je do greške prilikom generisanja PDF izvještaja.');
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace',
+        error: error
+      });
+      alert('Došlo je do greške prilikom generisanja PDF izvještaja: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
   

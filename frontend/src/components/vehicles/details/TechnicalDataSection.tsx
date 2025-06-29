@@ -186,6 +186,28 @@ const TechnicalDataSection: React.FC<TechnicalDataSectionProps> = ({ vehicle, on
           </div>
         </div>
 
+        {/* Pregledi */}
+        <div>
+          <h3 className="text-lg font-medium text-gray-800 mb-3 pb-2 border-b border-gray-200">
+            <FaCalendarAlt className="inline-block mr-2 text-indigo-500" /> 
+            Pregledi
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-3 border rounded-md bg-gray-50">
+              <div className="text-sm text-gray-500 mb-1 flex items-center">
+                <FaCalendarAlt className="mr-2 text-indigo-500" /> Tromjesečni pregled - datum
+              </div>
+              <div className="font-medium">{vehicle.tromjesecni_pregled_datum ? formatDate(vehicle.tromjesecni_pregled_datum) : 'Nije postavljeno'}</div>
+            </div>
+            <div className="p-3 border rounded-md bg-gray-50">
+              <div className="text-sm text-gray-500 mb-1 flex items-center">
+                <FaCalendarAlt className="mr-2 text-indigo-500" /> Tromjesečni pregled - važi do
+              </div>
+              <div className="font-medium">{vehicle.tromjesecni_pregled_vazi_do ? formatDate(vehicle.tromjesecni_pregled_vazi_do) : 'Nije postavljeno'}</div>
+            </div>
+          </div>
+        </div>
+
         {/* Upload dokumentacije */}
         <div>
           <h3 className="text-lg font-medium text-gray-800 mb-3 pb-2 border-b border-gray-200">

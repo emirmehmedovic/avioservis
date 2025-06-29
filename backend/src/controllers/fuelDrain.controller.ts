@@ -2,6 +2,7 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library'; // Za precizne decimalne kalkulacije
+import { performMrnCleanupIfNeeded } from '../services/mrnCleanupService';
 
 const prisma = new PrismaClient();
 
@@ -518,6 +519,14 @@ export const createFuelDrainRecord = async (req: AuthRequest, res: Response, nex
         dataForCreate.sourceFixedTankId = parsedSourceId;
       } else if (sourceType === 'mobile') {
         dataForCreate.sourceMobileTankId = parsedSourceId;
+      }
+
+      // MRN Cleanup - Očisti male ostatke nakon drain operacije
+      console.log('🧹 Performing MRN cleanup after drain operation...');
+      if (sourceType === 'fixed') {
+        await performMrnCleanupIfNeeded(tx, parsedSourceId, 'fixed', 'FUEL_DRAIN');
+      } else if (sourceType === 'mobile') {
+        await performMrnCleanupIfNeeded(tx, parsedSourceId, 'mobile', 'FUEL_DRAIN');
       }
 
       return tx.fuelDrainRecord.create({

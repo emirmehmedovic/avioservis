@@ -87,8 +87,10 @@ class OstalaOpremaService {
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000'}/api/ostala-oprema/full-report`, {
       method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         ...(token && { 'Authorization': `Bearer ${token}` }),
       },
+      body: JSON.stringify({}), // Send empty object for all oprema
     });
     
     if (!response.ok) {

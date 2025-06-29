@@ -8,6 +8,7 @@ import { Decimal } from '@prisma/client/runtime/library'; // Za precizne decimal
 import { logger } from '../utils/logger';
 // Import servisa za MRN transakcije
 import { processMrnDeduction } from '../services/mrnTransaction.service';
+import { performMrnCleanupIfNeeded } from '../services/mrnCleanupService';
 
 const prisma = new PrismaClient();
 
@@ -473,6 +474,10 @@ export const createFuelingOperation = async (req: Request, res: Response): Promi
           current_kg: { decrement: quantity_kg }
         }
       });
+      
+      // MRN Cleanup - Očisti male ostatke iz mobilnog tanka nakon fueling operacije
+      logger.info('🧹 Performing MRN cleanup after fueling operation...');
+      await performMrnCleanupIfNeeded(tx, tankId, 'mobile', 'AIRCRAFT_FUELING');
       
       // Fetch the updated operation with documents
       return await tx.fuelingOperation.findUnique({

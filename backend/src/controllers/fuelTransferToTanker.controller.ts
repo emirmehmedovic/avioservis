@@ -8,6 +8,7 @@ import { Decimal } from '@prisma/client/runtime/library'; // For Prisma Decimal 
 // Koristimo standardni Prisma.TransactionClient umjesto nestandardnog ExtendedTransactionClient
 import { processExcessFuelExchange } from '../utils/excessFuelExchangeService'; // Za automatsku zamjenu viška goriva
 import { createMrnTransaction, processMrnDeduction } from '../services/mrnTransaction.service';
+import { performMrnCleanupIfNeeded } from '../services/mrnCleanupService';
 
 const prisma = new PrismaClient();
 
@@ -594,6 +595,11 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
           description: `Transfer ${parsedQuantityLiters.toFixed(2)}L / ${parsedQuantityKg.toFixed(2)}kg u mobilni tank ${targetMobileTank.name}`,
           user_id: req.user?.id || null
         };
+        
+        // 8.5 MRN Cleanup - Očisti male ostatke iz oba tanka nakon transfer operacije
+        logger.info('🧹 Performing MRN cleanup after transfer operation...');
+        await performMrnCleanupIfNeeded(tx, parsedSourceFixedStorageTankId, 'fixed', 'TRANSFER_TO_MOBILE');
+        await performMrnCleanupIfNeeded(tx, parsedTargetMobileTankId, 'mobile', 'TRANSFER_FROM_FIXED');
         
         // 9. Return results
         return {

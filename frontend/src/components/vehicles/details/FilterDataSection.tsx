@@ -285,6 +285,49 @@ const FilterDataSection: React.FC<FilterDataSectionProps> = ({
           />
         </div>
       </div>
+
+      <div className="mb-6">
+        <h3 className="text-sm uppercase tracking-wider text-gray-500 font-semibold mb-3 px-1 flex items-center">
+          <FaCalendarAlt className="mr-2 text-blue-500" /> Godišnji pregledi filtera
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <EditableItem 
+            label="Broj posude filtera" 
+            value={vehicle.filter_vessel_number} 
+            icon={<FaTag />} 
+            vehicleId={vehicle.id} 
+            fieldName="filter_vessel_number" 
+            onUpdate={onUpdate} 
+          />
+          <EditableItem 
+            label="Datum godišnjeg pregleda" 
+            value={vehicle.filter_annual_inspection_date} 
+            icon={<FaCalendarAlt />} 
+            vehicleId={vehicle.id} 
+            fieldName="filter_annual_inspection_date" 
+            type="date" 
+            onUpdate={onUpdate} 
+          />
+          <EditableItem 
+            label="Sljedeći godišnji pregled" 
+            value={vehicle.filter_next_annual_inspection_date} 
+            icon={<FaCalendarAlt />} 
+            vehicleId={vehicle.id} 
+            fieldName="filter_next_annual_inspection_date" 
+            type="date" 
+            onUpdate={onUpdate} 
+          />
+          <EditableItem 
+            label="Pregled EW senzora" 
+            value={vehicle.filter_ew_sensor_inspection_date} 
+            icon={<FaMicrochip />} 
+            vehicleId={vehicle.id} 
+            fieldName="filter_ew_sensor_inspection_date" 
+            type="date" 
+            onUpdate={onUpdate} 
+          />
+        </div>
+      </div>
       
       {/* Upload dokumentacije */}
       <div>

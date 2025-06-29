@@ -478,7 +478,7 @@ const HosesSection: React.FC<HosesSectionProps> = ({
       {/* Upload dokumentacije */}
       <div className="mt-6">
         <h3 className="text-sm uppercase tracking-wider text-gray-500 font-semibold mb-3 px-1 flex items-center">
-          <FaFileUpload className="mr-2 text-blue-500" /> Dokumentacija crijeva
+          <FaFileUpload className="mr-2 text-blue-500" /> Upload dokumentacije
         </h3>
         <form onSubmit={handleUploadDocument} className="mb-6 p-4 border rounded-md bg-gray-50">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
