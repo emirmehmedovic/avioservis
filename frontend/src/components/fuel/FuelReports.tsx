@@ -1,10 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { DocumentArrowDownIcon, ArrowDownTrayIcon, ChartBarIcon, ChartPieIcon } from '@heroicons/react/24/outline';
+import { TrendingUp, BarChart3, BrainCircuit, Activity } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import dayjs from 'dayjs';
 import { fetchWithAuth } from '@/lib/apiService';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/Card';
+
+// Import trend analysis components
+import { 
+  TrendAnalysisTab, 
+  ComparativeAnalysisTab, 
+  ForecastingTab, 
+  ExportButton,
+  AdvancedFilterState 
+} from '@/components/fuel/trends';
 
 // Recharts imports
 import {
@@ -76,6 +86,21 @@ export default function FuelReports() {
   const [tanks, setTanks] = useState<Tank[]>([]);
   const [statistics, setStatistics] = useState<FuelStatistics | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Advanced filters state for trend analysis
+  const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilterState>({
+    dateRange: {
+      startDate: dayjs().subtract(3, 'month').format('YYYY-MM-DD'),
+      endDate: dayjs().format('YYYY-MM-DD'),
+    },
+    airlines: [],
+    destinations: [],
+    fuelTypes: [],
+    operationTypes: [],
+    amountRange: {},
+    timeFilters: {},
+    savedFilters: [],
+  });
 
   // Define a modern color palette for Recharts
   const chartColors = [
@@ -386,6 +411,9 @@ export default function FuelReports() {
               { id: 'consumptionAnalysis', name: 'Analiza Potrošnje', icon: <ChartPieIcon className="h-4 w-4" />, color: '#e53e3e' },
               { id: 'inventoryStatus', name: 'Stanje Zaliha', icon: <DocumentArrowDownIcon className="h-4 w-4" />, color: '#FBBF24' },
               { id: 'details', name: 'Detaljni Prikazi', icon: <DocumentArrowDownIcon className="h-4 w-4" />, color: '#8B5CF6' },
+              { id: 'trendAnalysis', name: 'Trend Analiza', icon: <TrendingUp className="h-4 w-4" />, color: '#3B82F6' },
+              { id: 'comparativeAnalysis', name: 'Komparativna Analiza', icon: <BarChart3 className="h-4 w-4" />, color: '#10B981' },
+              { id: 'forecasting', name: 'Prognoze', icon: <BrainCircuit className="h-4 w-4" />, color: '#8B5CF6' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -673,6 +701,52 @@ export default function FuelReports() {
                 </table>
               </div>
             </Card>
+          )}
+
+          {/* New Trend Analysis Tabs */}
+          {activeTab === 'trendAnalysis' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold text-gray-900">Trend Analiza Potrošnje Goriva</h2>
+                <ExportButton
+                  onExport={async (options) => {
+                    console.log('Export trend analysis:', options);
+                    // TODO: Implement export functionality
+                  }}
+                />
+              </div>
+              <TrendAnalysisTab />
+            </div>
+          )}
+
+          {activeTab === 'comparativeAnalysis' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold text-gray-900">Komparativna Analiza</h2>
+                <ExportButton
+                  onExport={async (options) => {
+                    console.log('Export comparative analysis:', options);
+                    // TODO: Implement export functionality
+                  }}
+                />
+              </div>
+              <ComparativeAnalysisTab />
+            </div>
+          )}
+
+          {activeTab === 'forecasting' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold text-gray-900">Prognoze Potrošnje</h2>
+                <ExportButton
+                  onExport={async (options) => {
+                    console.log('Export forecasting:', options);
+                    // TODO: Implement export functionality
+                  }}
+                />
+              </div>
+              <ForecastingTab />
+            </div>
           )}
         </div>
       )}

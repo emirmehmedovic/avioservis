@@ -44,6 +44,7 @@ import planKalibracijeRoutes from './routes/planKalibracije.routes'; // Rute za 
 import ostalaOpremaRoutes from './routes/ostalaOprema.routes'; // Rute za ostalu opremu
 import densityReconciliationRoutes from './routes/densityReconciliation.routes'; // Rute za density reconciliation
 import mrnCleanupRoutes from './routes/mrnCleanup.routes'; // Rute za MRN cleanup
+import fuelReportsTrendsRoutes from './routes/fuelReportsTrends.routes'; // Rute za fuel reports trends
 
 const app = express();
 
@@ -111,6 +112,7 @@ app.use('/api/plan-kalibracije', planKalibracijeRoutes); // Registracija ruta za
 app.use('/api/ostala-oprema', ostalaOpremaRoutes); // Registracija ruta za ostalu opremu
 app.use('/api/density-reconciliation', sensitiveOperationsLimiter, densityReconciliationRoutes); // Registracija ruta za density reconciliation
 app.use('/api/mrn-cleanup', sensitiveOperationsLimiter, mrnCleanupRoutes); // Registracija ruta za MRN cleanup
+app.use('/api/fuel/reports', reportingLimiter, fuelReportsTrendsRoutes); // Registracija ruta za fuel reports trends
 
 app.get('/', (req, res) => {
   res.send('Backend radi!');

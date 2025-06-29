@@ -11,6 +11,76 @@ import { convertToBAM, EUR_TO_BAM_RATE } from '../utils/currencyConverter';
 const prisma = new PrismaClient();
 
 /**
+ * Cache za MRN podatke da izbegnemо duplikate database poziva
+ */
+const mrnDataCache: Map<string, {
+  costPerKg: number;
+  totalQuantityKg: number;
+}> = new Map();
+
+/**
+ * Helper funkcija za dohvaćanje MRN podataka s grupiranjem
+ * @param mrn - MRN broj
+ * @returns Grupisani MRN podaci
+ */
+async function getMrnData(mrn: string): Promise<{ costPerKg: number; totalQuantityKg: number }> {
+  // Provjeri cache prvo
+  if (mrnDataCache.has(mrn)) {
+    return mrnDataCache.get(mrn)!;
+  }
+
+  // Dohvati sve zapise za ovaj MRN
+  const mrnRecords = await prisma.tankFuelByCustoms.findMany({
+    where: {
+      customs_declaration_number: mrn
+    },
+    include: {
+      fuelIntakeRecord: true
+    }
+  });
+
+  if (mrnRecords.length === 0) {
+    const result = { costPerKg: 0, totalQuantityKg: 0 };
+    mrnDataCache.set(mrn, result);
+    return result;
+  }
+
+  // Grupiraj podatke
+  let totalQuantityKg = 0;
+  let costPerKg = 0;
+
+  for (const record of mrnRecords) {
+    totalQuantityKg += record.quantity_kg ? Number(record.quantity_kg) : 0;
+    // Svi zapisi za isti MRN trebaju imati istu cijenu, uzimamo iz prvog zapisa
+    if (costPerKg === 0 && record.fuelIntakeRecord?.price_per_kg) {
+      costPerKg = Number(record.fuelIntakeRecord.price_per_kg);
+    }
+  }
+
+  const result = { costPerKg, totalQuantityKg };
+  mrnDataCache.set(mrn, result);
+  return result;
+}
+
+/**
+ * Helper funkcija za konverziju revenue u BAM
+ * @param operation - Fueling operacija
+ * @returns Revenue u BAM valuti
+ */
+function calculateRevenueInBAM(operation: any): number {
+  const operationRevenue = Number(operation.price_per_kg) * Number(operation.quantity_kg);
+  
+  if (operation.currency === 'USD' && operation.usd_exchange_rate) {
+    return convertToBAM(operationRevenue, 'USD', Number(operation.usd_exchange_rate));
+  } else if (operation.currency === 'EUR') {
+    return convertToBAM(operationRevenue, 'EUR');
+  } else {
+    // BAM ili nepoznata valuta
+    return operationRevenue;
+  }
+}
+
+/**
  * Interfejsi za filtere
  */
 interface DateRangeFilter {
@@ -108,6 +178,9 @@ interface SummaryFinancialReport {
  * @returns Izvještaj profitabilnosti po MRN
  */
 export async function generateMrnProfitabilityReport(filter: DateRangeFilter): Promise<MrnProfitabilityResponse> {
+  // Očisti cache prije početka
+  mrnDataCache.clear();
+  
   // Prvo dohvaćamo sve aktivne MRN-ove (TankFuelByCustoms) unutar datumskog opsega
   const mrnRecords = await prisma.tankFuelByCustoms.findMany({
     where: {
@@ -192,6 +265,46 @@ export async function generateMrnProfitabilityReport(filter: DateRangeFilter): P
     }
   }
 
+  // Grupiramo MRN zapise po broju da izbjeknemo duplikate
+  const mrnGroups: Record<string, {
+    mrn: string;
+    earliestDate: Date;
+    totalInitialQuantityLiters: number;
+    totalRemainingQuantityLiters: number;
+    totalInitialQuantityKg: number;
+    totalRemainingQuantityKg: number;
+    costPerKg: number;
+  }> = {};
+
+  for (const mrnRecord of mrnRecords) {
+    const mrn = mrnRecord.customs_declaration_number;
+    
+    if (!mrnGroups[mrn]) {
+      mrnGroups[mrn] = {
+        mrn,
+        earliestDate: mrnRecord.date_added,
+        totalInitialQuantityLiters: 0,
+        totalRemainingQuantityLiters: 0,
+        totalInitialQuantityKg: 0,
+        totalRemainingQuantityKg: 0,
+        costPerKg: mrnRecord.fuelIntakeRecord?.price_per_kg 
+          ? Number(mrnRecord.fuelIntakeRecord.price_per_kg)
+          : 0
+      };
+    }
+
+    // Uzimamo najraniji datum za MRN
+    if (mrnRecord.date_added < mrnGroups[mrn].earliestDate) {
+      mrnGroups[mrn].earliestDate = mrnRecord.date_added;
+    }
+
+    // Sabirati količine za isti MRN
+    mrnGroups[mrn].totalInitialQuantityLiters += Number(mrnRecord.quantity_liters);
+    mrnGroups[mrn].totalRemainingQuantityLiters += Number(mrnRecord.remaining_quantity_liters);
+    mrnGroups[mrn].totalInitialQuantityKg += mrnRecord.quantity_kg ? Number(mrnRecord.quantity_kg) : 0;
+    mrnGroups[mrn].totalRemainingQuantityKg += mrnRecord.remaining_quantity_kg ? Number(mrnRecord.remaining_quantity_kg) : 0;
+  }
+
   // Pripremamo podatke za izvještaj
   const items: MrnProfitabilityItem[] = [];
   let totalRevenue = 0;
@@ -200,18 +313,12 @@ export async function generateMrnProfitabilityReport(filter: DateRangeFilter): P
   let totalQuantityLiters = 0;
   let totalQuantityKg = 0;
 
-  // Za svaki MRN izračunavamo profitabilnost
-  for (const mrnRecord of mrnRecords) {
-    const mrn = mrnRecord.customs_declaration_number;
+  // Za svaki grupisan MRN izračunavamo profitabilnost
+  for (const [mrn, mrnGroup] of Object.entries(mrnGroups)) {
     const usage = mrnUsage[mrn] || { liters: 0, kg: 0, revenue: 0, operations: 0 };
     
-    // Izračun nabavne cijene po kg za ovaj MRN (uvijek u EUR)
-    const costPerKgEUR = mrnRecord.fuelIntakeRecord?.price_per_kg 
-      ? Number(mrnRecord.fuelIntakeRecord.price_per_kg)
-      : 0;
-    
     // Konverzija nabavne cijene iz EUR u BAM
-    const costPerKgBAM = convertToBAM(costPerKgEUR, 'EUR');
+    const costPerKgBAM = convertToBAM(mrnGroup.costPerKg, 'EUR');
     
     // Ukupni trošak za iskorištenu količinu u BAM
     const cost = costPerKgBAM * usage.kg;
@@ -222,18 +329,12 @@ export async function generateMrnProfitabilityReport(filter: DateRangeFilter): P
     // Marža u procentima (profit podijeljen s troškom, pomnožen sa 100)
     const margin = cost > 0 ? (profit / cost) * 100 : 0;
     
-    // Početna i preostala količina
-    const initialQuantityLiters = Number(mrnRecord.quantity_liters);
-    const remainingQuantityLiters = Number(mrnRecord.remaining_quantity_liters);
-    const initialQuantityKg = mrnRecord.quantity_kg ? Number(mrnRecord.quantity_kg) : 0;
-    const remainingQuantityKg = mrnRecord.remaining_quantity_kg ? Number(mrnRecord.remaining_quantity_kg) : 0;
-    
     const item: MrnProfitabilityItem = {
       mrn,
-      intakeDate: mrnRecord.date_added,
-      initialQuantity: initialQuantityLiters,
-      remainingQuantity: remainingQuantityLiters,
-      usedQuantity: initialQuantityLiters - remainingQuantityLiters,
+      intakeDate: mrnGroup.earliestDate,
+      initialQuantity: mrnGroup.totalInitialQuantityLiters,
+      remainingQuantity: mrnGroup.totalRemainingQuantityLiters,
+      usedQuantity: mrnGroup.totalInitialQuantityLiters - mrnGroup.totalRemainingQuantityLiters,
       revenue: usage.revenue,
       cost,
       profit,
@@ -277,6 +378,9 @@ export async function generateMrnProfitabilityReport(filter: DateRangeFilter): P
  * @returns Izvještaj profitabilnosti po destinaciji
  */
 export async function generateDestinationProfitabilityReport(filter: DateRangeFilter): Promise<DestinationProfitabilityItem[]> {
+  // Očisti cache prije početka
+  mrnDataCache.clear();
+  
   // Dohvaćamo sve operacije točenja unutar datumskog opsega
   const fuelingOperations = await prisma.fuelingOperation.findMany({
     where: {
@@ -300,13 +404,12 @@ export async function generateDestinationProfitabilityReport(filter: DateRangeFi
     cost: number;
     quantity_liters: number;
     quantity_kg: number;
-    mrnCosts: Record<string, { kg: number, cost: number }>;
   }> = new Map();
 
   // Analiziramo operacije točenja i izračunavamo profitabilnost po destinaciji
   for (const operation of fuelingOperations) {
     const destination = operation.destination;
-    const revenue = Number(operation.price_per_kg) * Number(operation.quantity_kg);
+    const revenue = calculateRevenueInBAM(operation);
     
     // Inicijalizacija ako destinacija nije još u mapi
     if (!destinationsMap.has(destination)) {
@@ -315,8 +418,7 @@ export async function generateDestinationProfitabilityReport(filter: DateRangeFi
         revenue: 0,
         cost: 0,
         quantity_liters: 0,
-        quantity_kg: 0,
-        mrnCosts: {}
+        quantity_kg: 0
       });
     }
 
@@ -333,30 +435,12 @@ export async function generateDestinationProfitabilityReport(filter: DateRangeFi
       const breakdown = parseMrnBreakdown(operation.mrnBreakdown);
       if (breakdown) {
         for (const item of breakdown.breakdown) {
-          const mrn = item.mrn;
+          const mrnData = await getMrnData(item.mrn);
           
-          // Dohvaćamo podatke o MRN-u iz baze
-          const mrnRecord = await prisma.tankFuelByCustoms.findFirst({
-            where: {
-              customs_declaration_number: mrn
-            },
-            include: {
-              fuelIntakeRecord: true
-            }
-          });
-          
-          if (mrnRecord && mrnRecord.fuelIntakeRecord) {
-            const costPerKg = Number(mrnRecord.fuelIntakeRecord.price_per_kg);
-            const itemCost = costPerKg * item.kg;
-            
-            // Inicijalizacija ako MRN nije još u mapi troškova
-            if (!destData.mrnCosts[mrn]) {
-              destData.mrnCosts[mrn] = { kg: 0, cost: 0 };
-            }
-            
-            // Ažuriramo podatke o trošku za MRN
-            destData.mrnCosts[mrn].kg += item.kg;
-            destData.mrnCosts[mrn].cost += itemCost;
+          if (mrnData.costPerKg > 0) {
+            // Konverzija nabavne cijene iz EUR u BAM
+            const costPerKgBAM = convertToBAM(mrnData.costPerKg, 'EUR');
+            const itemCost = costPerKgBAM * item.kg;
             
             // Ažuriramo ukupni trošak za destinaciju
             destData.cost += itemCost;
@@ -395,6 +479,9 @@ export async function generateDestinationProfitabilityReport(filter: DateRangeFi
  * @returns Izvještaj profitabilnosti po aviokompaniji
  */
 export async function generateAirlineProfitabilityReport(filter: DateRangeFilter): Promise<AirlineProfitabilityItem[]> {
+  // Očisti cache prije početka
+  mrnDataCache.clear();
+  
   // Dohvaćamo sve operacije točenja unutar datumskog opsega
   const fuelingOperations = await prisma.fuelingOperation.findMany({
     where: {
@@ -419,14 +506,13 @@ export async function generateAirlineProfitabilityReport(filter: DateRangeFilter
     cost: number;
     quantity_liters: number;
     quantity_kg: number;
-    mrnCosts: Record<string, { kg: number, cost: number }>;
   }> = new Map();
 
   // Analiziramo operacije točenja i izračunavamo profitabilnost po aviokompaniji
   for (const operation of fuelingOperations) {
     const airlineId = operation.airlineId;
     const airlineName = operation.airline.name;
-    const revenue = Number(operation.price_per_kg) * Number(operation.quantity_kg);
+    const revenue = calculateRevenueInBAM(operation);
     
     // Inicijalizacija ako aviokompanija nije još u mapi
     if (!airlinesMap.has(airlineId)) {
@@ -436,8 +522,7 @@ export async function generateAirlineProfitabilityReport(filter: DateRangeFilter
         revenue: 0,
         cost: 0,
         quantity_liters: 0,
-        quantity_kg: 0,
-        mrnCosts: {}
+        quantity_kg: 0
       });
     }
 
@@ -454,30 +539,12 @@ export async function generateAirlineProfitabilityReport(filter: DateRangeFilter
       const breakdown = parseMrnBreakdown(operation.mrnBreakdown);
       if (breakdown) {
         for (const item of breakdown.breakdown) {
-          const mrn = item.mrn;
+          const mrnData = await getMrnData(item.mrn);
           
-          // Dohvaćamo podatke o MRN-u iz baze
-          const mrnRecord = await prisma.tankFuelByCustoms.findFirst({
-            where: {
-              customs_declaration_number: mrn
-            },
-            include: {
-              fuelIntakeRecord: true
-            }
-          });
-          
-          if (mrnRecord && mrnRecord.fuelIntakeRecord) {
-            const costPerKg = Number(mrnRecord.fuelIntakeRecord.price_per_kg);
-            const itemCost = costPerKg * item.kg;
-            
-            // Inicijalizacija ako MRN nije još u mapi troškova
-            if (!airlineData.mrnCosts[mrn]) {
-              airlineData.mrnCosts[mrn] = { kg: 0, cost: 0 };
-            }
-            
-            // Ažuriramo podatke o trošku za MRN
-            airlineData.mrnCosts[mrn].kg += item.kg;
-            airlineData.mrnCosts[mrn].cost += itemCost;
+          if (mrnData.costPerKg > 0) {
+            // Konverzija nabavne cijene iz EUR u BAM
+            const costPerKgBAM = convertToBAM(mrnData.costPerKg, 'EUR');
+            const itemCost = costPerKgBAM * item.kg;
             
             // Ažuriramo ukupni trošak za aviokompaniju
             airlineData.cost += itemCost;
@@ -524,7 +591,7 @@ export async function generateSummaryFinancialReport(filter: DateRangeFilter): P
     generateAirlineProfitabilityReport(filter)
   ]);
   
-  // Dohvaćamo sve operacije točenja unutar datumskog opsega za mesečni pregled
+  // Dohvaćamo sve operacije točenja unutar datumskog opsega za mjesečni pregled
   const fuelingOperations = await prisma.fuelingOperation.findMany({
     where: {
       dateTime: {
@@ -537,39 +604,33 @@ export async function generateSummaryFinancialReport(filter: DateRangeFilter): P
     }
   });
 
-  // Pomoćna struktura za grupiranje po mesecima
+  // Pomoćna struktura za grupiranje po mjesecima
   const monthlyData: Record<string, {
     revenue: number;
     cost: number;
-    profit: number;
-    margin: number;
     quantityLiters: number;
     quantityKg: number;
-    mrnCosts: Record<string, { kg: number, cost: number }>;
   }> = {};
 
-  // Analiziramo operacije točenja i izračunavamo profitabilnost po mesecima
+  // Analiziramo operacije točenja i izračunavamo profitabilnost po mjesecima
   for (const operation of fuelingOperations) {
     const date = new Date(operation.dateTime);
     const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    const revenue = Number(operation.price_per_kg) * Number(operation.quantity_kg);
+    const revenue = calculateRevenueInBAM(operation);
     
-    // Inicijalizacija ako mesec nije još u objektu
+    // Inicijalizacija ako mjesec nije još u objektu
     if (!monthlyData[month]) {
       monthlyData[month] = {
         revenue: 0,
         cost: 0,
-        profit: 0,
-        margin: 0,
         quantityLiters: 0,
-        quantityKg: 0,
-        mrnCosts: {}
+        quantityKg: 0
       };
     }
 
     const monthData = monthlyData[month];
     
-    // Ažuriramo statistiku za mesec
+    // Ažuriramo statistiku za mjesec
     monthData.revenue += revenue;
     monthData.quantityLiters += Number(operation.quantity_liters);
     monthData.quantityKg += Number(operation.quantity_kg);
@@ -579,30 +640,12 @@ export async function generateSummaryFinancialReport(filter: DateRangeFilter): P
       const breakdown = parseMrnBreakdown(operation.mrnBreakdown);
       if (breakdown) {
         for (const item of breakdown.breakdown) {
-          const mrn = item.mrn;
+          const mrnData = await getMrnData(item.mrn);
           
-          // Dohvaćamo podatke o MRN-u iz baze
-          const mrnRecord = await prisma.tankFuelByCustoms.findFirst({
-            where: {
-              customs_declaration_number: mrn
-            },
-            include: {
-              fuelIntakeRecord: true
-            }
-          });
-          
-          if (mrnRecord && mrnRecord.fuelIntakeRecord) {
-            const costPerKg = Number(mrnRecord.fuelIntakeRecord.price_per_kg);
-            const itemCost = costPerKg * item.kg;
-            
-            // Inicijalizacija ako MRN nije još u mapi troškova
-            if (!monthData.mrnCosts[mrn]) {
-              monthData.mrnCosts[mrn] = { kg: 0, cost: 0 };
-            }
-            
-            // Ažuriramo podatke o trošku za MRN
-            monthData.mrnCosts[mrn].kg += item.kg;
-            monthData.mrnCosts[mrn].cost += itemCost;
+          if (mrnData.costPerKg > 0) {
+            // Konverzija nabavne cijene iz EUR u BAM
+            const costPerKgBAM = convertToBAM(mrnData.costPerKg, 'EUR');
+            const itemCost = costPerKgBAM * item.kg;
             
             // Ažuriramo ukupni trošak za mjesec
             monthData.cost += itemCost;
@@ -610,23 +653,24 @@ export async function generateSummaryFinancialReport(filter: DateRangeFilter): P
         }
       }
     }
-
-    // Izračun profita i marže za mjesec
-    monthData.profit = monthData.revenue - monthData.cost;
-    monthData.margin = monthData.cost > 0 ? (monthData.profit / monthData.cost) * 100 : 0;
   }
   
   // Konvertujemo objekt u sortiranu listu mjesečnih breakdowna
   const monthlyBreakdown = Object.entries(monthlyData)
-    .map(([month, data]) => ({
-      month,
-      revenue: data.revenue,
-      cost: data.cost,
-      profit: data.profit,
-      margin: data.margin,
-      quantityLiters: data.quantityLiters,
-      quantityKg: data.quantityKg
-    }))
+    .map(([month, data]) => {
+      const profit = data.revenue - data.cost;
+      const margin = data.cost > 0 ? (profit / data.cost) * 100 : 0;
+      
+      return {
+        month,
+        revenue: data.revenue,
+        cost: data.cost,
+        profit,
+        margin,
+        quantityLiters: data.quantityLiters,
+        quantityKg: data.quantityKg
+      };
+    })
     .sort((a, b) => a.month.localeCompare(b.month));
   
   // Izračun ukupnih podataka
