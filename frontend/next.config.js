@@ -13,6 +13,16 @@ const nextConfig = {
     // your project has type errors.
     ignoreBuildErrors: true,
   },
+  // Performance optimizations
+  experimental: {
+    optimizeCss: true,
+    scrollRestoration: true,
+  },
+  // Add timeout controls
+  serverRuntimeConfig: {
+    // Will only be available on the server side
+    requestTimeout: 30000, // 30 seconds
+  },
   images: {
     remotePatterns: [
       {

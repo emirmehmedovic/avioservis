@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { AuthProvider } from "@/contexts/AuthContext";
+import dynamic from "next/dynamic";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { Toaster } from "react-hot-toast";
 
@@ -10,6 +10,15 @@ const inter = Inter({
   variable: "--font-inter",
   display: "swap",
 });
+
+// Dynamic import for AuthProvider to disable SSR
+const AuthProvider = dynamic(
+  () => import("@/contexts/AuthContext").then((mod) => ({ default: mod.AuthProvider })),
+  { 
+    ssr: false,
+    loading: () => <div style={{ display: 'none' }}>Loading...</div>
+  }
+);
 
 export const metadata: Metadata = {
   title: "AvioServis - Upravljanje Voznim Parkom",
