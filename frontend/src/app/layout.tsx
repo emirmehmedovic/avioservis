@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import dynamic from "next/dynamic";
+import ClientAuthProvider from "@/components/ClientAuthProvider";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { Toaster } from "react-hot-toast";
 
@@ -10,15 +10,6 @@ const inter = Inter({
   variable: "--font-inter",
   display: "swap",
 });
-
-// Dynamic import for AuthProvider to disable SSR
-const AuthProvider = dynamic(
-  () => import("@/contexts/AuthContext").then((mod) => ({ default: mod.AuthProvider })),
-  { 
-    ssr: false,
-    loading: () => <div style={{ display: 'none' }}>Loading...</div>
-  }
-);
 
 export const metadata: Metadata = {
   title: "AvioServis - Upravljanje Voznim Parkom",
@@ -34,7 +25,7 @@ export default function RootLayout({
     <html lang="bs" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider defaultTheme="light" storageKey="avioservis-theme">
-          <AuthProvider>
+          <ClientAuthProvider>
             {children}
             <Toaster 
               position="top-right"
@@ -60,7 +51,7 @@ export default function RootLayout({
                 },
               }}
             />
-          </AuthProvider>
+          </ClientAuthProvider>
         </ThemeProvider>
       </body>
     </html>
