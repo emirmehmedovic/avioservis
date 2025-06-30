@@ -26,6 +26,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('authToken');
       const userJson = localStorage.getItem('authUser');
+      
       if (token && userJson) {
         try {
           setAuthUser(JSON.parse(userJson));
@@ -57,7 +58,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     setAuthUser(null);
     setAuthToken(null);
-    router.push('/login');
+    router.push('/');
   };
 
   return (
