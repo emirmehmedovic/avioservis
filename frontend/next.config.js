@@ -13,9 +13,8 @@ const nextConfig = {
     // your project has type errors.
     ignoreBuildErrors: true,
   },
-  // Performance optimizations
+  // Performance optimizations (removed optimizeCss to avoid critters dependency)
   experimental: {
-    optimizeCss: true,
     scrollRestoration: true,
   },
   // Add timeout controls
