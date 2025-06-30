@@ -55,7 +55,24 @@ app.set('trust proxy', 1);
 const PORT = process.env.PORT || 4000;
 
 app.use(cors({
-  origin: [process.env.FRONTEND_URL || 'http://localhost:3000', 'https://dataavioservis.vercel.app'],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    // Get allowed origins from environment variable or use defaults
+    const allowedOrigins = [
+      process.env.FRONTEND_URL || 'http://localhost:3000',
+      // Only add vercel URL if explicitly set in environment
+      ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : [])
+    ];
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS: Blocked request from origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true

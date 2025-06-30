@@ -66,7 +66,7 @@ class OstalaOpremaService {
     // For PDF generation, we need to handle the response differently
     const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') || localStorage.getItem('token') : null;
     
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000'}/api/ostala-oprema/${id}/pdf`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001'}/api/ostala-oprema/${id}/pdf`, {
       headers: {
         ...(token && { 'Authorization': `Bearer ${token}` }),
       },
@@ -84,7 +84,7 @@ class OstalaOpremaService {
     // For PDF generation, we need to handle the response differently
     const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') || localStorage.getItem('token') : null;
     
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000'}/api/ostala-oprema/full-report`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001'}/api/ostala-oprema/full-report`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
