@@ -56,21 +56,34 @@ const PORT = process.env.PORT || 4000;
 
 app.use(cors({
   origin: function (origin, callback) {
+    console.log(`CORS DEBUG: Request from origin: ${origin}`);
+    console.log(`CORS DEBUG: FRONTEND_URL env var: ${process.env.FRONTEND_URL}`);
+    
     // Allow requests with no origin (mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
     
     // Get allowed origins from environment variable or use defaults
     const allowedOrigins = [
       process.env.FRONTEND_URL || 'http://localhost:3000',
+      'https://avio.hifapetrol.ba',
+      'http://avio.hifapetrol.ba',
+      // Temporarily allow the problematic IP for debugging
+      'https://217.75.196.173',
       // Only add vercel URL if explicitly set in environment
       ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : [])
     ];
     
+    console.log(`CORS DEBUG: Allowed origins:`, allowedOrigins);
+    
     if (allowedOrigins.includes(origin)) {
+      console.log(`CORS DEBUG: Origin ${origin} is ALLOWED`);
       callback(null, true);
     } else {
       console.warn(`CORS: Blocked request from origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
+      console.warn(`CORS: This origin is not in allowed list:`, allowedOrigins);
+      // Temporarily allow all origins for debugging
+      callback(null, true);
+      // callback(new Error('Not allowed by CORS'));
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
