@@ -4,14 +4,18 @@ import React, { useState, useEffect } from 'react';
 import FuelConsistencyStatus from '@/components/fuel/FuelConsistencyStatus';
 import FuelConsistencyDialog from '@/components/fuel/FuelConsistencyDialog';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Info, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Info, AlertTriangle, RefreshCw } from 'lucide-react';
 import fuelConsistencyService, { TankConsistencyResult } from '@/lib/fuelConsistencyService';
+import { toast } from 'react-hot-toast';
+import { fetchWithAuth } from '@/lib/apiService';
 
 export default function FuelConsistencyPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedTankId, setSelectedTankId] = useState<number | null>(null);
   const [inconsistencyData, setInconsistencyData] = useState<TankConsistencyResult | undefined>(undefined);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isReconciling, setIsReconciling] = useState(false);
 
   const handleSelectTank = async (tankId: number) => {
     try {
@@ -33,6 +37,29 @@ export default function FuelConsistencyPage() {
   const handleResolved = () => {
     // Nakon uspješne korekcije, osvježavamo prikaz
     setRefreshTrigger(prev => prev + 1);
+  };
+
+  const handleManualReconciliation = async () => {
+    setIsReconciling(true);
+    try {
+      const response = await fetchWithAuth('/api/density-reconciliation/reconcile/all', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response) {
+        toast.success('Ručna reconciliation uspješno izvršena!');
+        // Osvježavamo prikaz nakon reconciliation
+        setRefreshTrigger(prev => prev + 1);
+      }
+    } catch (error) {
+      console.error('Greška prilikom ručne reconciliation:', error);
+      toast.error('Greška prilikom ručne reconciliation');
+    } finally {
+      setIsReconciling(false);
+    }
   };
 
   return (
@@ -104,6 +131,43 @@ export default function FuelConsistencyPage() {
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      {/* Ručna reconciliation dugme */}
+      <div className="mt-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <RefreshCw size={18} />
+              <span>Ručna reconciliation</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-gray-600">
+                Ručna reconciliation sinhronizuje stanje svih tankova sa MRN zapisima. 
+                Koristite ovo dugme kada primijetite nekonzistentnosti u podacima.
+              </p>
+              <Button 
+                onClick={handleManualReconciliation}
+                disabled={isReconciling}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {isReconciling ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Reconciliation u tijeku...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Pokreni ručnu reconciliation
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Dialog za rješavanje nekonzistentnosti */}
