@@ -216,7 +216,8 @@ export async function generateLinearTrendForecast(
       dateTime: {
         gte: filter.startDate,
         lte: filter.endDate
-      }
+      },
+      is_deleted: false // Ne uključujemo obrisane operacije
     }
   }).then(ops => ops.filter(op => op.quantity_kg && op.quantity_liters));
 
@@ -314,7 +315,8 @@ export async function generateMovingAverageForecast(
       dateTime: {
         gte: filter.startDate,
         lte: filter.endDate
-      }
+      },
+      is_deleted: false // Ne uključujemo obrisane operacije
     }
   }).then(ops => ops.filter(op => op.quantity_kg && op.quantity_liters));
 
@@ -404,7 +406,8 @@ export async function generateDestinationForecasts(
       dateTime: {
         gte: filter.startDate,
         lte: filter.endDate
-      }
+      },
+      is_deleted: false // Ne uključujemo obrisane operacije
     }
   }).then(ops => ops.filter(op => op.quantity_kg && op.quantity_liters && op.destination));
 
@@ -507,7 +510,8 @@ export async function generateExponentialSmoothingForecast(
       dateTime: {
         gte: filter.startDate,
         lte: filter.endDate
-      }
+      },
+      is_deleted: false // Ne uključujemo obrisane operacije
     }
   }).then(ops => ops.filter(op => op.quantity_kg && op.quantity_liters));
 

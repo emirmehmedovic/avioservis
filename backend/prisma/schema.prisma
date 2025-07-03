@@ -559,6 +559,7 @@ model FuelingOperation {
   usd_exchange_rate     Decimal?           @db.Decimal(15, 6)
   exd_number            String?            @db.VarChar(50)
   k_number              String?            @db.VarChar(50)
+  is_deleted            Boolean            @default(false)
   documents             AttachedDocument[]
   aircraft              Vehicle?           @relation(fields: [aircraftId], references: [id])
   airline               Airline            @relation(fields: [airlineId], references: [id])
@@ -573,6 +574,7 @@ model FuelingOperation {
   @@index([flight_number])
   @@index([delivery_note_number])
   @@index([createdAt])
+  @@index([is_deleted])
 }
 
 model Activity {

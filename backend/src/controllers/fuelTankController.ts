@@ -248,7 +248,10 @@ export const getTankTransactions = async (req: Request, res: Response): Promise<
     
     // 3. Get fueling operations (where this tank was used to fuel aircraft)
     const fuelingOperations = await (prisma as any).fuelingOperation.findMany({
-      where: { tankId: Number(id) },
+      where: { 
+        tankId: Number(id),
+        is_deleted: false // Ne uključujemo obrisane operacije
+      },
       orderBy: { dateTime: 'desc' },
     });
     

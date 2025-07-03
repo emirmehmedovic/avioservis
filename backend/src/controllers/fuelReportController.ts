@@ -110,7 +110,10 @@ export const getFuelStatistics = async (req: Request, res: Response): Promise<vo
     
     // For getFuelStatistics, OperationData (which extends Prisma types) is fine
     const fuelingOperations = await prisma.fuelingOperation.findMany({
-      where: fuelingOperationWhereFilter,
+      where: {
+        ...fuelingOperationWhereFilter,
+        is_deleted: false // Ne uključujemo obrisane operacije
+      },
       include: {
         airline: true, 
         tank: true,    
@@ -310,7 +313,10 @@ export const exportFuelData = async (req: Request, res: Response): Promise<void>
     
     // Use the more explicit CsvExportOperationData type for casting here
     const fuelingOperations = await prisma.fuelingOperation.findMany({
-      where: whereFilter,
+      where: {
+        ...whereFilter,
+        is_deleted: false // Ne uključujemo obrisane operacije
+      },
       select: {
         id: true,
         dateTime: true,

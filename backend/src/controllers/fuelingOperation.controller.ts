@@ -74,7 +74,10 @@ export const getAllFuelingOperations = async (req: Request, res: Response): Prom
     }
 
     const fuelingOperations = await (prisma as any).fuelingOperation.findMany({
-      where: whereClause,
+      where: {
+        ...whereClause,
+        is_deleted: false // Ne uključujemo obrisane operacije
+      },
       orderBy: { dateTime: 'desc' },
       include: {
         airline: true,
@@ -146,7 +149,10 @@ export const getFuelingOperationById = async (req: Request, res: Response): Prom
   
   try {
     const fuelingOperation = await (prisma as any).fuelingOperation.findUnique({
-      where: { id: Number(id) },
+      where: { 
+        id: Number(id),
+        is_deleted: false // Ne dohvaćamo obrisane operacije
+      },
       include: {
         airline: true,
         tank: true,
@@ -594,9 +600,10 @@ export const deleteFuelingOperation = async (req: AuthRequest, res: Response): P
         }
       }
       
-      // Zatim izbriši operaciju (kaskadno će izbrisati i zapise dokumenata u bazi)
-      await tx.fuelingOperation.delete({
+      // Soft delete operaciju - postavi is_deleted na true umjesto brisanja
+      await tx.fuelingOperation.update({
         where: { id: Number(id) },
+        data: { is_deleted: true }
       });
 
       // Vrati gorivo u tank - i litre i kilograme

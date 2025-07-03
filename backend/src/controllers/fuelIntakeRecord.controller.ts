@@ -226,77 +226,54 @@ export const getMrnReport = async (req: Request, res: Response): Promise<void> =
     let totalWeightedDensityKg = 0;
     let totalKgForDensityCalculation = 0;
     
-    // Prikupi potencijalne ID-jeve povezanih FuelingOperation zapisa
-    const fuelingOperationIds: number[] = [];
-    
-    // Dohvati sve operacije koje imaju relatedTransactionId
-    logger.info(`🔍 Analiziram ${mrnTransactionLegs.length} MrnTransactionLeg zapisa za MRN: ${mrn}`);
-    
-    // Prvo konvertiraj sve validne relatedTransactionId vrijednosti u brojeve
-    mrnTransactionLegs.forEach(leg => {
-      logger.info(`🔗 Leg ID: ${leg.id}, Type: ${leg.transactionType}, relatedTransactionId: '${leg.relatedTransactionId}'`);
-      
-      // Poboljšana validacija - sigurnija konverzija u broj
-      if (leg.relatedTransactionId !== null && leg.relatedTransactionId !== undefined) {
-        try {
-          const opId = parseInt(leg.relatedTransactionId);
-          if (!isNaN(opId) && opId > 0) {
-            fuelingOperationIds.push(opId);
-            logger.info(`✅ Dodajem FuelingOperation ID: ${opId} u listu za dohvaćanje`);
-          } else {
-            logger.warn(`⚠️ relatedTransactionId nije validan pozitivan broj: '${leg.relatedTransactionId}'`);
-          }
-        } catch (err) {
-          logger.warn(`⚠️ Greška pri konverziji relatedTransactionId '${leg.relatedTransactionId}' u broj`, err);
+    // Filtriraj MrnTransactionLeg zapise koji referenciraju obrisane FuelingOperation operacije
+    // (prvo ih filtriramo, pa iz njih vadimo fuelingOperationIds, pa tek onda radimo upit za fuelingOperations)
+    let validMrnTransactionLegs = mrnTransactionLegs;
+    let fuelingOperationIds: number[] = [];
+    if (mrnTransactionLegs && mrnTransactionLegs.length > 0) {
+      validMrnTransactionLegs = mrnTransactionLegs.filter(leg => {
+        if (!leg.relatedTransactionId || isNaN(parseInt(leg.relatedTransactionId))) {
+          return true;
         }
-      } else {
-        logger.info(`❌ Nema relatedTransactionId za leg ID: ${leg.id}`);
-      }
-    });
-    
-    // NAPOMENA: Dummy operacije uklonjene jer nisu potrebne
-    
+        // Za sada uključujemo sve, kasnije ćemo filtrirati na osnovu dohvacenih operacija
+        return true;
+      });
+      fuelingOperationIds = validMrnTransactionLegs
+        .map(leg => {
+          if (leg.relatedTransactionId !== null && leg.relatedTransactionId !== undefined) {
+            const opId = parseInt(leg.relatedTransactionId);
+            if (!isNaN(opId) && opId > 0) {
+              return opId;
+            }
+          }
+          return null;
+        })
+        .filter((id): id is number => id !== null);
+    }
+
     // Dohvati povezane FuelingOperation zapise ako postoje
     let fuelingOperations: any[] = [];
     if (fuelingOperationIds.length > 0) {
       logger.info(`🔍 Izvršavam Prisma upit za ${fuelingOperationIds.length} fuelingOperationIds:`, fuelingOperationIds);
       try {
-        // Poboljšani upit s više uključenih relacija za potpunije podatke
         fuelingOperations = await prisma.fuelingOperation.findMany({
-          where: { id: { in: fuelingOperationIds } },
+          where: { 
+            id: { in: fuelingOperationIds },
+            is_deleted: false
+          },
           include: {
             airline: true,
             tank: true,
             documents: true,
-            aircraft: true  // Dodajemo podatke o zrakoplovu
+            aircraft: true
           }
         });
-        
         logger.info(`✅ Rezultat Prisma upita - pronađeno ${fuelingOperations.length} fuelingOperations:`);
         fuelingOperations.forEach(op => {
           logger.info(`  - ID: ${op.id}, Aircraft: ${op.aircraft_registration || 'N/A'}, Airline: ${op.airline?.name || 'N/A'}`);
         });
-        
-        if (fuelingOperations.length === 0) {
-          logger.warn(`⚠️ Nema pronađenih FuelingOperation zapisa iako su ID-jevi bili dostupni!`);
-          // Provjeri da li operacije s tim ID-jevima uopće postoje
-          const checkOps = await prisma.fuelingOperation.count({
-            where: { id: { in: fuelingOperationIds } }
-          });
-          logger.info(`🔢 Provjera broja operacija s traženim ID-jevima: ${checkOps}`);
-          
-          // Dodatna provjera - dohvati par operacija direktno po ID-u za debugging
-          if (fuelingOperationIds.length > 0 && checkOps === 0) {
-            logger.info('🔬 Pokušavam direktno dohvatiti prvu operaciju za provjeru...');
-            const testOp = await prisma.fuelingOperation.findUnique({
-              where: { id: fuelingOperationIds[0] }
-            });
-            logger.info(`Test dohvata jedne operacije: ${testOp ? 'Uspješno' : 'Neuspješno'}`);
-          }
-        }
       } catch (err) {
         logger.error('❌ Greška pri dohvaćanju fuelingOperations:', err);
-        // Dodajemo više informacija o grešci za dijagnostiku
         if (err instanceof Error) {
           logger.error('Detalji greške:', { 
             message: err.message,
@@ -307,9 +284,18 @@ export const getMrnReport = async (req: Request, res: Response): Promise<void> =
           logger.error('Nepoznata greška:', err);
         }
       }
-    } else {
-      logger.info('⚠️ Preskačem Prisma upit jer nema fuelingOperationIds');
     }
+
+    // Sada konačno filtriramo validMrnTransactionLegs tako da uključuju samo one koji nemaju relatedTransactionId ili im je relatedTransactionId u fuelingOperations
+    validMrnTransactionLegs = validMrnTransactionLegs.filter(leg => {
+      if (!leg.relatedTransactionId || isNaN(parseInt(leg.relatedTransactionId))) {
+        return true;
+      }
+      const fuelingOpId = parseInt(leg.relatedTransactionId);
+      const fuelingOp = fuelingOperations.find(op => op.id === fuelingOpId);
+      return fuelingOp !== undefined;
+    });
+    logger.info(`🔍 Filtriramo MrnTransactionLeg zapise: ${mrnTransactionLegs.length} -> ${validMrnTransactionLegs.length} validnih`);
 
     // Kreiraj mapu ID -> { mrnBreakdown, aircraft_registration, airlineName } za brži pristup
     const fuelOpDetailsMap = new Map<number, { mrnBreakdown: string | null; aircraft_registration: string | null; airlineName: string | null }>();
@@ -322,7 +308,7 @@ export const getMrnReport = async (req: Request, res: Response): Promise<void> =
     });
 
     // Izgradi kronološki popis svih transakcija
-    const transactionHistory = mrnTransactionLegs.map(leg => {
+    const transactionHistory = validMrnTransactionLegs.map(leg => {
       // KG uvijek imaju prioritet kao pouzdana vrijednost
       const kgTransacted = Number(leg.kgTransacted) || 0;
       const litersTransacted = Number(leg.litersTransactedActual) || 0;

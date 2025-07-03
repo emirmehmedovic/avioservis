@@ -369,7 +369,8 @@ const FuelIntakeReport: React.FC = () => {
               ...data[mrn],
               totalIntakeKg,
               totalUsedKg: totalDeliveredKg,
-              remainingFuelKg: remainingFuelKg // Ažurirano s ispravnom vrijednosti
+              remainingFuelKg: remainingFuelKg, // Ažurirano s ispravnom vrijednosti
+              remainingFuel: mrnDetail.balance?.remainingLiters ?? 0 // Koristi backend izračun umjesto starog podatka
             };
           }
         } catch (error) {

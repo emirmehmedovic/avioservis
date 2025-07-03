@@ -161,9 +161,12 @@ export const deleteAirline = async (req: Request, res: Response): Promise<void> 
       return;
     }
     
-    // Check if the airline is referenced by any fueling operations
+    // Check if the airline is referenced by any fueling operations (excluding deleted ones)
     const referencedOperations = await (prisma as any).fuelingOperation.findFirst({
-      where: { airlineId: Number(id) },
+      where: { 
+        airlineId: Number(id),
+        is_deleted: false // Ne uključujemo obrisane operacije
+      },
     });
     
     if (referencedOperations) {
