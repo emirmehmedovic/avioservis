@@ -157,7 +157,9 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
     }
     
     // Generisanje broja fakture koji ćemo koristiti kasnije
-    const invoiceNumber = `INV-${operation.id}-${new Date().getFullYear()}`;
+    // Koristimo broj dostavnice umjesto ID-a operacije
+    const deliveryVoucherNumber = operation.delivery_note_number || operation.id.toString();
+    const invoiceNumber = `INV-${deliveryVoucherNumber}-${new Date().getFullYear()}`;
     
     // Dodaj liniju ispod headera
     doc.setDrawColor(200, 200, 220);

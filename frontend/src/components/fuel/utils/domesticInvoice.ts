@@ -109,7 +109,9 @@ export const generateDomesticPDFInvoice = async (operation: FuelingOperation): P
       doc.text('Međunarodni aerodrom Tuzla', 14, 28);
     }
     
-    const invoiceNumber = `DOM-INV-${operation.id}-${new Date().getFullYear()}`;
+    // Koristimo broj dostavnice umjesto ID-a operacije
+    const deliveryVoucherNumber = operation.delivery_note_number || operation.id.toString();
+    const invoiceNumber = `DOM-INV-${deliveryVoucherNumber}-${new Date().getFullYear()}`;
     
     doc.setDrawColor(200, 200, 220);
     doc.setLineWidth(0.5);

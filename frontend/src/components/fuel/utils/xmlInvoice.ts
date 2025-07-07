@@ -37,11 +37,11 @@ export const generateXMLInvoice = (operation: FuelingOperation): string => {
     <InvoiceHeader>
       <CustomerEntityID>${operation.airline?.taxId || '01-09-964332'}</CustomerEntityID>
       <IssuingEntityID>4200468580006</IssuingEntityID>
-      <InvoiceNumber>${operation.id}</InvoiceNumber>
+      <InvoiceNumber>${operation.delivery_note_number || operation.id}</InvoiceNumber>
       <InvoiceIssueDate>${invoiceDate}</InvoiceIssueDate>
       <InvoiceType InvoiceTransactionType="CA">INV</InvoiceType>  
       <InvoiceDeliveryLocation>${locationCode}</InvoiceDeliveryLocation>
-      <TaxInvoiceNumber>${operation.id}</TaxInvoiceNumber>
+      <TaxInvoiceNumber>${operation.delivery_note_number || operation.id}</TaxInvoiceNumber>
       <InvoiceCurrencyCode>${operation.currency || 'BAM'}</InvoiceCurrencyCode>
       <InvoiceTotalAmount>${totalAmount}</InvoiceTotalAmount>
     </InvoiceHeader>
