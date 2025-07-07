@@ -176,16 +176,16 @@ export const generateDomesticPDFInvoice = async (operation: FuelingOperation): P
         (operation.quantity_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
         (operation.price_per_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 5 }),
         discountPercentage > 0 ? `${discountPercentage}%` : '0%',
-        netAmount.toLocaleString('hr-HR', { minimumFractionDigits: 5 }),
-        vatAmount.toLocaleString('hr-HR', { minimumFractionDigits: 5 }),
-        exciseTaxAmount.toLocaleString('hr-HR', { minimumFractionDigits: 5 }),
-        grossAmount.toLocaleString('hr-HR', { minimumFractionDigits: 5 })
+        (Number(netAmount) || 0).toFixed(2).replace('.', ','),
+        (Number(vatAmount) || 0).toFixed(2).replace('.', ','),
+        (Number(exciseTaxAmount) || 0).toFixed(2).replace('.', ','),
+        (Number(grossAmount) || 0).toFixed(2).replace('.', ',')
       ]
     ];
     
     if (discountPercentage > 0) {
       doc.setFontSize(8);
-      doc.text(`Osnovna cijena prije rabata: ${baseAmount.toLocaleString('hr-HR', { minimumFractionDigits: 5 })} ${operation.currency || 'BAM'}`, 14, 135);
+      doc.text(`Osnovna cijena prije rabata: ${(Number(baseAmount) || 0).toFixed(2).replace('.', ',')} ${operation.currency || 'BAM'}`, 14, 135);
     }
     
     autoTable(doc, {
@@ -278,26 +278,26 @@ export const generateDomesticPDFInvoice = async (operation: FuelingOperation): P
     doc.setFont(FONT_NAME, 'normal');
     
     doc.text('Ukupan neto iznos:', labelX, summaryLineY);
-    doc.text(`${netAmount.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 })} ${operation.currency || 'BAM'}`, valueX, summaryLineY, { align: 'right' });
+    doc.text(`${(Number(netAmount) || 0).toFixed(2).replace('.', ',')} ${operation.currency || 'BAM'}`, valueX, summaryLineY, { align: 'right' });
     summaryLineY += lineHeight;
     
     doc.text('PDV (17%):', labelX, summaryLineY);
-    doc.text(`${vatAmount.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 })} ${operation.currency || 'BAM'}`, valueX, summaryLineY, { align: 'right' });
+    doc.text(`${(Number(vatAmount) || 0).toFixed(2).replace('.', ',')} ${operation.currency || 'BAM'}`, valueX, summaryLineY, { align: 'right' });
     summaryLineY += lineHeight;
 
     doc.text('Akcize (0.30 KM/L):', labelX, summaryLineY);
-    doc.text(`${exciseTaxAmount.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 })} ${operation.currency || 'BAM'}`, valueX, summaryLineY, { align: 'right' });
+    doc.text(`${(Number(exciseTaxAmount) || 0).toFixed(2).replace('.', ',')} ${operation.currency || 'BAM'}`, valueX, summaryLineY, { align: 'right' });
     summaryLineY += lineHeight;
     
     doc.text('Međuzbir (bez akcize):', labelX, summaryLineY);
-    doc.text(`${subtotalWithoutExcise.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 })} ${operation.currency || 'BAM'}`, valueX, summaryLineY, { align: 'right' });
+    doc.text(`${(Number(subtotalWithoutExcise) || 0).toFixed(2).replace('.', ',')} ${operation.currency || 'BAM'}`, valueX, summaryLineY, { align: 'right' });
     summaryLineY += 8;
     
     doc.setFontSize(11);
     doc.setFont(FONT_NAME, 'bold');
     doc.setTextColor(0, 51, 102);
     doc.text('Ukupno za plaćanje:', labelX, summaryLineY);
-    doc.text(`${grossAmount.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 })} ${operation.currency || 'BAM'}`, valueX, summaryLineY, { align: 'right' });
+    doc.text(`${(Number(grossAmount) || 0).toFixed(2).replace('.', ',')} ${operation.currency || 'BAM'}`, valueX, summaryLineY, { align: 'right' });
     doc.setFont(FONT_NAME, 'normal');
     
     // START: Footer section with bank accounts (Optimized)
@@ -410,7 +410,7 @@ export const generateConsolidatedDomesticPDFInvoice = async (operations: Fueling
       doc.text('HIFA-PETROL d.o.o. Sarajevo', 14, 20);
     }
     
-    const invoiceNumber = `DOM-CONS-INV-${new Date().getTime().toString().slice(-6)}-${new Date().getFullYear()}`;
+    const invoiceNumber = `DOM-CONS-INV-${dayjs().format('YYYYMMDD')}-${new Date().getFullYear()}`;
     
     doc.setDrawColor(200, 200, 220);
     doc.setLineWidth(0.5);
@@ -521,13 +521,13 @@ export const generateConsolidatedDomesticPDFInvoice = async (operations: Fueling
     const summaryRows = [
       ['Ukupna količina goriva', totalLiters.toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), 'litara'],
       ['Ukupna količina goriva', totalKg.toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), 'kg'],
-      ['Ukupna osnovna cijena', totalBaseAmountNum.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 }), mostCommonCurrency],
-      ['Ukupan rabat', totalDiscountAmountNum.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 }), mostCommonCurrency],
-      ['Ukupan neto iznos (nakon rabata)', finalTotalNetAmountNum.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 }), mostCommonCurrency],
-      ['Ukupan PDV (17%)', totalVatAmountNum.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 }), mostCommonCurrency],
-      ['Ukupan međuzbir (neto + PDV)', totalSubtotalWithoutExciseNum.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 }), mostCommonCurrency],
-      ['Ukupan iznos akcize', totalExciseTaxAmountNum.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 }), mostCommonCurrency],
-      ['Ukupan iznos za plaćanje (sa PDV)', totalGrossAmountNum.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 }), mostCommonCurrency]
+      ['Ukupna osnovna cijena', (Number(totalBaseAmountNum) || 0).toFixed(2).replace('.', ','), mostCommonCurrency],
+      ['Ukupan rabat', (Number(totalDiscountAmountNum) || 0).toFixed(2).replace('.', ','), mostCommonCurrency],
+      ['Ukupan neto iznos (nakon rabata)', (Number(finalTotalNetAmountNum) || 0).toFixed(2).replace('.', ','), mostCommonCurrency],
+      ['Ukupan PDV (17%)', (Number(totalVatAmountNum) || 0).toFixed(2).replace('.', ','), mostCommonCurrency],
+      ['Ukupan međuzbir (neto + PDV)', (Number(totalSubtotalWithoutExciseNum) || 0).toFixed(2).replace('.', ','), mostCommonCurrency],
+      ['Ukupan iznos akcize', (Number(totalExciseTaxAmountNum) || 0).toFixed(2).replace('.', ','), mostCommonCurrency],
+      ['Ukupan iznos za plaćanje (sa PDV)', (Number(totalGrossAmountNum) || 0).toFixed(2).replace('.', ','), mostCommonCurrency]
     ];
     
     autoTable(doc, {
@@ -572,12 +572,12 @@ export const generateConsolidatedDomesticPDFInvoice = async (operations: Fueling
         op.delivery_note_number || 'N/A',
         (op.quantity_liters || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
         (op.quantity_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
-        baseAmount.toLocaleString('hr-HR', { minimumFractionDigits: 5 }),
-        discountAmount > 0 ? discountAmount.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 }) : '0,00000',
-        netAmount.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 }),
-        vatAmount.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 }),
-        exciseTaxAmount.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 }),
-        grossAmount.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 }),
+        (Number(baseAmount) || 0).toFixed(2).replace('.', ','),
+        discountAmount > 0 ? (Number(discountAmount) || 0).toFixed(2).replace('.', ',') : '0,00',
+        (Number(netAmount) || 0).toFixed(2).replace('.', ','),
+        (Number(vatAmount) || 0).toFixed(2).replace('.', ','),
+        (Number(exciseTaxAmount) || 0).toFixed(2).replace('.', ','),
+        (Number(grossAmount) || 0).toFixed(2).replace('.', ','),
         op.currency || 'BAM'
       ];
     });
@@ -586,12 +586,12 @@ export const generateConsolidatedDomesticPDFInvoice = async (operations: Fueling
       'UKUPNO', '', '', '', '',
       totalLiters.toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       totalKg.toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-      totalBaseAmountNum.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 }),
-      totalDiscountAmountNum > 0 ? totalDiscountAmountNum.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 }) : '0,00000',
-      finalTotalNetAmountNum.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 }),
-      totalVatAmountNum.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 }),
-      totalExciseTaxAmountNum.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 }),
-      totalGrossAmountNum.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 }),
+      (Number(totalBaseAmountNum) || 0).toFixed(2).replace('.', ','),
+      totalDiscountAmountNum > 0 ? (Number(totalDiscountAmountNum) || 0).toFixed(2).replace('.', ',') : '0,00',
+      (Number(finalTotalNetAmountNum) || 0).toFixed(2).replace('.', ','),
+      (Number(totalVatAmountNum) || 0).toFixed(2).replace('.', ','),
+      (Number(totalExciseTaxAmountNum) || 0).toFixed(2).replace('.', ','),
+      (Number(totalGrossAmountNum) || 0).toFixed(2).replace('.', ','),
       mostCommonCurrency
     ]);
 

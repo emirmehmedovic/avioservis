@@ -1,15 +1,16 @@
 import React from 'react';
 import { FuelingOperation } from '../types';
 import { formatDate } from '../utils/helpers';
-import { TrashIcon } from '@heroicons/react/24/outline';
+import { TrashIcon, PencilIcon } from '@heroicons/react/24/outline';
 
 interface OperationsTableProps {
   operations: FuelingOperation[];
   handleRowClick: (operation: FuelingOperation) => void;
   handleDeleteOperation?: (operation: FuelingOperation, e: React.MouseEvent) => void;
+  handleEditOperation?: (operation: FuelingOperation, e: React.MouseEvent) => void;
 }
 
-const OperationsTable: React.FC<OperationsTableProps> = ({ operations, handleRowClick, handleDeleteOperation }) => {
+const OperationsTable: React.FC<OperationsTableProps> = ({ operations, handleRowClick, handleDeleteOperation, handleEditOperation }) => {
   return (
     <div className="border border-gray-200 rounded-lg" style={{ width: '100%', boxSizing: 'border-box', position: 'relative' }}>
       <div style={{ width: '100%', overflowX: 'auto', overflowY: 'auto', maxHeight: '60vh', position: 'relative' }}>
@@ -31,7 +32,7 @@ const OperationsTable: React.FC<OperationsTableProps> = ({ operations, handleRow
             <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900" style={{ width: '80px', wordWrap: 'break-word' }}>Broj dostavnice</th>
             <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900" style={{ width: '80px', wordWrap: 'break-word' }}>Tip saobraćaja</th>
             <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900" style={{ width: '80px', wordWrap: 'break-word' }}>Operater</th>
-            <th scope="col" className="px-3 py-3.5 text-center text-sm font-semibold text-gray-900" style={{ width: '50px', wordWrap: 'break-word' }}>Akcije</th>
+            <th scope="col" className="px-3 py-3.5 text-center text-sm font-semibold text-gray-900" style={{ width: '80px', wordWrap: 'break-word' }}>Akcije</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200 bg-white">
@@ -116,18 +117,32 @@ const OperationsTable: React.FC<OperationsTableProps> = ({ operations, handleRow
               </td>
               <td className="px-3 py-4 text-sm text-gray-500 table-cell-wrap">{operation.operator_name}</td>
               <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 text-center">
-                {handleDeleteOperation && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation(); // Prevent row click
-                      handleDeleteOperation(operation, e);
-                    }}
-                    className="p-1.5 bg-red-50 text-red-700 rounded-full hover:bg-red-100 transition-colors inline-flex items-center justify-center"
-                    title="Obriši operaciju točenja"
-                  >
-                    <TrashIcon className="w-4 h-4" />
-                  </button>
-                )}
+                <div className="flex justify-center space-x-1">
+                  {handleEditOperation && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent row click
+                        handleEditOperation(operation, e);
+                      }}
+                      className="p-1.5 bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors inline-flex items-center justify-center"
+                      title="Uredi operaciju točenja"
+                    >
+                      <PencilIcon className="w-4 h-4" />
+                    </button>
+                  )}
+                  {handleDeleteOperation && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent row click
+                        handleDeleteOperation(operation, e);
+                      }}
+                      className="p-1.5 bg-red-50 text-red-700 rounded-full hover:bg-red-100 transition-colors inline-flex items-center justify-center"
+                      title="Obriši operaciju točenja"
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               </td>
             </tr>
           ))}

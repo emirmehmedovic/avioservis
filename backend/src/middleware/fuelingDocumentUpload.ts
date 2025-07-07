@@ -52,9 +52,19 @@ export const uploadFuelingDocument = multer({
   fileFilter: fileFilter
 }).single('document');
 
-// Middleware za upload više dokumenata
+// Middleware za upload više dokumenata (disk storage - za kreiranje)
 export const uploadMultipleFuelingDocuments = multer({
   storage: storage,
+  limits: {
+    fileSize: 1024 * 1024 * 15, // 15MB file size limit per file
+    files: 10 // Maximum 10 files at once
+  },
+  fileFilter: fileFilter
+}).array('documents', 10); // 'documents' je ime polja, 10 je maksimalan broj dokumenata
+
+// Middleware za upload više dokumenata (memory storage - za edit)
+export const uploadMultipleFuelingDocumentsMemory = multer({
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 1024 * 1024 * 15, // 15MB file size limit per file
     files: 10 // Maximum 10 files at once

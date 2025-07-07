@@ -106,7 +106,7 @@ export const generateConsolidatedPDFInvoice = async (operations: FuelingOperatio
       doc.text('AVIOSERVIS d.o.o.', 14, 20); // Fallback text
     }
 
-    const invoiceNumber = `CONS-INV-${new Date().getTime().toString().slice(-6)}-${new Date().getFullYear()}`;
+    const invoiceNumber = `CONS-INV-${dayjs().format('YYYYMMDD')}-${new Date().getFullYear()}`;
     
     doc.setDrawColor(200, 200, 220);
     doc.setLineWidth(0.5);

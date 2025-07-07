@@ -7,7 +7,7 @@ import {
   deleteFuelingOperation,
 } from '../controllers/fuelingOperation.controller';
 import { createFuelingOperationRules, updateFuelingOperationRules, validate } from '../validators/fuelingOperation.validators';
-import { uploadMultipleFuelingDocuments } from '../middleware/fuelingDocumentUpload';
+import { uploadMultipleFuelingDocuments, uploadMultipleFuelingDocumentsMemory } from '../middleware/fuelingDocumentUpload';
 import { Request, Response, NextFunction } from 'express';
 import { authenticateToken, checkRole } from '../middleware/auth';
 
@@ -36,7 +36,7 @@ router.post('/',
 );
 router.get('/', getAllFuelingOperations);
 router.get('/:id', getFuelingOperationById);
-router.put('/:id', updateFuelingOperationRules, validate, updateFuelingOperation);
+router.put('/:id', uploadMultipleFuelingDocumentsMemory, updateFuelingOperationRules, validate, updateFuelingOperation);
 router.delete('/:id', deleteFuelingOperation);
 
 export default router;

@@ -37,11 +37,11 @@ export const generateXMLInvoice = (operation: FuelingOperation): string => {
     <InvoiceHeader>
       <CustomerEntityID>${operation.airline?.taxId || '01-09-964332'}</CustomerEntityID>
       <IssuingEntityID>4200468580006</IssuingEntityID>
-      <InvoiceNumber>${operation.delivery_note_number || operation.id}</InvoiceNumber>
+      <InvoiceNumber>INV-${operation.delivery_note_number || operation.id}-${new Date().getFullYear()}</InvoiceNumber>
       <InvoiceIssueDate>${invoiceDate}</InvoiceIssueDate>
       <InvoiceType InvoiceTransactionType="CA">INV</InvoiceType>  
       <InvoiceDeliveryLocation>${locationCode}</InvoiceDeliveryLocation>
-      <TaxInvoiceNumber>${operation.delivery_note_number || operation.id}</TaxInvoiceNumber>
+      <TaxInvoiceNumber>INV-${operation.delivery_note_number || operation.id}-${new Date().getFullYear()}</TaxInvoiceNumber>
       <InvoiceCurrencyCode>${operation.currency || 'BAM'}</InvoiceCurrencyCode>
       <InvoiceTotalAmount>${totalAmount}</InvoiceTotalAmount>
     </InvoiceHeader>
@@ -194,11 +194,11 @@ export const generateConsolidatedXMLInvoice = (operations: FuelingOperation[], f
     <InvoiceHeader>
       <CustomerEntityID>${firstOperation.airline?.taxId || '01-09-964332'}</CustomerEntityID>
       <IssuingEntityID>4200468580006</IssuingEntityID>
-      <InvoiceNumber>CONS-${dayjs().format('YYYYMMDD')}</InvoiceNumber>
+      <InvoiceNumber>CONS-INV-${dayjs().format('YYYYMMDD')}-${new Date().getFullYear()}</InvoiceNumber>
       <InvoiceIssueDate>${invoiceDate}</InvoiceIssueDate>
       <InvoiceType InvoiceTransactionType="CA">INV</InvoiceType>  
       <InvoiceDeliveryLocation>${locationCode}</InvoiceDeliveryLocation>
-      <TaxInvoiceNumber>CONS-${dayjs().format('YYYYMMDD')}</TaxInvoiceNumber>
+      <TaxInvoiceNumber>CONS-INV-${dayjs().format('YYYYMMDD')}-${new Date().getFullYear()}</TaxInvoiceNumber>
       <InvoiceCurrencyCode>${mostCommonCurrency}</InvoiceCurrencyCode>
       <InvoiceTotalAmount>${totalAmount}</InvoiceTotalAmount>
     </InvoiceHeader>

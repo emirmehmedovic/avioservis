@@ -1264,12 +1264,21 @@ export function getExcessFuelHistory(): Promise<ExcessFuelRecord[]> {
 }
 
 // Update a fueling operation
-export async function updateFuelingOperation(id: number, payload: Partial<FuelingOperation>): Promise<FuelingOperation> {
-  return fetchWithAuth<FuelingOperation>(`${API_BASE_URL}/api/fuel/fueling-operations/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
+export async function updateFuelingOperation(id: number, payload: Partial<FuelingOperation> | FormData): Promise<FuelingOperation> {
+  const options: any = {
+    method: 'PUT'
+  };
+  
+  if (payload instanceof FormData) {
+    // For file uploads, don't set Content-Type header - browser will set it with boundary
+    options.body = payload;
+  } else {
+    // For regular JSON updates
+    options.headers = { 'Content-Type': 'application/json' };
+    options.body = JSON.stringify(payload);
+  }
+  
+  return fetchWithAuth<FuelingOperation>(`${API_BASE_URL}/api/fuel/fueling-operations/${id}`, options);
 }
 
 // --- Reserve Fuel API --- //

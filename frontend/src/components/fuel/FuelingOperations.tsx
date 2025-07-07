@@ -28,6 +28,7 @@ import FilterSection from './components/FilterSection';
 import OperationsTable from './components/OperationsTable';
 import AddOperationForm from './components/AddOperationForm';
 import OperationDetailsModal from './components/OperationDetailsModal';
+import EditOperationModal from './components/EditOperationModal';
 
 // Import services and utilities
 import { 
@@ -62,7 +63,9 @@ export default function FuelingOperations() {
   // State for UI controls
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedOperationForDetails, setSelectedOperationForDetails] = useState<ExtendedFuelingOperation | null>(null);
+  const [selectedOperationForEdit, setSelectedOperationForEdit] = useState<ExtendedFuelingOperation | null>(null);
   
   // State for filters
   const [startDate, setStartDate] = useState<string | null>(dayjs().startOf('month').format('YYYY-MM-DD'));
@@ -593,6 +596,24 @@ export default function FuelingOperations() {
     }
   };
 
+  // Handle edit operation
+  const handleEditOperation = async (operation: FuelingOperation, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent row click event
+    setSelectedOperationForEdit(operation);
+    setShowEditModal(true);
+  };
+
+  // Handle operation update
+  const handleOperationUpdate = (updatedOperation: FuelingOperation) => {
+    // Update the operation in the local state
+    setOperations(prev => prev.map(op => 
+      op.id === updatedOperation.id ? updatedOperation : op
+    ));
+    
+    // Refresh operations list to get the latest data
+    loadOperations();
+  };
+
   return (
     <div className="bg-white rounded-xl overflow-hidden shadow-lg border border-gray-100 fuel-operations-small-screen" style={{ maxWidth: '100%', width: '100%' }}>
       {/* Header with title and action buttons */}
@@ -691,6 +712,7 @@ export default function FuelingOperations() {
               operations={operations} 
               handleRowClick={handleRowClick}
               handleDeleteOperation={handleDeleteOperation}
+              handleEditOperation={handleEditOperation}
             />
             
             {/* Consolidated Invoice Button */}
@@ -917,6 +939,21 @@ export default function FuelingOperations() {
         <OperationDetailsModal 
           operation={selectedOperationForDetails}
           onClose={() => setShowDetailsModal(false)}
+        />
+      )}
+
+      {/* Edit Operation Modal */}
+      {showEditModal && selectedOperationForEdit && (
+        <EditOperationModal
+          operation={selectedOperationForEdit}
+          isOpen={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setSelectedOperationForEdit(null);
+          }}
+          onUpdate={handleOperationUpdate}
+          airlines={airlines}
+          tanks={tanks}
         />
       )}
     </div>

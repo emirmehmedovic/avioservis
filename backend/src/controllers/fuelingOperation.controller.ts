@@ -530,6 +530,8 @@ export const updateFuelingOperation = async (req: Request, res: Response): Promi
       where: { id: Number(id) },
       include: {
         documents: true,
+        airline: true,
+        tank: true,
       },
     });
     
@@ -538,8 +540,79 @@ export const updateFuelingOperation = async (req: Request, res: Response): Promi
       return;
     }
     
+    // Provjeri da li su poslani fajlovi
+    const files = req.files as Express.Multer.File[];
+    const hasFiles = files && files.length > 0;
+    
     // Validiraj podatke za ažuriranje
     const updateData = req.body;
+    
+    // Ako se mijenja price_per_kg ili quantity_kg, automatski računaj total_amount
+    if (updateData.price_per_kg !== undefined || updateData.quantity_kg !== undefined) {
+      const newPricePerKg = updateData.price_per_kg !== undefined ? updateData.price_per_kg : existingOperation.price_per_kg;
+      const newQuantityKg = updateData.quantity_kg !== undefined ? updateData.quantity_kg : existingOperation.quantity_kg;
+      
+      if (newPricePerKg && newQuantityKg) {
+        // Računaj total_amount bez rabata
+        let newTotalAmount = newPricePerKg * newQuantityKg;
+        
+        // Ako postoji rabat, primijeni ga
+        const discountPercentage = updateData.discount_percentage !== undefined ? updateData.discount_percentage : existingOperation.discount_percentage;
+        if (discountPercentage && discountPercentage > 0) {
+          const discountAmount = newTotalAmount * (discountPercentage / 100);
+          newTotalAmount = newTotalAmount - discountAmount;
+        }
+        
+        updateData.total_amount = newTotalAmount;
+      }
+    }
+    
+    // Ako postoje fajlovi, dodaj ih
+    if (hasFiles) {
+      const uploadedDocuments = [];
+      
+      for (const file of files) {
+        const fileName = `${Date.now()}-${file.originalname}`;
+        const storagePath = `private_uploads/fueling_documents/${fileName}`;
+        const fullPath = path.join(__dirname, '../../', storagePath);
+        
+        // Kreiraj direktorij ako ne postoji
+        const fs = await import('fs').then(m => m.default);
+        const dir = path.dirname(fullPath);
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        
+        // Spremi fajl - koristi file.path ako je disk storage, ili file.buffer ako je memory storage
+        if (file.path) {
+          // Disk storage - kopiraj fajl
+          fs.copyFileSync(file.path, fullPath);
+          // Obriši privremeni fajl
+          fs.unlinkSync(file.path);
+        } else if (file.buffer) {
+          // Memory storage - spremi buffer
+          fs.writeFileSync(fullPath, file.buffer);
+        } else {
+          console.error('File has neither path nor buffer:', file);
+          continue;
+        }
+        
+        // Kreiraj zapis u bazi
+        const document = await prisma.attachedDocument.create({
+          data: {
+            fuelingOperationId: Number(id),
+            originalFilename: file.originalname,
+            storagePath: storagePath,
+            sizeBytes: file.size,
+            mimeType: file.mimetype,
+          },
+        });
+        
+        uploadedDocuments.push(document);
+      }
+      
+      console.log(`Uploaded ${uploadedDocuments.length} documents for operation ${id}`);
+    }
     
     // Ažuriraj operaciju
     const updatedOperation = await (prisma as any).fuelingOperation.update({

@@ -139,6 +139,20 @@ export const updateFuelingOperationRules = [
     .optional()
     .isFloat({ gt: 0 })
     .withMessage('Total amount must be a positive number if provided.'),
+  body('price_per_kg')
+    .optional()
+    .isFloat({ gt: 0 })
+    .withMessage('Price per kilogram must be a positive number if provided.'),
+  // Ensure that quantity_kg and specific_density are not part of the update request
+  body('quantity_kg').not().exists().withMessage('quantity_kg cannot be updated.'),
+  body('specific_density').not().exists().withMessage('specific_density cannot be updated.'),
+  body('tip_saobracaja')
+    .optional({ values: 'null' })
+    .customSanitizer(value => (value === '' || value === null) ? null : value)
+    .if(value => value !== null)
+    .trim()
+    .isString()
+    .withMessage('Tip saobraćaja must be a string if provided.'),
   // Ensure that tankId and quantity_liters are not part of the update request
   body('tankId').not().exists().withMessage('tankId cannot be updated.'),
   body('quantity_liters').not().exists().withMessage('quantity_liters cannot be updated.'),
