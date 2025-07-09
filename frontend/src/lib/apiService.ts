@@ -1057,39 +1057,26 @@ export const clearTanksCache = () => {
 };
 
 // Function to get total fuel amount from both fixed tanks and mobile tankers
-export const getTotalFuelSummary = async (): Promise<{ fixedTanksTotal: number; mobileTanksTotal: number; grandTotal: number }> => {
+export const getTotalFuelSummary = async (): Promise<{ 
+  fixedTanksTotal: number; 
+  mobileTanksTotal: number; 
+  grandTotal: number;
+  fixedTanksTotalKg: number;
+  mobileTanksTotalKg: number;
+  grandTotalKg: number;
+}> => {
   try {
-    // Get fixed tanks data
-    const fixedTanks = await getFixedTanks();
+    // Use the new API endpoint that includes kilogram data
+    const summaryData = await fetchWithAuth<{
+      fixedTanksTotal: number;
+      mobileTanksTotal: number;
+      grandTotal: number;
+      fixedTanksTotalKg: number;
+      mobileTanksTotalKg: number;
+      grandTotalKg: number;
+    }>('/api/fuel/summary');
     
-    // Get mobile tanks data - use cached function
-    const mobileTanks = await getMobileTanks();
-    
-    // Calculate totals
-    const fixedTanksTotal = fixedTanks.reduce((sum, tank) => {
-      // Ensure values are converted to numbers before adding
-      const amount = tank.current_quantity_liters !== undefined && tank.current_quantity_liters !== null
-        ? parseFloat(tank.current_quantity_liters.toString())
-        : 0;
-      return sum + (Number.isNaN(amount) ? 0 : amount);
-    }, 0);
-    const mobileTanksTotal = mobileTanks.reduce((sum, tank) => {
-      // Use current_liters since it's the standard property for mobile tanks
-      // Ensure values are converted to numbers before adding
-      let tankAmount = 0;
-      if (tank.current_liters !== undefined && tank.current_liters !== null) {
-        tankAmount = parseFloat(tank.current_liters.toString());
-      }
-      
-      // Use Number.isNaN to ensure valid number
-      return sum + (Number.isNaN(tankAmount) ? 0 : tankAmount);
-    }, 0);
-    
-    return {
-      fixedTanksTotal,
-      mobileTanksTotal,
-      grandTotal: fixedTanksTotal + mobileTanksTotal
-    };
+    return summaryData;
   } catch (error) {
     // If already redirecting due to an auth error, suppress further errors for this fetch chain
     if (isRedirecting) {

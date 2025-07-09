@@ -56,6 +56,9 @@ export default function DashboardPage() {
     fixedTanksTotal: number;
     mobileTanksTotal: number;
     grandTotal: number;
+    fixedTanksTotalKg: number;
+    mobileTanksTotalKg: number;
+    grandTotalKg: number;
   } | null>(null);
   // We don't need monthly intake anymore as we'll show total fuel status instead
   const [fixedTanks, setFixedTanks] = useState<FixedStorageTank[]>([]);
@@ -316,6 +319,7 @@ export default function DashboardPage() {
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">Fiksni Tankovi</h3>
                     <p className="text-2xl font-bold">{fuelSummary ? formatNumber(parseFloat(fuelSummary.fixedTanksTotal.toFixed(1))) : '0.0'} L</p>
+                    <p className="text-sm text-muted-foreground">{fuelSummary ? formatNumber(parseFloat(fuelSummary.fixedTanksTotalKg.toFixed(1))) : '0.0'} kg</p>
                   </div>
                 </div>
                 <Link href="/dashboard/fuel" className="text-xs text-blue-600 flex items-center hover:underline">
@@ -342,6 +346,7 @@ export default function DashboardPage() {
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">Mobilne Cisterne</h3>
                     <p className="text-2xl font-bold">{fuelSummary ? formatNumber(parseFloat(fuelSummary.mobileTanksTotal.toFixed(1))) : '0.0'} L</p>
+                    <p className="text-sm text-muted-foreground">{fuelSummary ? formatNumber(parseFloat(fuelSummary.mobileTanksTotalKg.toFixed(1))) : '0.0'} kg</p>
                   </div>
                 </div>
                 <Link href="/dashboard/vehicles" className="text-xs text-indigo-600 flex items-center hover:underline">
@@ -368,6 +373,7 @@ export default function DashboardPage() {
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">Ukupno Stanje</h3>
                     <p className="text-2xl font-bold">{fuelSummary ? formatNumber(parseFloat(fuelSummary.grandTotal.toFixed(1))) : '0.0'} L</p>
+                    <p className="text-sm text-muted-foreground">{fuelSummary ? formatNumber(parseFloat(fuelSummary.grandTotalKg.toFixed(1))) : '0.0'} kg</p>
                   </div>
                 </div>
                 <Link href="/dashboard/reports" className="text-xs text-green-600 flex items-center hover:underline">

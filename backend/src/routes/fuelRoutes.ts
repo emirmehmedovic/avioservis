@@ -79,6 +79,9 @@ router.delete('/intake-records/:id',
 router.get('/reports/statistics', authenticateToken, checkRole(['ADMIN', 'KONTROLA', 'FUEL_OPERATOR']), (req, res) => fuelReportController.getFuelStatistics(req, res));
 router.get('/reports/export', authenticateToken, checkRole(['ADMIN', 'KONTROLA', 'FUEL_OPERATOR']), (req, res) => fuelReportController.exportFuelData(req, res));
 
+// Total Fuel Summary route - Get total fuel amounts in liters and kilograms
+router.get('/summary', (req, res) => fuelTankController.getTotalFuelSummary(req, res));
+
 // Fuel Consistency Check routes
 router.get('/admin/consistency-check', 
   authenticateToken, 

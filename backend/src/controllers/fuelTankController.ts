@@ -681,3 +681,102 @@ export const getMobileTankCustomsBreakdown = async (req: Request, res: Response,
     next(error);
   }
 };
+
+// GET /api/fuel/summary - Get total fuel summary with both liters and kilograms
+export const getTotalFuelSummary = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Get fixed tanks data
+    const fixedTanks = await prisma.fixedStorageTanks.findMany({
+      select: {
+        id: true,
+        tank_name: true,
+        current_quantity_liters: true,
+        fuel_type: true
+      }
+    });
+    
+    // Get mobile tanks data
+    const mobileTanks = await prisma.fuelTank.findMany({
+      select: {
+        id: true,
+        name: true,
+        current_liters: true,
+        fuel_type: true
+      }
+    });
+    
+    // Calculate fixed tanks totals
+    let fixedTanksTotalLiters = 0;
+    let fixedTanksTotalKg = 0;
+    
+    for (const tank of fixedTanks) {
+      const liters = Number(tank.current_quantity_liters || 0);
+      fixedTanksTotalLiters += liters;
+      
+      // Get customs breakdown for this tank to get accurate kg data
+      try {
+        const customsBreakdown = await prisma.$queryRaw<any[]>`
+          SELECT 
+            SUM(CAST(remaining_quantity_kg AS DECIMAL(10,3))) as total_kg
+          FROM "TankFuelByCustoms" 
+          WHERE fixed_tank_id = ${tank.id} 
+            AND remaining_quantity_kg > 0
+        `;
+        
+        const tankKg = customsBreakdown[0]?.total_kg || 0;
+        fixedTanksTotalKg += Number(tankKg);
+      } catch (error) {
+        console.error(`Error getting customs data for fixed tank ${tank.id}:`, error);
+        // Fallback to calculation using default density
+        fixedTanksTotalKg += liters * 0.8;
+      }
+    }
+    
+    // Calculate mobile tanks totals
+    let mobileTanksTotalLiters = 0;
+    let mobileTanksTotalKg = 0;
+    
+    for (const tank of mobileTanks) {
+      const liters = Number(tank.current_liters || 0);
+      mobileTanksTotalLiters += liters;
+      
+      // Get customs breakdown for this tank to get accurate kg data
+      try {
+        const customsBreakdown = await prisma.$queryRaw<any[]>`
+          SELECT 
+            SUM(CAST(remaining_quantity_kg AS DECIMAL(10,3))) as total_kg
+          FROM "MobileTankCustoms" 
+          WHERE mobile_tank_id = ${tank.id} 
+            AND remaining_quantity_kg > 0
+        `;
+        
+        const tankKg = customsBreakdown[0]?.total_kg || 0;
+        mobileTanksTotalKg += Number(tankKg);
+      } catch (error) {
+        console.error(`Error getting customs data for mobile tank ${tank.id}:`, error);
+        // Fallback to calculation using default density
+        mobileTanksTotalKg += liters * 0.8;
+      }
+    }
+    
+    // Calculate grand totals
+    const grandTotalLiters = fixedTanksTotalLiters + mobileTanksTotalLiters;
+    const grandTotalKg = fixedTanksTotalKg + mobileTanksTotalKg;
+    
+    res.status(200).json({
+      fixedTanksTotal: fixedTanksTotalLiters,
+      mobileTanksTotal: mobileTanksTotalLiters,
+      grandTotal: grandTotalLiters,
+      fixedTanksTotalKg: Number(fixedTanksTotalKg.toFixed(2)),
+      mobileTanksTotalKg: Number(mobileTanksTotalKg.toFixed(2)),
+      grandTotalKg: Number(grandTotalKg.toFixed(2))
+    });
+    
+  } catch (error: any) {
+    console.error('[getTotalFuelSummary] Error:', error);
+    res.status(500).json({ 
+      message: 'Greška pri dohvatu ukupnog stanja goriva.',
+      details: error.message 
+    });
+  }
+};

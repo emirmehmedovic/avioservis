@@ -52,6 +52,7 @@ export default function FuelIntakeDisplay() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalFuelIntake, setTotalFuelIntake] = useState<number>(0);
+  const [totalKg, setTotalKg] = useState<number>(0);
   const [filters, setFilters] = useState<Partial<FuelIntakeFilters>>({
     fuel_type: 'all',
     fuel_category: 'all',
@@ -104,10 +105,17 @@ export default function FuelIntakeDisplay() {
         return sum + (record.quantity_liters_received || 0);
       }, 0);
       setTotalFuelIntake(total);
+      
+      // Calculate total kg
+      const totalKgValue = data.reduce((sum, record) => {
+        return sum + (parseFloat(record.quantity_kg_received) || 0);
+      }, 0);
+      setTotalKg(totalKgValue);
     } catch (err: any) {
       setError(err.message || 'Greška pri učitavanju zapisa o prijemu goriva.');
       setRecords([]);
       setTotalFuelIntake(0);
+      setTotalKg(0);
     } finally {
       setLoading(false);
     }
@@ -260,7 +268,7 @@ export default function FuelIntakeDisplay() {
             <h2 className="text-2xl font-bold flex items-center">
               <svg className="w-6 h-6 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 4V20M12 20L6 14M12 20L18 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M20 10C20 10 18 14 12 14C6 14 4 10 4 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M20 10C20 10 18 14 12 14C6 14 4 10 4 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               Evidencija Ulaska Goriva
             </h2>
@@ -528,8 +536,8 @@ export default function FuelIntakeDisplay() {
           <div className="mt-6 p-6 bg-[#1a1a1a]/90 backdrop-blur-md border border-white/10 rounded-xl shadow-lg">
             <div className="flex flex-col space-y-2">
               <h3 className="text-lg font-semibold text-white">Ukupni Prijem Goriva za Filtrirani Period</h3>
-              <div className="flex flex-wrap md:flex-nowrap items-center gap-2">
-                <div className="p-4 bg-[#F08080]/30 rounded-xl border border-[#F08080]/20 w-full md:w-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="p-4 bg-[#F08080]/30 rounded-xl border border-[#F08080]/20">
                   <div className="flex items-center space-x-3">
                     <svg className="w-8 h-8 text-[#F08080]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M20 6H4C2.89543 6 2 6.89543 2 8V16C2 17.1046 2.89543 18 4 18H20C21.1046 18 22 17.1046 22 16V8C22 6.89543 21.1046 6 20 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -542,7 +550,38 @@ export default function FuelIntakeDisplay() {
                   </div>
                 </div>
                 
-                <div className="p-4 bg-[#4d4c4c]/50 rounded-xl border border-white/10 flex-1 w-full md:w-auto">
+                <div className="p-4 bg-[#90EE90]/30 rounded-xl border border-[#90EE90]/20">
+                  <div className="flex items-center space-x-3">
+                    <svg className="w-8 h-8 text-[#90EE90]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M19.7 11H18.3C17.91 11 17.58 11.33 17.5 11.72L17 14H7L6.5 11.72C6.42 11.33 6.09 11 5.7 11H4.3C3.84 11 3.5 11.5 3.66 11.93L4.65 15.59C4.79 16.35 5.47 16.91 6.25 16.91H17.75C18.53 16.91 19.21 16.35 19.35 15.59L20.34 11.93C20.5 11.5 20.16 11 19.7 11Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M9 6.5V9.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M15 6.5V9.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M12 4V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <div>
+                      <p className="text-sm text-white/70">Ukupna težina</p>
+                      <p className="text-2xl font-bold text-white">{totalKg.toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="p-4 bg-[#87CEEB]/30 rounded-xl border border-[#87CEEB]/20">
+                  <div className="flex items-center space-x-3">
+                    <svg className="w-8 h-8 text-[#87CEEB]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3 6H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <div>
+                      <p className="text-sm text-white/70">Prosječna gustoća</p>
+                      <p className="text-2xl font-bold text-white">
+                        {totalFuelIntake > 0 ? (totalKg / totalFuelIntake).toLocaleString('bs-BA', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) : '0.0000'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="p-4 bg-[#4d4c4c]/50 rounded-xl border border-white/10 md:col-span-1">
                   <div className="text-sm text-white/70">Period</div>
                   <div className="text-white font-medium">
                     {dayjs(filters.startDate).format('DD.MM.YYYY')} - {dayjs(filters.endDate).format('DD.MM.YYYY')}
@@ -550,14 +589,14 @@ export default function FuelIntakeDisplay() {
                 </div>
                 
                 {filters.fuel_type && filters.fuel_type !== 'all' && (
-                  <div className="p-4 bg-[#4d4c4c]/50 rounded-xl border border-white/10 w-full md:w-auto">
+                  <div className="p-4 bg-[#4d4c4c]/50 rounded-xl border border-white/10 md:col-span-1">
                     <div className="text-sm text-white/70">Tip goriva</div>
                     <div className="text-white font-medium">{filters.fuel_type}</div>
                   </div>
                 )}
                 
                 {filters.fuel_category && filters.fuel_category !== 'all' && (
-                  <div className="p-4 bg-[#4d4c4c]/50 rounded-xl border border-white/10 w-full md:w-auto">
+                  <div className="p-4 bg-[#4d4c4c]/50 rounded-xl border border-white/10 md:col-span-1">
                     <div className="text-sm text-white/70">Kategorija</div>
                     <div className="text-white font-medium">{filters.fuel_category}</div>
                   </div>

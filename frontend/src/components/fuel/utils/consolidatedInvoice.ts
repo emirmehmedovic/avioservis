@@ -43,6 +43,32 @@ const loadImageAsBase64 = (url: string): Promise<string> => {
   });
 };
 
+// Funkcija za učitavanje header slike s grayscale filterom
+const loadHeaderImageAsBase64 = (url: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Could not get canvas context'));
+        return;
+      }
+      
+      // Primeni crno-bijeli filter samo za header
+      ctx.filter = 'grayscale(100%)';
+      ctx.drawImage(img, 0, 0);
+      
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => reject(new Error('Could not load image'));
+    img.src = url;
+  });
+};
+
 
 /**
  * Generate a consolidated PDF invoice for multiple fueling operations
@@ -95,7 +121,7 @@ export const generateConsolidatedPDFInvoice = async (operations: FuelingOperatio
     const headerHeight = 40;
     try {
       const headerImageUrl = `${window.location.origin}/hifa-header.png`; // Pretpostavka da je isti logo
-      const headerImageBase64 = await loadImageAsBase64(headerImageUrl);
+      const headerImageBase64 = await loadHeaderImageAsBase64(headerImageUrl);
       doc.addImage(headerImageBase64, 'PNG', 0, 0, pageWidth, headerHeight);
     } catch (error) {
       console.error('Error adding header image, using fallback:', error);
@@ -114,7 +140,7 @@ export const generateConsolidatedPDFInvoice = async (operations: FuelingOperatio
     
     // Naslov fakture
     doc.setFontSize(14);
-    doc.setTextColor(0, 51, 102);
+    doc.setTextColor(0, 0, 0); // Promijeni u crnu boju
     doc.text('CONSOLIDATED INVOICE FOR FUEL SERVICES', pageWidth / 2, 55, { align: 'center' });
     // END: Header
 
@@ -144,7 +170,7 @@ export const generateConsolidatedPDFInvoice = async (operations: FuelingOperatio
 
     // Desna kolona - informacije o kupcu
     doc.setFontSize(11);
-    doc.setTextColor(0, 51, 102);
+    doc.setTextColor(0, 0, 0); // Promijeni u crnu boju
     doc.text('BUYER:', rightColumnX, 70);
     
     doc.setFontSize(9);
@@ -195,7 +221,7 @@ export const generateConsolidatedPDFInvoice = async (operations: FuelingOperatio
     // START: Summary Overview Section
     doc.setFontSize(11);
     doc.setFont(FONT_NAME, 'bold');
-    doc.setTextColor(0, 51, 102);
+    doc.setTextColor(0, 0, 0); // Promijeni u crnu boju
     doc.text('SUMMARY OVERVIEW:', 14, 125);
     doc.setFont(FONT_NAME, 'normal');
 
@@ -203,9 +229,9 @@ export const generateConsolidatedPDFInvoice = async (operations: FuelingOperatio
     const summaryRows = [
       ['Total Fuel Quantity', totalLiters.toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), 'Liters'],
       ['Total Fuel Quantity', totalKg.toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), 'kg'],
-      ['Total Base Amount', totalBaseAmount.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 }), mostCommonCurrency],
-      ['Total Discount Amount', totalDiscountAmount.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 }), mostCommonCurrency],
-      ['Total Net Amount (Payable)', finalTotalNetAmount.toLocaleString('hr-HR', { minimumFractionDigits: 5, maximumFractionDigits: 5 }), mostCommonCurrency]
+      ['Total Base Amount', totalBaseAmount.toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), mostCommonCurrency],
+      ['Total Discount Amount', totalDiscountAmount.toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), mostCommonCurrency],
+      ['Total Net Amount (Payable)', finalTotalNetAmount.toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), mostCommonCurrency]
     ];
 
     autoTable(doc, {
@@ -213,18 +239,69 @@ export const generateConsolidatedPDFInvoice = async (operations: FuelingOperatio
       body: summaryRows,
       startY: 130,
       theme: 'grid',
-      styles: { fontSize: 9, cellPadding: 2, font: FONT_NAME },
-      headStyles: { fillColor: [240, 240, 250], textColor: [0, 51, 102], fontStyle: 'bold' },
+      styles: { fontSize: 8, cellPadding: 4, font: FONT_NAME }, // Povećaj cellPadding za veću tabelu
+      headStyles: { fillColor: [128, 128, 128], textColor: [255, 255, 255], fontStyle: 'bold' }, // Promijeni u sivu boju
+      margin: { left: 14, right: 14, bottom: 14 }, // Smanji margin da tabela zauzme više prostora
+      tableWidth: 'auto', // Omogući tabeli da zauzme više prostora
+      columnStyles: {
+        0: { cellWidth: 80 }, // Description kolona - fiksna širina
+        1: { cellWidth: 60 }, // Value kolona - fiksna širina
+        2: { cellWidth: 30 }  // Unit kolona - fiksna širina
+      },
+      didDrawPage: (data) => {
+        // Page count će biti dodan nakon što se sve stranice generišu
+      }
     });
 
-    const summaryFinalY = (doc as any).lastAutoTable.finalY || 130 + (summaryRows.length + 1) * 10;
+    const summaryFinalY = (doc as any).lastAutoTable.finalY || 130 + (summaryRows.length + 1) * 15;
+    
+    // Dodaj payment method informacije ispod SUMMARY OVERVIEW tabele
+    let paymentInfoY = summaryFinalY + 10;
+    doc.setFontSize(6); // Smanji font sa 8 na 6
+    doc.setFont(FONT_NAME, 'normal'); // Nije bold
+    doc.setTextColor(0, 0, 0);
+    doc.text('Payment Method: Bank Transfer', 14, paymentInfoY);
+    doc.text('IBAN: BA393389104805286885', 14, paymentInfoY + 4); // Smanji prored sa 6 na 4
+    doc.text('SWIFT: UNCRBA22', 14, paymentInfoY + 8); // Smanji prored sa 12 na 8
+    doc.text('Payment Due: 15 days from invoice issue date', 14, paymentInfoY + 12); // Smanji prored sa 18 na 12
+
+    // VAT Note - New Position
+    let yPosForVatNote = paymentInfoY + 12 + 9; // After "Payment Due" text (approx 7pt height) + 9pt spacing
+    doc.setFontSize(6); // Smanji font sa 8 na 6
+    doc.setFont(FONT_NAME, 'normal');
+    doc.setTextColor(0, 0, 0); // Black color for better visibility
+    // VAT napomena u tri reda, poravnato lijevo
+    doc.text('VAT is not included in accordance with Article 27,', 14, yPosForVatNote);
+    doc.text('act 1, paragraph 1 of the Law of Value Added Taxation', 14, yPosForVatNote + 4); // Smanji prored sa 6 na 4
+    doc.text('and article 39, act 1 of the Value Added Tax application requirements', 14, yPosForVatNote + 8); // Smanji prored sa 12 na 8
+    // For new layout, just add 12pt after VAT note (3 lines, 4pt apart)
+    let yPosAfterVatNote = yPosForVatNote + 12;
+    doc.setTextColor(0, 0, 0); // Reset text color
+    
+    // Dodaj pečat paralelno s payment info, poravnato desno
+    try {
+      const pecatImageUrl = `${window.location.origin}/pecat.png`;
+      const pecatImageBase64 = await loadImageAsBase64(pecatImageUrl);
+      
+      // Pozicioniraj pečat paralelno s payment info, poravnato desno
+      const pecatWidth = 75; // Ista širina kao u helpers.ts
+      const pecatHeight = 40; // Ista visina kao u helpers.ts
+      const pecatX = pageWidth - pecatWidth - 14; // Poravnato desno
+      const pecatY = paymentInfoY; // Ista Y pozicija kao payment info
+      
+      doc.addImage(pecatImageBase64, 'PNG', pecatX, pecatY, pecatWidth, pecatHeight);
+    } catch (error) {
+      console.error('Error adding pecat image:', error);
+    }
+    
     // END: Summary Overview Section
 
-    // START: Operations Overview Section (moved down)
+    // START: Operations Overview Section - uvijek na novoj stranici
+    doc.addPage(); // Dodaj novu stranicu
     doc.setFontSize(11);
     doc.setFont(FONT_NAME, 'bold');
-    doc.setTextColor(0, 51, 102);
-    doc.text('OPERATIONS OVERVIEW:', 14, summaryFinalY + 10);
+    doc.setTextColor(0, 0, 0); // Promijeni u crnu boju
+    doc.text('OPERATIONS OVERVIEW:', 14, 20); // Počni od vrha nove stranice
     doc.setFont(FONT_NAME, 'normal');
     
     const tableColumn = ['Date', 'Aircraft Reg.', 'Destination', 'MRN', 'Delivery Note', 'Qty (L)', 'Qty (kg)', 'Price/kg', 'Discount', 'Amount', 'Currency'];
@@ -241,25 +318,27 @@ export const generateConsolidatedPDFInvoice = async (operations: FuelingOperatio
       operation.delivery_note_number || 'N/A',
       (operation.quantity_liters || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
       (operation.quantity_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
-      (operation.price_per_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 5 }),
+      (operation.price_per_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
       operation.discount_percentage ? `${operation.discount_percentage}%` : '0%',
-      operation.netAmount.toLocaleString('hr-HR', { minimumFractionDigits: 5 }),
+      operation.netAmount.toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
       operation.currency || 'BAM'
     ]);
     
+    const totalRowIndex = tableRows.length; // Indeks za TOTAL red
     tableRows.push([
       'TOTAL', '', '', '', '',
       totalLiters.toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
       totalKg.toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
       '',
-      totalDiscountAmount.toLocaleString('hr-HR', { minimumFractionDigits: 5 }),
-      finalTotalNetAmount.toLocaleString('hr-HR', { minimumFractionDigits: 5 }),
+      totalDiscountAmount.toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
+      finalTotalNetAmount.toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
       mostCommonCurrency
     ]);
     
     // Pomoćna funkcija za crtanje footera
     const drawFooter = () => {
-        let footerStartY = doc.internal.pageSize.getHeight() - 60;
+        let footerStartY = doc.internal.pageSize.getHeight() - 60; // Vrati na originalnu poziciju jer payment info nije u footeru
+        
         const banksCol1 = [
             { name: 'Unicredit banka DD Mostar', num: '3385502203296597' },
             { name: 'Raiffeisen Bank DD Sarajevo', num: '1610000055460052' },
@@ -280,7 +359,7 @@ export const generateConsolidatedPDFInvoice = async (operations: FuelingOperatio
         ];
         
         doc.setFontSize(8);
-        doc.setTextColor(0, 51, 102);
+        doc.setTextColor(0, 0, 0); // Promijeni u crnu boju
         doc.setFont(FONT_NAME, 'bold');
         doc.text('PAYMENT DETAILS:', 14, footerStartY);
         doc.setFont(FONT_NAME, 'normal');
@@ -326,20 +405,32 @@ export const generateConsolidatedPDFInvoice = async (operations: FuelingOperatio
     
     // Primijeni autoTable na dokument sa ispravkama
     autoTable(doc, {
-      startY: summaryFinalY + 15, // Adjusted to start after the summary table
+      startY: 30, // Počni ispod OPERATIONS OVERVIEW naslova na novoj stranici
       head: [tableColumn],
       body: tableRows as any[][],
       theme: 'grid',
-      styles: { fontSize: 8, font: FONT_NAME },
+      styles: { fontSize: 7, font: FONT_NAME }, // Smanji font sa 8 na 7
       headStyles: { 
-        fillColor: [0, 51, 102],
+        fillColor: [128, 128, 128], // Promijeni u sivu boju
         textColor: [255, 255, 255],
         fontStyle: 'bold',
       },
-      margin: { left: 14, right: 14, bottom: 65 }, // Smanjena margina
+      margin: { left: 14, right: 14, bottom: 60 }, // Smanji bottom margin jer payment info nije u footeru
       willDrawCell: (data) => {
           if (data.section === 'head' && data.pageNumber > 1) {
               return false; // Ne crtaj header ako nije prva stranica
+          }
+          
+          // Boldiraj zadnju kolonu (Amount)
+          if (data.column.index === 9) { // Amount kolona
+            data.cell.styles.fontStyle = 'bold';
+          }
+      },
+      didParseCell: (data) => {
+          // Boldiraj TOTAL red
+          if (data.row.index === totalRowIndex) { // TOTAL red
+            data.cell.styles.fontStyle = 'bold';
+            data.cell.styles.font = FONT_NAME;
           }
       },
       didDrawPage: (data) => {
@@ -353,6 +444,15 @@ export const generateConsolidatedPDFInvoice = async (operations: FuelingOperatio
     
     // Crtaj footer nakon što je tabela gotova
     drawFooter();
+    
+    // Dodaj page count na sve stranice nakon što je sve generisano
+    const totalPages = (doc as any).getNumberOfPages();
+    for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+      doc.setPage(pageNum);
+      doc.setFontSize(8);
+      doc.setTextColor(0, 0, 0);
+      doc.text(`${pageNum}/${totalPages}`, pageWidth - 14, doc.internal.pageSize.getHeight() - 10, { align: 'right' });
+    }
     
     doc.save(`Consolidated-Invoice-${invoiceNumber}.pdf`);
     

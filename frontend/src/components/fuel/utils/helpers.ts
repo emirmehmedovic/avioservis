@@ -72,7 +72,35 @@ const loadImageAsBase64 = (url: string): Promise<string> => {
         reject(new Error('Could not get canvas context'));
         return;
       }
+      
       ctx.drawImage(img, 0, 0);
+      
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => reject(new Error('Could not load image'));
+    img.src = url;
+  });
+};
+
+// Funkcija za učitavanje header slike s grayscale filterom
+const loadHeaderImageAsBase64 = (url: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous'; // Omogućava učitavanje slika s drugih domena
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Could not get canvas context'));
+        return;
+      }
+      
+      // Primeni crno-bijeli filter samo za header
+      ctx.filter = 'grayscale(100%)';
+      ctx.drawImage(img, 0, 0);
+      
       resolve(canvas.toDataURL('image/png'));
     };
     img.onerror = () => reject(new Error('Could not load image'));
@@ -136,7 +164,7 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
       const headerImageUrl = `${window.location.origin}/hifa-header.png`;
       
       // Učitaj sliku i konvertuj u Base64 format
-      const headerImageBase64 = await loadImageAsBase64(headerImageUrl);
+      const headerImageBase64 = await loadHeaderImageAsBase64(headerImageUrl);
       
       // Dodaj sliku preko cijele širine stranice
       doc.addImage(headerImageBase64, 'PNG', 0, topPadding, pageWidth, headerHeight); // Adjusted Y for padding
@@ -174,7 +202,7 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
     
     // Dodaj informacije o kupcu (centrirano)
     doc.setFontSize(11);
-    doc.setTextColor(0, 51, 102);
+    doc.setTextColor(0, 0, 0); // Promijeni u crnu boju
     doc.text('BUYER:', 14, 70 + topPadding); // Adjusted Y for padding
     
     doc.setFontSize(9);
@@ -222,8 +250,8 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
       return mappings[type] || type;
     };
     
-    doc.text(`Traffic Type: ${mapTrafficType(operation.tip_saobracaja)}`, rightColumnX, 107);
-    doc.text(`Specific Density: ${(operation.specific_density || 0).toLocaleString('hr-HR', { minimumFractionDigits: 3 })}`, rightColumnX, 113);
+    doc.text(`Traffic Type: ${mapTrafficType(operation.tip_saobracaja)}`, rightColumnX, 107 + topPadding);
+    doc.text(`Specific Density: ${(operation.specific_density || 0).toLocaleString('hr-HR', { minimumFractionDigits: 3 })}`, rightColumnX, 113 + topPadding);
     
     // Dodaj liniju iznad tabele
     doc.setDrawColor(200, 200, 220);
@@ -273,7 +301,7 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
       body: tableData,
       theme: 'grid',
       headStyles: { 
-        fillColor: [240, 240, 250],
+        fillColor: [220, 220, 220], // Promijeni u tamniju sivu boju
         textColor: [0, 0, 0],
         fontStyle: 'bold',
         fontSize: 9
@@ -301,8 +329,8 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
     // Sekcija za ukupan iznos - pozicionirana nakon tabele
     finalY += 10; // Dodajemo malo prostora nakon tabele
     const summaryBoxY = finalY;
-    doc.setFillColor(245, 245, 255);
-    doc.rect(pageWidth / 2, summaryBoxY, pageWidth / 2 - 14, 35, 'F'); // Smanjili smo visinu sa 50 na 35
+    doc.setFillColor(248, 248, 248); // Promijeni u jako svijetlu sivu
+    doc.rect(pageWidth / 2, summaryBoxY, pageWidth / 2 - 14, 50, 'F'); // Povećaj visinu sa 35 na 50
     
     // Linija iznad ukupnog iznosa
     doc.setDrawColor(200, 200, 220);
@@ -434,44 +462,56 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
       doc.setTextColor(0, 0, 0);
       doc.text(`Equivalent in BAM: ${bamEquivalent.toLocaleString('hr-HR', { minimumFractionDigits: 2 })} BAM`, 
         pageWidth / 2 + 5, summaryBoxY + 35);
-      doc.text(`(Exchange rate: 1 ${operation.currency} = ${exchangeRate.toLocaleString('hr-HR', { minimumFractionDigits: 5 })} BAM, ${exchangeRateSource})`, 
+      doc.text(`(Exchange rate: 1 ${operation.currency} = ${exchangeRate.toLocaleString('hr-HR', { minimumFractionDigits: 5 })} BAM)`, 
         pageWidth / 2 + 5, summaryBoxY + 40);
+      
+      // Dodaj pečat ispod exchange rate informacije
+      try {
+        const pecatImageUrl = `${window.location.origin}/pecat.png`;
+        const pecatImageBase64 = await loadImageAsBase64(pecatImageUrl);
+        
+        // Pozicioniraj pečat ispod exchange rate teksta, poravnato desno
+        const pecatWidth = 75; // Povećaj širinu pečata sa 40 na 60mm
+        const pecatHeight = 40; // Smanji visinu pečata sa 60 na 40mm
+        const pecatX = pageWidth - pecatWidth - 14; // Poravnato desno
+        const pecatY = summaryBoxY + 45; // Pozicioniranje ispod exchange rate teksta
+        
+        doc.addImage(pecatImageBase64, 'PNG', pecatX, pecatY, pecatWidth, pecatHeight);
+      } catch (error) {
+        console.error('Error adding pecat image:', error);
+      }
     }
     
     // Dodaj informacije o plaćanju - pozicionirane nakon sekcije za ukupan iznos
     const paymentInfoY = summaryBoxY + 55;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6); // Smanji font sa 8 na 6
+    doc.setFont('helvetica', 'normal'); // Nije bold
     doc.setTextColor(0, 0, 0);
-    doc.text('Payment Method: Bank Transfer (IBAN: BA393389104805286885 SWIFT: UNCRBA22)', 14, paymentInfoY);
-    doc.text('Payment Due: 15 days from invoice issue date', 14, paymentInfoY + 7);
+    doc.text('Payment Method: Bank Transfer', 14, paymentInfoY);
+    doc.text('IBAN: BA393389104805286885', 14, paymentInfoY + 4); // Smanji prored sa 6 na 4
+    doc.text('SWIFT: UNCRBA22', 14, paymentInfoY + 8); // Smanji prored sa 12 na 8
+    doc.text('Payment Due: 15 days from invoice issue date', 14, paymentInfoY + 12); // Smanji prored sa 18 na 12
 
     // VAT Note - New Position
-    let yPosForVatNote = paymentInfoY + 7 + 9; // After "Payment Due" text (approx 7pt height) + 9pt spacing
-    doc.setFontSize(8);
+    let yPosForVatNote = paymentInfoY + 12 + 9; // After "Payment Due" text (approx 7pt height) + 9pt spacing
+    doc.setFontSize(6); // Smanji font sa 8 na 6
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0); // Black color for better visibility
-    const vatNoteText = "VAT is not included in accordance with Article 27, act 1, paragraph 1 of the Law of Value Added Taxation and article 39, act 1 of the Value Added Tax application requirements.";
-    const vatNoteLines = doc.splitTextToSize(vatNoteText, pageWidth - 28); // pageWidth - leftMargin - rightMargin
-    doc.text(vatNoteLines, 14, yPosForVatNote);
-    
-    // Estimate height of VAT note text block
-    // For 8pt font, using a factor for line height relative to font size (e.g., 8pt font * 0.7 line height factor)
-    const heightOfVatNoteBlock = vatNoteLines.length * (doc.getFontSize() * 0.5 + 1); // Adjusted for tighter packing of small font
-    let yPosAfterVatNote = yPosForVatNote + heightOfVatNoteBlock;
+    // VAT napomena u tri reda, poravnato lijevo
+    doc.text('VAT is not included in accordance with Article 27,', 14, yPosForVatNote);
+    doc.text('act 1, paragraph 1 of the Law of Value Added Taxation', 14, yPosForVatNote + 4); // Smanji prored sa 6 na 4
+    doc.text('and article 39, act 1 of the Value Added Tax application requirements', 14, yPosForVatNote + 8); // Smanji prored sa 12 na 8
+    // For new layout, just add 12pt after VAT note (3 lines, 4pt apart)
+    let yPosAfterVatNote = yPosForVatNote + 12;
     doc.setTextColor(0, 0, 0); // Reset text color
 
     // Dodaj bankovne podatke - pozicionirane nakon VAT note
-    const bankInfoY = yPosAfterVatNote + 2; // Dodatno smanjili razmak sa 5 na 2
+    const bankInfoY = yPosAfterVatNote + 5; // Pomjeri bankovne podatke malo ka dole
     doc.setFontSize(9);
     
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0);
-    doc.text('PAYMENT DETAILS:', 16, bankInfoY + 5);
-    
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0);
-    doc.text('Reference No.: ' + invoiceNumber, pageWidth - 16, bankInfoY + 5, { align: 'right' });
+    // Ukloni PAYMENT DETAILS: i Reference No.
     
     // Dodaj bankovne podatke u dvije kolone sa manjim fontom
     const bankFontSize = 5; // Dodatno smanjili font sa 5.5 na 5
@@ -555,33 +595,9 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
     doc.text('IBAN: BA393389104805286885', col2X, bankY);
     doc.text('SWIFT: UNCRBA22', col2X + bankColWidth - 5, bankY, { align: 'right' });
     
-    // Dodaj podnožje - pozicionirano odmah nakon bankovnih podataka
-    const footerY = bankY + 2; // Dodatno smanjili razmak sa 3 na 2
-    doc.setDrawColor(200, 200, 220);
-    doc.setLineWidth(0.5);
-    // Centrirana horizontalna linija koja je usklađena s širinom bankovnih podataka
-    const lineStartX = col1X - 5;
-    const lineEndX = col2X + bankColWidth + 5;
-    doc.line(lineStartX, footerY, lineEndX, footerY);
-    
-    doc.setFontSize(5); // Dodatno smanjili font sa 6 na 5
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0);
-    
-    // Još kompaktniji footer da se izbjegne sasiječeni tekst - centralno poravnanje
-    doc.text('HIFA-PETROL d.o.o. Sarajevo | 71320 Vogosca, Hotonj bb', centerX, footerY + 3, { align: 'center' });
-    doc.text('Phone: 033 584 370 | Fax: 033 584 382 | www.hifapetrol.ba | info@hifapetrol.ba', centerX, footerY + 7, { align: 'center' });
-    
-    // Dodaj napomenu o PDV-u - još kompaktnije i centrirano
-    doc.setFontSize(5); // Ista veličina fonta kao i za footer tekst
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(0, 0, 0);
-    const noteY = footerY + 11;
-    doc.text('Note: Prices are shown without VAT. VAT is calculated according to applicable regulations.', centerX, noteY, { align: 'center' });
-    doc.text(`Invoice generated: ${new Date().toLocaleString('en-US')}`, centerX, noteY + 4, { align: 'center' });
-    
+    // Ukloni cijeli footer dio
     // Osiguraj da PDF ima dovoljnu visinu za prikaz cijelog sadržaja
-    const totalHeight = footerY + 20; // Dodajemo malo prostora nakon footera
+    const totalHeight = bankY + 10; // Prilagodi visinu prema bankovnim podacima
     if (doc.internal.pageSize.height < totalHeight) {
       doc.internal.pageSize.height = totalHeight;
     }

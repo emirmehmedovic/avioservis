@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/Button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+
 import { format } from 'date-fns';
 import { hr } from 'date-fns/locale'; 
 import jsPDF from 'jspdf';
@@ -103,6 +104,7 @@ export default function FuelOperationsReport() {
 
   const [airlines, setAirlines] = useState<{ id: number; name: string }[]>([]); // For airline dropdown
   const [filterAirline, setFilterAirline] = useState<string>('__ALL__'); // Stores airline ID or '__ALL__'
+  const [filterAirlines, setFilterAirlines] = useState<string[]>([]); // Stores multiple airline IDs
   const [filterTrafficType, setFilterTrafficType] = useState<string>('__ALL__');
   // Set default date range to current month
   const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(() => {
@@ -247,7 +249,13 @@ export default function FuelOperationsReport() {
       if (filterTrafficType && filterTrafficType !== '__ALL__') {
         queryParams.append('tip_saobracaja', filterTrafficType);
       }
-      if (filterAirline && filterAirline !== '__ALL__' && filterAirline !== '-1') { // -1 is 'Sve Kompanije'
+      if (filterAirlines.length > 0) {
+        // Add multiple airline IDs as separate parameters
+        filterAirlines.forEach(airlineId => {
+          queryParams.append('airlineIds', airlineId);
+        });
+      } else if (filterAirline && filterAirline !== '__ALL__' && filterAirline !== '-1') {
+        // Fallback to single airline filter for backward compatibility
         queryParams.append('airlineId', filterAirline);
       }
       if (filterDestination && filterDestination !== '__ALL__') {
@@ -561,7 +569,7 @@ export default function FuelOperationsReport() {
     if (authUser && authToken) {
         fetchOperations();
     }
-  }, [authUser, authToken, filterDateFrom, filterDateTo, filterTrafficType, filterAirline, filterDestination, filterCurrency, error]);
+  }, [authUser, authToken, filterDateFrom, filterDateTo, filterTrafficType, filterAirline, filterAirlines, filterDestination, filterCurrency, error]);
 
   const trafficTypeOptions = useMemo(() => {
     // Safely extract traffic types, handling potential undefined values
@@ -633,7 +641,12 @@ export default function FuelOperationsReport() {
     doc.setTextColor(60, 60, 60);
 
     let filterInfo = 'Primijenjeni filteri:';
-    if (filterAirline !== '__ALL__') filterInfo += `\n - Avio Kompanija: ${airlines.find(airline => airline.id.toString() === filterAirline)?.name || 'Nepoznata'}`;
+    if (filterAirlines.length > 0) {
+      const selectedAirlines = filterAirlines.map(id => airlines.find(airline => airline.id.toString() === id)?.name || 'Nepoznata');
+      filterInfo += `\n - Avio Kompanije: ${selectedAirlines.join(', ')}`;
+    } else if (filterAirline !== '__ALL__') {
+      filterInfo += `\n - Avio Kompanija: ${airlines.find(airline => airline.id.toString() === filterAirline)?.name || 'Nepoznata'}`;
+    }
     if (filterTrafficType !== '__ALL__') filterInfo += `\n - Tip Saobraćaja: ${filterTrafficType}`;
     if (filterDateFrom) filterInfo += `\n - Datum Od: ${format(filterDateFrom, 'dd.MM.yyyy')}`;
     if (filterDateTo) filterInfo += `\n - Datum Do: ${format(filterDateTo, 'dd.MM.yyyy')}`;
@@ -698,7 +711,7 @@ export default function FuelOperationsReport() {
     });
 
     // Calculate appropriate startY based on filters
-    const startY = filterDateFrom || filterDateTo || filterAirline !== '__ALL__' || 
+    const startY = filterDateFrom || filterDateTo || filterAirlines.length > 0 || filterAirline !== '__ALL__' || 
                   filterTrafficType !== '__ALL__' || filterDestination || 
                   filterCurrency !== '__ALL__' ? 60 : 45;
     
@@ -994,23 +1007,70 @@ export default function FuelOperationsReport() {
             <div className="p-5 bg-white dark:bg-gray-800">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div className="space-y-2">
-                  <label htmlFor="airline" className="text-sm font-medium text-gray-700 dark:text-gray-300">Avio Kompanija</label>
-                  <Select 
-                    value={filterAirline} 
-                    onValueChange={setFilterAirline}
-                    disabled={airlines.length === 0} // Disable if airlines not loaded
-                  >
-                    <SelectTrigger id="airline">
-                      <SelectValue placeholder="Sve kompanije" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {airlines.map(airline => (
-                        <SelectItem key={airline.id.toString()} value={airline.id.toString()}>
-                          {airline.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <label htmlFor="airlines" className="text-sm font-medium text-gray-700 dark:text-gray-300">Avio Kompanije</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal bg-gray-50 dark:bg-gray-900"
+                        disabled={airlines.length === 0}
+                      >
+                        <PaperAirplaneIcon className="mr-2 h-4 w-4" />
+                        {filterAirlines.length === 0 
+                          ? "Sve kompanije" 
+                          : filterAirlines.length === 1
+                          ? airlines.find(a => a.id.toString() === filterAirlines[0])?.name || "Odabrana kompanija"
+                          : `${filterAirlines.length} kompanija odabrano`
+                        }
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-0" align="start">
+                      <div className="p-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="select-all"
+                              checked={filterAirlines.length === airlines.length && airlines.length > 0}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFilterAirlines(airlines.map(a => a.id.toString()));
+                                } else {
+                                  setFilterAirlines([]);
+                                }
+                              }}
+                              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="select-all" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                              Odaberi sve
+                            </label>
+                          </div>
+                          <div className="border-t border-gray-200 dark:border-gray-700 pt-2">
+                            {airlines.map(airline => (
+                              <div key={airline.id} className="flex items-center space-x-2 py-1">
+                                <input
+                                  type="checkbox"
+                                  id={`airline-${airline.id}`}
+                                  checked={filterAirlines.includes(airline.id.toString())}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setFilterAirlines([...filterAirlines, airline.id.toString()]);
+                                    } else {
+                                      setFilterAirlines(filterAirlines.filter(id => id !== airline.id.toString()));
+                                    }
+                                  }}
+                                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                                />
+                                <label htmlFor={`airline-${airline.id}`} className="text-sm text-gray-700 dark:text-gray-300">
+                                  {airline.name}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 
                 <div className="space-y-2">
@@ -1114,6 +1174,7 @@ export default function FuelOperationsReport() {
                     onClick={() => {
                       // Reset filters
                       setFilterAirline('__ALL__');
+                      setFilterAirlines([]); // Reset multi-airline filter
                       setFilterTrafficType('__ALL__');
                       
                       // Postavljanje datuma na početak i kraj tekućeg mjeseca umjesto na undefined
@@ -1366,7 +1427,10 @@ export default function FuelOperationsReport() {
                         const filterDesc: string[] = [];
                         if (filterDateFrom) filterDesc.push(`Od: ${formatDate(filterDateFrom.toISOString())}`);
                         if (filterDateTo) filterDesc.push(`Do: ${formatDate(filterDateTo.toISOString())}`);
-                        if (filterAirline && filterAirline !== '__ALL__') {
+                        if (filterAirlines.length > 0) {
+                          const selectedAirlines = filterAirlines.map(id => airlines.find(a => a.id.toString() === id)?.name || 'Nepoznata');
+                          filterDesc.push(`Kompanije: ${selectedAirlines.join(', ')}`);
+                        } else if (filterAirline && filterAirline !== '__ALL__') {
                           const airline = airlines.find(a => a.id.toString() === filterAirline);
                           if (airline) filterDesc.push(`Kompanija: ${airline.name}`);
                         }
@@ -1407,7 +1471,10 @@ export default function FuelOperationsReport() {
                         const filterDesc: string[] = [];
                         if (filterDateFrom) filterDesc.push(`Od: ${formatDate(filterDateFrom.toISOString())}`);
                         if (filterDateTo) filterDesc.push(`Do: ${formatDate(filterDateTo.toISOString())}`);
-                        if (filterAirline && filterAirline !== '__ALL__') {
+                        if (filterAirlines.length > 0) {
+                          const selectedAirlines = filterAirlines.map(id => airlines.find(a => a.id.toString() === id)?.name || 'Nepoznata');
+                          filterDesc.push(`Kompanije: ${selectedAirlines.join(', ')}`);
+                        } else if (filterAirline && filterAirline !== '__ALL__') {
                           const airline = airlines.find(a => a.id.toString() === filterAirline);
                           if (airline) filterDesc.push(`Kompanija: ${airline.name}`);
                         }
@@ -1447,7 +1514,10 @@ export default function FuelOperationsReport() {
                         const filterDesc: string[] = [];
                         if (filterDateFrom) filterDesc.push(`Od: ${formatDate(filterDateFrom.toISOString())}`);
                         if (filterDateTo) filterDesc.push(`Do: ${formatDate(filterDateTo.toISOString())}`);
-                        if (filterAirline && filterAirline !== '__ALL__') {
+                        if (filterAirlines.length > 0) {
+                          const selectedAirlines = filterAirlines.map(id => airlines.find(a => a.id.toString() === id)?.name || 'Nepoznata');
+                          filterDesc.push(`Kompanije: ${selectedAirlines.join(', ')}`);
+                        } else if (filterAirline && filterAirline !== '__ALL__') {
                           const airline = airlines.find(a => a.id.toString() === filterAirline);
                           if (airline) filterDesc.push(`Kompanija: ${airline.name}`);
                         }

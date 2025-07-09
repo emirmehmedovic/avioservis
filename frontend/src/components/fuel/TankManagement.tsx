@@ -164,7 +164,14 @@ export default function TankManagement() {
   const [transactions, setTransactions] = useState<MobileTankTransaction[]>([]);
   const [filteredTransactions, setFilteredTransactions] = useState<MobileTankTransaction[]>([]);
   const [allTransactions, setAllTransactions] = useState<MobileTankTransaction[]>([]);
-  const [totalFuelSummary, setTotalFuelSummary] = useState<{ fixedTanksTotal: number; mobileTanksTotal: number; grandTotal: number } | null>(null);
+  const [totalFuelSummary, setTotalFuelSummary] = useState<{ 
+    fixedTanksTotal: number; 
+    mobileTanksTotal: number; 
+    grandTotal: number;
+    fixedTanksTotalKg: number;
+    mobileTanksTotalKg: number;
+    grandTotalKg: number;
+  } | null>(null);
   const [editingTank, setEditingTank] = useState<FuelTank | null>(null);
   const [refillTank, setRefillTank] = useState<FuelTank | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -269,6 +276,9 @@ export default function TankManagement() {
     fixedTanksTotal: number;
     mobileTanksTotal: number;
     grandTotal: number;
+    fixedTanksTotalKg: number;
+    mobileTanksTotalKg: number;
+    grandTotalKg: number;
   } | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
 
@@ -837,6 +847,9 @@ export default function TankManagement() {
                 <div className="mt-1 text-2xl font-semibold text-white">
                   {fuelSummary.fixedTanksTotal != null ? fuelSummary.fixedTanksTotal.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} L
                 </div>
+                <div className="mt-1 text-sm font-medium text-gray-400">
+                  {fuelSummary.fixedTanksTotalKg != null ? fuelSummary.fixedTanksTotalKg.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} kg
+                </div>
               </div>
               <div className="backdrop-blur-md bg-[#F08080]/10 border border-white/10 p-4 rounded-xl shadow-lg relative overflow-hidden group hover:bg-[#F08080]/15 transition-all">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-[#F08080] rounded-full filter blur-3xl opacity-5 -translate-y-1/2 translate-x-1/4 group-hover:opacity-10 transition-opacity"></div>
@@ -844,12 +857,18 @@ export default function TankManagement() {
                 <div className="mt-1 text-2xl font-semibold text-white">
                   {fuelSummary.mobileTanksTotal != null ? fuelSummary.mobileTanksTotal.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} L
                 </div>
+                <div className="mt-1 text-sm font-medium text-gray-400">
+                  {fuelSummary.mobileTanksTotalKg != null ? fuelSummary.mobileTanksTotalKg.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} kg
+                </div>
               </div>
               <div className="backdrop-blur-md bg-[#F08080]/20 border border-white/10 p-4 rounded-xl shadow-lg relative overflow-hidden group hover:bg-[#F08080]/25 transition-all">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-[#F08080] rounded-full filter blur-3xl opacity-10 -translate-y-1/2 translate-x-1/4 group-hover:opacity-15 transition-opacity"></div>
                 <div className="text-sm font-medium text-gray-300">Ukupno</div>
                 <div className="mt-1 text-2xl font-semibold text-white">
                   {fuelSummary.grandTotal != null ? fuelSummary.grandTotal.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} L
+                </div>
+                <div className="mt-1 text-sm font-medium text-gray-400">
+                  {fuelSummary.grandTotalKg != null ? fuelSummary.grandTotalKg.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} kg
                 </div>
               </div>
             </div>

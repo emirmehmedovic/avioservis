@@ -70,6 +70,32 @@ const loadImageAsBase64 = (url: string): Promise<string> => {
   });
 };
 
+// Funkcija za učitavanje header slike s grayscale filterom
+const loadHeaderImageAsBase64 = (url: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Could not get canvas context'));
+        return;
+      }
+      
+      // Primeni crno-bijeli filter samo za header
+      ctx.filter = 'grayscale(100%)';
+      ctx.drawImage(img, 0, 0);
+      
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => reject(new Error('Could not load image'));
+    img.src = url;
+  });
+};
+
 /**
  * Generate a domestic PDF invoice for a fueling operation with VAT calculation
  */
@@ -93,7 +119,7 @@ export const generateDomesticPDFInvoice = async (operation: FuelingOperation): P
     const headerHeight = 40;
     try {
       const headerImageUrl = `${window.location.origin}/hifa-header.png`;
-      const headerImageBase64 = await loadImageAsBase64(headerImageUrl);
+      const headerImageBase64 = await loadHeaderImageAsBase64(headerImageUrl);
       doc.addImage(headerImageBase64, 'PNG', 0, 0, pageWidth, headerHeight);
     } catch (error) {
       console.error('Error adding header image, using fallback:', error);
@@ -111,7 +137,7 @@ export const generateDomesticPDFInvoice = async (operation: FuelingOperation): P
     
     // Koristimo broj dostavnice umjesto ID-a operacije
     const deliveryVoucherNumber = operation.delivery_note_number || operation.id.toString();
-    const invoiceNumber = `DOM-INV-${deliveryVoucherNumber}-${new Date().getFullYear()}`;
+    const invoiceNumber = `INV-${deliveryVoucherNumber}-${new Date().getFullYear()}`;
     
     doc.setDrawColor(200, 200, 220);
     doc.setLineWidth(0.5);
@@ -119,7 +145,7 @@ export const generateDomesticPDFInvoice = async (operation: FuelingOperation): P
     
     doc.setFontSize(14);
     doc.setFont(FONT_NAME, 'bold');
-    doc.setTextColor(0, 51, 102);
+    doc.setTextColor(0, 0, 0); // Promijeni u crnu boju
     doc.text('FAKTURA ZA GORIVO - UNUTARNJI SAOBRAĆAJ', pageWidth / 2, 55, { align: 'center' });
     doc.setFont(FONT_NAME, 'normal');
     
@@ -128,21 +154,21 @@ export const generateDomesticPDFInvoice = async (operation: FuelingOperation): P
     doc.setFontSize(9);
     doc.setTextColor(0, 0, 0);
     doc.setFont(FONT_NAME, 'bold');
-    doc.text(`Broj fakture: ${invoiceNumber}`, 14, 77);
+    doc.text(`Broj fakture: ${invoiceNumber}`, 14, 70); // Pomjeri ka gore da bude inline s KUPAC
     doc.setFont(FONT_NAME, 'normal');
-    doc.text(`Datum izdavanja: ${formatDate(new Date().toISOString())}`, 14, 83);
-    doc.text(`Datum usluge: ${formatDate(operation.dateTime)}`, 14, 89);
-    doc.text(`Paritet/Parity: CPT Aerodrom Tuzla`, 14, 95);
+    doc.text(`Datum izdavanja: ${formatDate(new Date().toISOString())}`, 14, 77);
+    doc.text(`Datum usluge: ${formatDate(operation.dateTime)}`, 14, 83);
+    doc.text(`Paritet/Parity: CPT Aerodrom Tuzla`, 14, 89);
     doc.setFont(FONT_NAME, 'bold');
-    doc.text(`Dostavnica/Voucher: ${operation.delivery_note_number || 'N/A'}`, 14, 101);
+    doc.text(`Dostavnica/Voucher: ${operation.delivery_note_number || 'N/A'}`, 14, 95);
     doc.setFont(FONT_NAME, 'normal');
-    doc.text(`Registracija aviona: ${operation.aircraft_registration || 'N/A'}`, 14, 107);
-    doc.text(`Destinacija: ${operation.destination}`, 14, 113);
-    doc.text(`Broj leta: ${operation.flight_number || 'N/A'}`, 14, 119);
+    doc.text(`Registracija aviona: ${operation.aircraft_registration || 'N/A'}`, 14, 101);
+    doc.text(`Destinacija: ${operation.destination}`, 14, 107);
+    doc.text(`Broj leta: ${operation.flight_number || 'N/A'}`, 14, 113);
     
     doc.setFontSize(11);
     doc.setFont(FONT_NAME, 'bold');
-    doc.setTextColor(0, 51, 102);
+    doc.setTextColor(0, 0, 0); // Promijeni u crnu boju
     doc.text('KUPAC:', rightColumnX, 70);
     doc.setFont(FONT_NAME, 'normal');
     doc.setFontSize(9);
@@ -164,7 +190,7 @@ export const generateDomesticPDFInvoice = async (operation: FuelingOperation): P
     
     doc.setFontSize(11);
     doc.setFont(FONT_NAME, 'bold');
-    doc.setTextColor(0, 51, 102);
+    doc.setTextColor(0, 0, 0); // Promijeni u crnu boju
     doc.text('DETALJI TRANSAKCIJE:', 14, 130);
     doc.setFont(FONT_NAME, 'normal');
     
@@ -194,7 +220,7 @@ export const generateDomesticPDFInvoice = async (operation: FuelingOperation): P
       startY: 140,
       theme: 'grid',
       styles: { fontSize: 8, cellPadding: 2, font: FONT_NAME },
-      headStyles: { fillColor: [240, 240, 250], textColor: [0, 51, 102], fontStyle: 'bold' },
+      headStyles: { fillColor: [220, 220, 220], textColor: [0, 0, 0], fontStyle: 'bold' },
       margin: { left: 14, right: 14 }
     });
     
@@ -261,9 +287,25 @@ export const generateDomesticPDFInvoice = async (operation: FuelingOperation): P
       if (processedMrnData.length > maxMrnsToShow) {
         doc.text(`+ ${processedMrnData.length - maxMrnsToShow} više...`, 14, mrnY);
       }
+      
+      // Dodaj pečat ispod MRN breakdown-a, lijevo poravnat
+      try {
+        const pecatImageUrl = `${window.location.origin}/pecat.png`;
+        const pecatImageBase64 = await loadImageAsBase64(pecatImageUrl);
+        
+        // Pozicioniraj pečat ispod MRN breakdown-a, lijevo poravnat
+        const pecatWidth = 75; // Ista širina kao u helpers.ts
+        const pecatHeight = 40; // Ista visina kao u helpers.ts
+        const pecatX = 14; // Lijevo poravnato
+        const pecatY = mrnY + 5; // Pozicioniranje ispod MRN breakdown-a
+        
+        doc.addImage(pecatImageBase64, 'PNG', pecatX, pecatY, pecatWidth, pecatHeight);
+      } catch (error) {
+        console.error('Error adding pecat image:', error);
+      }
     }
     
-    doc.setFillColor(245, 245, 255);
+    doc.setFillColor(248, 248, 248); // Promijeni u svijetlu sivu
     doc.rect(pageWidth / 2, summaryBoxY, pageWidth / 2 - 14, 50, 'F');
     doc.setDrawColor(200, 200, 220);
     doc.line(pageWidth / 2, summaryBoxY, pageWidth - 14, summaryBoxY);
@@ -295,7 +337,7 @@ export const generateDomesticPDFInvoice = async (operation: FuelingOperation): P
     
     doc.setFontSize(11);
     doc.setFont(FONT_NAME, 'bold');
-    doc.setTextColor(0, 51, 102);
+    doc.setTextColor(0, 0, 0); // Promijeni u crnu boju
     doc.text('Ukupno za plaćanje:', labelX, summaryLineY);
     doc.text(`${(Number(grossAmount) || 0).toFixed(2).replace('.', ',')} ${operation.currency || 'BAM'}`, valueX, summaryLineY, { align: 'right' });
     doc.setFont(FONT_NAME, 'normal');
@@ -322,7 +364,7 @@ export const generateDomesticPDFInvoice = async (operation: FuelingOperation): P
     ];
     
     doc.setFontSize(8);
-    doc.setTextColor(0, 51, 102);
+    doc.setTextColor(0, 0, 0); // Promijeni u crnu boju
     doc.setFont(FONT_NAME, 'bold');
     doc.text('PODACI ZA PLAĆANJE:', 14, footerStartY);
     doc.setFont(FONT_NAME, 'normal');
@@ -397,7 +439,7 @@ export const generateConsolidatedDomesticPDFInvoice = async (operations: Fueling
     const headerHeight = 40;
     try {
       const headerImageUrl = `${window.location.origin}/hifa-header.png`;
-      const headerImageBase64 = await loadImageAsBase64(headerImageUrl);
+      const headerImageBase64 = await loadHeaderImageAsBase64(headerImageUrl);
       doc.addImage(headerImageBase64, 'PNG', 0, 0, pageWidth, headerHeight);
     } catch (error) {
       console.error('Error adding header image, using fallback:', error);
@@ -601,7 +643,7 @@ export const generateConsolidatedDomesticPDFInvoice = async (operations: Fueling
       startY: summaryFinalY + 7, // Adjusted startY if needed
       theme: 'grid',
       styles: { fontSize: 7, cellPadding: 1, font: FONT_NAME, valign: 'middle' },
-      headStyles: { fillColor: [0, 51, 102], textColor: [255, 255, 255], fontStyle: 'bold' },
+      headStyles: { fillColor: [220, 220, 220], textColor: [0, 0, 0], fontStyle: 'bold' },
       footStyles: { fillColor: [220, 220, 220], fontStyle: 'bold', textColor: [0,0,0] },
       margin: { bottom: 65 }, // Ensure enough space for footer
       willDrawCell: (data) => {

@@ -47,6 +47,9 @@ export default function FixedTanksReport() {
     fixedTanksTotal: number;
     mobileTanksTotal: number;
     grandTotal: number;
+    fixedTanksTotalKg: number;
+    mobileTanksTotalKg: number;
+    grandTotalKg: number;
   } | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
@@ -465,21 +468,21 @@ export default function FixedTanksReport() {
       
       <div className="p-2 sm:p-4 md:p-6">
         {/* Summary Section */}
-        <Card className="shadow-lg mb-6">
-          <CardHeader>
-            <CardTitle className="text-2xl font-semibold text-gray-800 dark:text-gray-200">Sažetak Stanja Goriva tipa JET A-1</CardTitle>
+        <Card className="shadow-lg mb-6 bg-[#1a1a1a]/90 backdrop-blur-md border border-white/10">
+          <CardHeader className="bg-transparent">
+            <CardTitle className="text-2xl font-semibold text-black">Sažetak Stanja Goriva tipa JET A-1</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6 p-6">
-            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg shadow">
-              <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 flex items-center">
-                <BeakerIcon className="h-5 w-5 mr-2 text-indigo-600" />
+          <CardContent className="space-y-6 p-6 bg-transparent">
+            <div className="bg-[#1a1a1a]/90 backdrop-blur-md border border-white/10 p-4 rounded-lg shadow">
+              <h3 className="text-lg font-semibold text-white flex items-center">
+                <BeakerIcon className="h-5 w-5 mr-2 text-[#F08080]" />
                 Ukupno Stanje Goriva
-                <button 
-                  onClick={fetchFuelSummary} 
-                  className="ml-2 text-indigo-600 hover:text-indigo-800"
-                  disabled={summaryLoading}
-                  title="Osvježi podatke"
-                >
+                                  <button 
+                    onClick={fetchFuelSummary} 
+                    className="ml-2 text-white hover:text-white/70"
+                    disabled={summaryLoading}
+                    title="Osvježi podatke"
+                  >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
@@ -488,35 +491,92 @@ export default function FixedTanksReport() {
               <div className="mt-4">
                 {summaryLoading ? (
                   <div className="flex justify-center items-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
                   </div>
                 ) : summaryError ? (
-                  <div className="text-red-600 dark:text-red-400 py-2">
+                  <div className="text-red-400 py-2">
                     {summaryError}
                   </div>
                 ) : fuelSummary ? (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-4">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-3 sm:p-4 rounded-lg shadow-sm">
-                      <div className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Fiksni Tankovi</div>
-                      <div className="mt-1 text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                        {fuelSummary?.fixedTanksTotal != null ? fuelSummary.fixedTanksTotal.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} L
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="p-4 bg-[#F08080]/30 rounded-xl border border-[#F08080]/20">
+                      <div className="flex items-center space-x-3">
+                        <svg className="w-8 h-8 text-[#F08080]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M20 6H4C2.89543 6 2 6.89543 2 8V16C2 17.1046 2.89543 18 4 18H20C21.1046 18 22 17.1046 22 16V8C22 6.89543 21.1046 6 20 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M12 14C13.1046 14 14 13.1046 14 12C14 10.8954 13.1046 10 12 10C10.8954 10 10 10.8954 10 12C10 13.1046 10.8954 14 12 14Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <div>
+                          <p className="text-sm text-white/70">Fiksni Tankovi</p>
+                          <p className="text-2xl font-bold text-white">
+                            {fuelSummary?.fixedTanksTotal != null ? fuelSummary.fixedTanksTotal.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} L
+                          </p>
+                          <p className="text-sm text-white/70">
+                            {fuelSummary?.fixedTanksTotalKg != null ? fuelSummary.fixedTanksTotalKg.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} kg
+                          </p>
+                        </div>
                       </div>
                     </div>
-                    <div className="bg-green-50 dark:bg-green-900/20 p-3 sm:p-4 rounded-lg shadow-sm">
-                      <div className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Mobilni Tankovi</div>
-                      <div className="mt-1 text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                        {fuelSummary?.mobileTanksTotal != null ? fuelSummary.mobileTanksTotal.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} L
+                    
+                    <div className="p-4 bg-[#90EE90]/30 rounded-xl border border-[#90EE90]/20">
+                      <div className="flex items-center space-x-3">
+                        <svg className="w-8 h-8 text-[#90EE90]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M19.7 11H18.3C17.91 11 17.58 11.33 17.5 11.72L17 14H7L6.5 11.72C6.42 11.33 6.09 11 5.7 11H4.3C3.84 11 3.5 11.5 3.66 11.93L4.65 15.59C4.79 16.35 5.47 16.91 6.25 16.91H17.75C18.53 16.91 19.21 16.35 19.35 15.59L20.34 11.93C20.5 11.5 20.16 11 19.7 11Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M9 6.5V9.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M15 6.5V9.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M12 4V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <div>
+                          <p className="text-sm text-white/70">Mobilni Tankovi</p>
+                          <p className="text-2xl font-bold text-white">
+                            {fuelSummary?.mobileTanksTotal != null ? fuelSummary.mobileTanksTotal.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} L
+                          </p>
+                          <p className="text-sm text-white/70">
+                            {fuelSummary?.mobileTanksTotalKg != null ? fuelSummary.mobileTanksTotalKg.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} kg
+                          </p>
+                        </div>
                       </div>
                     </div>
-                    <div className="bg-purple-50 dark:bg-purple-900/20 p-3 sm:p-4 rounded-lg shadow-sm">
-                      <div className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Ukupno</div>
-                      <div className="mt-1 text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                        {fuelSummary?.grandTotal != null ? fuelSummary.grandTotal.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} L
+                    
+                    <div className="p-4 bg-[#87CEEB]/30 rounded-xl border border-[#87CEEB]/20">
+                      <div className="flex items-center space-x-3">
+                        <svg className="w-8 h-8 text-[#87CEEB]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M3 6H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <div>
+                          <p className="text-sm text-white/70">Ukupno</p>
+                          <p className="text-2xl font-bold text-white">
+                            {fuelSummary?.grandTotal != null ? fuelSummary.grandTotal.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} L
+                          </p>
+                          <p className="text-sm text-white/70">
+                            {fuelSummary?.grandTotalKg != null ? fuelSummary.grandTotalKg.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} kg
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="p-4 bg-[#DDA0DD]/30 rounded-xl border border-[#DDA0DD]/20">
+                      <div className="flex items-center space-x-3">
+                        <svg className="w-8 h-8 text-[#DDA0DD]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <div>
+                          <p className="text-sm text-white/70">Prosječna gustoća</p>
+                          <p className="text-2xl font-bold text-white">
+                            {fuelSummary?.grandTotal && fuelSummary?.grandTotalKg ? 
+                              (fuelSummary.grandTotalKg / fuelSummary.grandTotal).toLocaleString('bs-BA', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) : 
+                              '0.0000'
+                            }
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="text-gray-500 dark:text-gray-400 py-2">
+                  <div className="text-white/70 py-2">
                     Nema podataka o ukupnom stanju goriva.
                   </div>
                 )}

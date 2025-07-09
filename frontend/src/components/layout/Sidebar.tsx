@@ -67,7 +67,14 @@ export default function Sidebar() {
   const { logout, authUser } = useAuth();
   const [collapsed, setCollapsed] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [fuelSummary, setFuelSummary] = useState<{grandTotal: number} | null>(null);
+  const [fuelSummary, setFuelSummary] = useState<{
+    fixedTanksTotal: number;
+    mobileTanksTotal: number;
+    grandTotal: number;
+    fixedTanksTotalKg: number;
+    mobileTanksTotalKg: number;
+    grandTotalKg: number;
+  } | null>(null);
   const [fuelPercentage, setFuelPercentage] = useState(0);
   
   // Fetch total fuel data for the sidebar
@@ -298,6 +305,10 @@ export default function Sidebar() {
                     <span className="text-sm">Ukupno stanje goriva</span>
                   </div>
                   <span className="font-bold text-[#E60026]">{fuelSummary ? formatNumber(fuelSummary.grandTotal, 1) : '0'} L</span>
+                </div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs text-white/60">Kilogrami:</span>
+                  <span className="text-xs font-medium text-white/80">{fuelSummary ? formatNumber(fuelSummary.grandTotalKg, 1) : '0'} kg</span>
                 </div>
                 <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
                   <motion.div 
