@@ -116,6 +116,7 @@ export default function FuelOperationsReport() {
     return new Date(now.getFullYear(), now.getMonth() + 1, 0); // Last day of current month
   });
   const [filterDestination, setFilterDestination] = useState<string>('__ALL__');
+  const [filterDestinations, setFilterDestinations] = useState<string[]>([]); // Stores multiple destinations
   // Debounce timeout reference
   const destinationDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const [filterCurrency, setFilterCurrency] = useState<string>('__ALL__');
@@ -128,6 +129,44 @@ export default function FuelOperationsReport() {
   const handleRowClick = (operation: FuelOperation) => {
     setSelectedOperationForDetails(convertToFuelingOperation(operation));
     setShowDetailsModal(true);
+  };
+
+  // Calculate data by airline
+  const getAirlineBreakdown = () => {
+    const airlineData: { [key: string]: { liters: number; kg: number; revenue: { [currency: string]: number } } } = {};
+    
+    operations.forEach(op => {
+      const airlineName = op.airline?.name || 'Nepoznata avio kompanija';
+      
+      if (!airlineData[airlineName]) {
+        airlineData[airlineName] = {
+          liters: 0,
+          kg: 0,
+          revenue: {}
+        };
+      }
+      
+      // Ensure we're adding numbers, not strings
+      const liters = typeof op.quantity_liters === 'number' ? op.quantity_liters : (typeof op.quantity_liters === 'string' ? parseFloat(op.quantity_liters) : 0) || 0;
+      const kg = typeof op.quantity_kg === 'number' ? op.quantity_kg : (typeof op.quantity_kg === 'string' ? parseFloat(op.quantity_kg) : 0) || 0;
+      
+                      airlineData[airlineName].liters += liters;
+        airlineData[airlineName].kg += kg;
+      
+        // Add revenue by currency
+      if (op.price_per_kg && kg > 0) {
+        const currency = op.currency || 'BAM';
+        const pricePerKg = typeof op.price_per_kg === 'number' ? op.price_per_kg : (typeof op.price_per_kg === 'string' ? parseFloat(op.price_per_kg) : 0) || 0;
+        const revenue = pricePerKg * kg;
+        
+        if (!airlineData[airlineName].revenue[currency]) {
+          airlineData[airlineName].revenue[currency] = 0;
+        }
+        airlineData[airlineName].revenue[currency] += revenue;
+      }
+    });
+    
+    return airlineData;
   };
   
   // Function to convert FuelOperation to FuelingOperation
@@ -258,7 +297,13 @@ export default function FuelOperationsReport() {
         // Fallback to single airline filter for backward compatibility
         queryParams.append('airlineId', filterAirline);
       }
-      if (filterDestination && filterDestination !== '__ALL__') {
+      if (filterDestinations.length > 0) {
+        // Add multiple destinations as separate parameters
+        filterDestinations.forEach(destination => {
+          queryParams.append('destinations', destination);
+        });
+      } else if (filterDestination && filterDestination !== '__ALL__') {
+        // Fallback to single destination filter for backward compatibility
         queryParams.append('destination', filterDestination);
       }
       if (filterCurrency && filterCurrency !== '__ALL__') {
@@ -569,7 +614,7 @@ export default function FuelOperationsReport() {
     if (authUser && authToken) {
         fetchOperations();
     }
-  }, [authUser, authToken, filterDateFrom, filterDateTo, filterTrafficType, filterAirline, filterAirlines, filterDestination, filterCurrency, error]);
+  }, [authUser, authToken, filterDateFrom, filterDateTo, filterTrafficType, filterAirline, filterAirlines, filterDestination, filterDestinations, filterCurrency, error]);
 
   const trafficTypeOptions = useMemo(() => {
     // Safely extract traffic types, handling potential undefined values
@@ -640,24 +685,104 @@ export default function FuelOperationsReport() {
     doc.setFont(FONT_NAME, 'normal');
     doc.setTextColor(60, 60, 60);
 
-    let filterInfo = 'Primijenjeni filteri:';
+        // Priprema filtera u dvije kolone
+    const leftColumnFilters: string[] = [];
+    const rightColumnFilters: string[] = [];
+    
+    // Prikaz avio kompanija
     if (filterAirlines.length > 0) {
       const selectedAirlines = filterAirlines.map(id => airlines.find(airline => airline.id.toString() === id)?.name || 'Nepoznata');
-      filterInfo += `\n - Avio Kompanije: ${selectedAirlines.join(', ')}`;
+      leftColumnFilters.push(`Avio Kompanije: ${selectedAirlines.join(', ')}`);
     } else if (filterAirline !== '__ALL__') {
-      filterInfo += `\n - Avio Kompanija: ${airlines.find(airline => airline.id.toString() === filterAirline)?.name || 'Nepoznata'}`;
+      leftColumnFilters.push(`Avio Kompanija: ${airlines.find(airline => airline.id.toString() === filterAirline)?.name || 'Nepoznata'}`);
+    } else {
+      leftColumnFilters.push(`Avio Kompanije: Sve kompanije`);
     }
-    if (filterTrafficType !== '__ALL__') filterInfo += `\n - Tip Saobraćaja: ${filterTrafficType}`;
-    if (filterDateFrom) filterInfo += `\n - Datum Od: ${format(filterDateFrom, 'dd.MM.yyyy')}`;
-    if (filterDateTo) filterInfo += `\n - Datum Do: ${format(filterDateTo, 'dd.MM.yyyy')}`;
-    if (filterDestination) filterInfo += `\n - Destinacija: ${filterDestination}`;
-    if (filterCurrency !== '__ALL__') filterInfo += `\n - Valuta: ${filterCurrency}`;
-
-    if (filterInfo === 'Primijenjeni filteri:') {
-      filterInfo += ' Nijedan';
+    
+    // Prikaz tipa saobraćaja
+    if (filterTrafficType !== '__ALL__') {
+      leftColumnFilters.push(`Tip Saobraćaja: ${filterTrafficType}`);
+    } else {
+      leftColumnFilters.push(`Tip Saobraćaja: Svi tipovi`);
+    }
+    
+    // Prikaz datuma
+    if (filterDateFrom) leftColumnFilters.push(`Datum Od: ${format(filterDateFrom, 'dd.MM.yyyy')}`);
+    if (filterDateTo) leftColumnFilters.push(`Datum Do: ${format(filterDateTo, 'dd.MM.yyyy')}`);
+    
+    // Prikaz destinacije
+    if (filterDestinations.length > 0) {
+      rightColumnFilters.push(`Destinacije: ${filterDestinations.join(', ')}`);
+    } else if (filterDestination && filterDestination !== '__ALL__') {
+      rightColumnFilters.push(`Destinacija: ${filterDestination}`);
+    } else {
+      rightColumnFilters.push(`Destinacija: Sve destinacije`);
+    }
+    
+    // Prikaz valute
+    if (filterCurrency !== '__ALL__') {
+      rightColumnFilters.push(`Valuta: ${filterCurrency}`);
+    } else {
+      rightColumnFilters.push(`Valuta: Sve valute`);
     }
 
-    doc.text(filterInfo, 14, 32);
+    // Prikaz filtera u dvije kolone
+    doc.setFontSize(11);
+    doc.setFont(FONT_NAME, 'bold');
+    doc.text('Primijenjeni filteri:', 14, 32);
+    
+    doc.setFont(FONT_NAME, 'normal');
+    doc.setFontSize(10);
+    
+    // Helper function to wrap text
+    const wrapText = (text: string, maxWidth: number, x: number, startY: number) => {
+      const words = text.split(' ');
+      const lines: string[] = [];
+      let currentLine = '';
+      
+      words.forEach(word => {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        const testWidth = doc.getTextWidth(testLine);
+        
+        if (testWidth <= maxWidth) {
+          currentLine = testLine;
+        } else {
+          if (currentLine) {
+            lines.push(currentLine);
+            currentLine = word;
+          } else {
+            // Single word is too long, split it
+            lines.push(word);
+          }
+        }
+      });
+      
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+      
+      return lines;
+    };
+    
+    // Lijeva kolona
+    let leftY = 38;
+    leftColumnFilters.forEach((filter) => {
+      const lines = wrapText(`• ${filter}`, 80, 14, leftY);
+      lines.forEach(line => {
+        doc.text(line, 14, leftY);
+        leftY += 4;
+      });
+    });
+    
+    // Desna kolona
+    let rightY = 38;
+    rightColumnFilters.forEach((filter) => {
+      const lines = wrapText(`• ${filter}`, 80, 100, rightY);
+      lines.forEach(line => {
+        doc.text(line, 100, rightY);
+        rightY += 4;
+      });
+    });
 
     // Define table columns and prepare data with full column names for landscape orientation
     const tableColumn = [
@@ -710,10 +835,20 @@ export default function FuelOperationsReport() {
       tableRows.push(operationData);
     });
 
-    // Calculate appropriate startY based on filters
-    const startY = filterDateFrom || filterDateTo || filterAirlines.length > 0 || filterAirline !== '__ALL__' || 
-                  filterTrafficType !== '__ALL__' || filterDestination || 
-                  filterCurrency !== '__ALL__' ? 60 : 45;
+    // Calculate appropriate startY based on filters with text wrapping
+    const calculateFilterHeight = (filters: string[]) => {
+      let totalHeight = 0;
+      filters.forEach(filter => {
+        const lines = wrapText(`• ${filter}`, 80, 14, 0);
+        totalHeight += lines.length * 4;
+      });
+      return totalHeight;
+    };
+    
+    const leftHeight = calculateFilterHeight(leftColumnFilters);
+    const rightHeight = calculateFilterHeight(rightColumnFilters);
+    const maxFilterHeight = Math.max(leftHeight, rightHeight);
+    const startY = maxFilterHeight > 0 ? 38 + maxFilterHeight + 10 : 45;
     
     // Helper function to add the summary information
     const addSummary = (doc: jsPDF, x: number, y: number) => {
@@ -786,6 +921,86 @@ export default function FuelOperationsReport() {
       doc.text(`Stranica ${currentPage}`, doc.internal.pageSize.width - 20, doc.internal.pageSize.height - 10);
     };
 
+    // Helper function to add airline breakdown table
+    const addAirlineBreakdown = (doc: jsPDF, x: number, y: number) => {
+      const airlineData = getAirlineBreakdown();
+      const airlineNames = Object.keys(airlineData);
+      
+      if (airlineNames.length === 0) return y;
+      
+      // Set title
+      doc.setFont(FONT_NAME, 'bold');
+      doc.setFontSize(14);
+      doc.text('RAZČLANJENO PO AVIOKOMPANIJAMA', x, y);
+      
+      // Prepare table data
+      const tableColumn = [
+        "Avio Kompanija",
+        "Količina (L)",
+        "Količina (kg)",
+        "Promet USD",
+        "Promet EUR", 
+        "Promet BAM"
+      ];
+      
+      const tableRows: any[][] = [];
+      
+      airlineNames.forEach(airlineName => {
+        const data = airlineData[airlineName];
+        const row = [
+          airlineName,
+          data.liters.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+          data.kg.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+          (data.revenue['USD'] || 0).toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          (data.revenue['EUR'] || 0).toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          (data.revenue['BAM'] || 0).toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        ];
+        tableRows.push(row);
+      });
+      
+      // Generate airline breakdown table
+      autoTable(doc, {
+        margin: { top: y + 10, right: 10, bottom: 20, left: x },
+        head: [tableColumn],
+        body: tableRows,
+        theme: 'grid',
+        headStyles: { 
+          fillColor: [22, 160, 133],
+          font: FONT_NAME,
+          fontStyle: 'bold',
+          fontSize: 10,
+          halign: 'center',
+          valign: 'middle',
+          minCellHeight: 12
+        },
+        styles: { 
+          font: FONT_NAME,
+          fontSize: 9, 
+          cellPadding: 3,
+          lineColor: [200, 200, 200],
+          lineWidth: 0.1,
+          valign: 'middle'
+        },
+        columnStyles: {
+          0: { cellWidth: 50, halign: 'left' },   // Avio Kompanija
+          1: { cellWidth: 25, halign: 'right' },  // Količina (L)
+          2: { cellWidth: 25, halign: 'right' },  // Količina (kg)
+          3: { cellWidth: 25, halign: 'right' },  // Promet USD
+          4: { cellWidth: 25, halign: 'right' },  // Promet EUR
+          5: { cellWidth: 25, halign: 'right' }   // Promet BAM
+        },
+        didDrawPage: function (data) {
+          // Add page number
+          doc.setFont(FONT_NAME, 'normal');
+          doc.setFontSize(8);
+          const footerY = doc.internal.pageSize.height - 20;
+          doc.text(`Stranica ${data.pageNumber}`, doc.internal.pageSize.width - 20, footerY + 8);
+        }
+      });
+      
+      return doc.internal.pageSize.height - 20; // Return Y position after table
+    };
+
     // Generate table with improved styling
     autoTable(doc, {
       margin: { top: 25, right: 5, bottom: 25, left: 5 },
@@ -793,6 +1008,7 @@ export default function FuelOperationsReport() {
       body: tableRows,
       startY: startY,
       theme: 'grid',
+      rowPageBreak: 'avoid', // Osigurava da se cijeli red prebaci na sljedeću stranicu, ali dozvoljava tabelu da počne na prvoj stranici
       headStyles: { 
         fillColor: [22, 160, 133],
         font: FONT_NAME,
@@ -831,6 +1047,8 @@ export default function FuelOperationsReport() {
             },
         14: { cellWidth: 17, halign: 'center' }  // Tip Saobraćaja (Pomaknut na indeks 14)
       },
+
+
       didDrawPage: function (data) {
         // Add page number on every page
         doc.setFont(FONT_NAME, 'normal');
@@ -838,17 +1056,8 @@ export default function FuelOperationsReport() {
         const footerY = doc.internal.pageSize.height - 20;
         doc.text(`Stranica ${data.pageNumber}`, doc.internal.pageSize.width - 20, footerY + 8);
       },
-      didParseCell: function(data) {
-        // Track the last row to determine when we're at the end of the table
-        if (data.section === 'body') {
-          // Use a custom property to track the last row
-          // @ts-ignore - Adding custom property to track last row
-          if (!data.table._lastRow || data.row.index > data.table._lastRow) {
-            // @ts-ignore - Adding custom property to track last row
-            data.table._lastRow = data.row.index;
-          }
-        }
-      },
+
+
       didDrawCell: function(data) {
         // Boldiranje MRN podataka
         if (data.column.dataKey === 'mrnData' && data.cell.section === 'body' && data.row.raw) {
@@ -885,33 +1094,18 @@ export default function FuelOperationsReport() {
           }
         }
 
-        // Check if this is the last cell of the last row for summary
-        // @ts-ignore - Using custom property to track last row
-        if (data.section === 'body' && 
-            // @ts-ignore - Using custom property to track last row
-            data.row.index === data.table._lastRow && 
-            data.column.index === data.table.columns.length - 1) {
-          
-          // We've drawn the last cell, now add the summary
-          // Either on the current page if there's enough space, or on a new page
-          
-          // Calculate required height for summary
-          const summaryHeight = 40; // Approximate height needed for summary in mm
-          const pageHeight = doc.internal.pageSize.height;
-          const currentY = data.cell.y + data.cell.height;
-          const remainingSpace = pageHeight - currentY - 20; // 20mm margin at bottom
-          
-          // If not enough space on current page, add a new page
-          if (remainingSpace < summaryHeight) {
-            doc.addPage();
-            addSummary(doc, data.settings.margin.left, 40); // Start at 40mm from top of new page
-          } else {
-            // Add summary on current page with some spacing
-            addSummary(doc, data.settings.margin.left, currentY + 15);
-          }
-        }
+
       }
     });
+
+    // Add summary and airline breakdown after the main table
+    doc.addPage();
+    
+    // Add summary on the left side
+    addSummary(doc, 10, 40);
+    
+    // Add airline breakdown on the right side
+    addAirlineBreakdown(doc, 110, 40);
 
     doc.save('izvjestaj_operacija_goriva.pdf');
   };
@@ -1138,19 +1332,70 @@ export default function FuelOperationsReport() {
                 </div>
                 
                 <div className="space-y-2">
-                  <label htmlFor="destination" className="text-sm font-medium text-gray-700 dark:text-gray-300">Destinacija</label>
-                  <Select value={filterDestination} onValueChange={setFilterDestination}>
-                    <SelectTrigger id="destination">
-                      <SelectValue placeholder="Sve destinacije" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {destinationOptions.map(option => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <label htmlFor="destinations" className="text-sm font-medium text-gray-700 dark:text-gray-300">Destinacije</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal bg-gray-50 dark:bg-gray-900"
+                        disabled={destinationOptions.length === 0}
+                      >
+                        <TruckIcon className="mr-2 h-4 w-4" />
+                        {filterDestinations.length === 0 
+                          ? "Sve destinacije" 
+                          : filterDestinations.length === 1
+                          ? filterDestinations[0]
+                          : `${filterDestinations.length} destinacija odabrano`
+                        }
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-0" align="start">
+                      <div className="p-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="select-all-destinations"
+                              checked={filterDestinations.length === destinationOptions.length - 1 && destinationOptions.length > 1}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFilterDestinations(destinationOptions.filter(opt => opt.value !== '__ALL__').map(opt => opt.value));
+                                } else {
+                                  setFilterDestinations([]);
+                                }
+                              }}
+                              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="select-all-destinations" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                              Odaberi sve
+                            </label>
+                          </div>
+                          <div className="border-t border-gray-200 dark:border-gray-700 pt-2">
+                            {destinationOptions.filter(option => option.value !== '__ALL__').map(destination => (
+                              <div key={destination.value} className="flex items-center space-x-2 py-1">
+                                <input
+                                  type="checkbox"
+                                  id={`destination-${destination.value}`}
+                                  checked={filterDestinations.includes(destination.value)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setFilterDestinations([...filterDestinations, destination.value]);
+                                    } else {
+                                      setFilterDestinations(filterDestinations.filter(dest => dest !== destination.value));
+                                    }
+                                  }}
+                                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                                />
+                                <label htmlFor={`destination-${destination.value}`} className="text-sm text-gray-700 dark:text-gray-300">
+                                  {destination.label}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 <div className="space-y-2">
@@ -1186,6 +1431,7 @@ export default function FuelOperationsReport() {
                       setFilterDateTo(lastDayOfMonth);
                       
                       setFilterDestination('__ALL__'); // Reset to all destinations
+                      setFilterDestinations([]); // Reset multi-destination filter
                       setFilterCurrency('__ALL__');
                     }} 
                     variant="outline"
@@ -1434,7 +1680,11 @@ export default function FuelOperationsReport() {
                           const airline = airlines.find(a => a.id.toString() === filterAirline);
                           if (airline) filterDesc.push(`Kompanija: ${airline.name}`);
                         }
-                        if (filterDestination) filterDesc.push(`Destinacija: ${filterDestination}`);
+                        if (filterDestinations.length > 0) {
+                          filterDesc.push(`Destinacije: ${filterDestinations.join(', ')}`);
+                        } else if (filterDestination && filterDestination !== '__ALL__') {
+                          filterDesc.push(`Destinacija: ${filterDestination}`);
+                        }
                         if (filterTrafficType && filterTrafficType !== '__ALL__') filterDesc.push(`Tip saobraćaja: ${filterTrafficType}`);
                         if (filterCurrency && filterCurrency !== '__ALL__') filterDesc.push(`Valuta: ${filterCurrency}`);
                         
@@ -1478,7 +1728,11 @@ export default function FuelOperationsReport() {
                           const airline = airlines.find(a => a.id.toString() === filterAirline);
                           if (airline) filterDesc.push(`Kompanija: ${airline.name}`);
                         }
-                        if (filterDestination) filterDesc.push(`Destinacija: ${filterDestination}`);
+                        if (filterDestinations.length > 0) {
+                          filterDesc.push(`Destinacije: ${filterDestinations.join(', ')}`);
+                        } else if (filterDestination && filterDestination !== '__ALL__') {
+                          filterDesc.push(`Destinacija: ${filterDestination}`);
+                        }
                         if (filterTrafficType && filterTrafficType !== '__ALL__') filterDesc.push(`Tip saobraćaja: ${filterTrafficType}`);
                         if (filterCurrency && filterCurrency !== '__ALL__') filterDesc.push(`Valuta: ${filterCurrency}`);
                         
@@ -1521,7 +1775,11 @@ export default function FuelOperationsReport() {
                           const airline = airlines.find(a => a.id.toString() === filterAirline);
                           if (airline) filterDesc.push(`Kompanija: ${airline.name}`);
                         }
-                        if (filterDestination) filterDesc.push(`Destinacija: ${filterDestination}`);
+                        if (filterDestinations.length > 0) {
+                          filterDesc.push(`Destinacije: ${filterDestinations.join(', ')}`);
+                        } else if (filterDestination && filterDestination !== '__ALL__') {
+                          filterDesc.push(`Destinacija: ${filterDestination}`);
+                        }
                         if (filterTrafficType && filterTrafficType !== '__ALL__') filterDesc.push(`Tip saobraćaja: ${filterTrafficType}`);
                         if (filterCurrency && filterCurrency !== '__ALL__') filterDesc.push(`Valuta: ${filterCurrency}`);
                         
