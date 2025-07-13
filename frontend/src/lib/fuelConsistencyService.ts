@@ -38,6 +38,21 @@ export interface ConsistencyCorrectionResponse {
   message: string;
 }
 
+export interface ReconciliationResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    tankId: number;
+    tankName: string;
+    beforeKg: number;
+    afterKg: number;
+    beforeLiters: number;
+    afterLiters: number;
+    adjustmentKg: number;
+    adjustmentLiters: number;
+  };
+}
+
 /**
  * Servis za upravljanje konzistentnosti podataka o gorivu
  */
@@ -175,6 +190,53 @@ const fuelConsistencyService = {
     } catch (error: any) {
       console.error('Greška pri zahtjevu za override token:', error);
       throw new Error(error.message || 'Neuspješan zahtjev za override token');
+    }
+  },
+
+  /**
+   * Izvršava reconciliation za pojedinačni tank
+   * @param tankId ID tanka
+   */
+  async reconcileSingleTank(tankId: number): Promise<ReconciliationResponse> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/density-reconciliation/reconcile/tank/${tankId}`, {
+        method: 'POST',
+        headers: getAuthHeader()
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Neuspješna reconciliation tanka');
+      }
+      
+      const result = await response.json();
+      return result;
+    } catch (error: any) {
+      console.error('Greška pri reconciliation tanka:', error);
+      throw new Error(error.message || 'Neuspješna reconciliation tanka');
+    }
+  },
+
+  /**
+   * Izvršava reconciliation za sve tankove
+   */
+  async reconcileAllTanks(): Promise<ReconciliationResponse> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/density-reconciliation/reconcile/all`, {
+        method: 'POST',
+        headers: getAuthHeader()
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Neuspješna reconciliation svih tankova');
+      }
+      
+      const result = await response.json();
+      return result;
+    } catch (error: any) {
+      console.error('Greška pri reconciliation svih tankova:', error);
+      throw new Error(error.message || 'Neuspješna reconciliation svih tankova');
     }
   }
 };

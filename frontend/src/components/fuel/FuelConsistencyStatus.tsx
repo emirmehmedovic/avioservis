@@ -3,11 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/badge';
 import { 
   AlertCircle, CheckCircle, AlertTriangle, 
-  RefreshCw, ArrowDown, ArrowUp 
+  RefreshCw, ArrowDown, ArrowUp, Wrench
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import fuelConsistencyService, { TankConsistencyResult } from '@/lib/fuelConsistencyService';
 import { formatNumber } from '@/lib/utils';
+import { toast } from 'react-hot-toast';
 
 interface FuelConsistencyStatusProps {
   tankId?: number; // Ako nije zadano, prikazujemo sve tankove
@@ -23,6 +24,7 @@ export default function FuelConsistencyStatus({
   const [consistencyResults, setConsistencyResults] = useState<TankConsistencyResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reconcilingTanks, setReconcilingTanks] = useState<Set<number>>(new Set());
 
   const loadConsistencyData = async () => {
     setLoading(true);
@@ -59,6 +61,31 @@ export default function FuelConsistencyStatus({
     return Math.abs(difference) > 50 
       ? <AlertCircle className="w-5 h-5 text-red-500" /> 
       : <AlertTriangle className="w-5 h-5 text-amber-500" />;
+  };
+
+  const handleIndividualReconciliation = async (tankId: number, tankName: string) => {
+    setReconcilingTanks(prev => new Set(prev).add(tankId));
+    
+    try {
+      const result = await fuelConsistencyService.reconcileSingleTank(tankId);
+      
+      if (result.success) {
+        toast.success(`Reconciliation uspješno izvršena za ${tankName}!`);
+        // Osvježavamo podatke
+        loadConsistencyData();
+      } else {
+        toast.error(`Greška pri reconciliation ${tankName}: ${result.message}`);
+      }
+    } catch (error: any) {
+      console.error('Greška pri individual reconciliation:', error);
+      toast.error(`Greška pri reconciliation ${tankName}: ${error.message}`);
+    } finally {
+      setReconcilingTanks(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(tankId);
+        return newSet;
+      });
+    }
   };
 
   if (loading) {
@@ -189,6 +216,29 @@ export default function FuelConsistencyStatus({
                     </Button>
                   </div>
                 )}
+
+                {/* Dugme za pojedinačnu reconciliation - prikazuje se za sve tankove */}
+                <div className="mt-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleIndividualReconciliation(result.tankId, result.tankName)}
+                    disabled={reconcilingTanks.has(result.tankId)}
+                    className="w-full text-blue-600 border-blue-200 hover:bg-blue-50"
+                  >
+                    {reconcilingTanks.has(result.tankId) ? (
+                      <>
+                        <Wrench className="w-4 h-4 mr-1 animate-spin" />
+                        Reconciliation u tijeku...
+                      </>
+                    ) : (
+                      <>
+                        <Wrench className="w-4 h-4 mr-1" />
+                        Reconciliation tanka
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             ))}
           </div>

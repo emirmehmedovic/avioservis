@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/Button';
 import { Info, AlertTriangle, RefreshCw } from 'lucide-react';
 import fuelConsistencyService, { TankConsistencyResult } from '@/lib/fuelConsistencyService';
 import { toast } from 'react-hot-toast';
-import { fetchWithAuth } from '@/lib/apiService';
 
 export default function FuelConsistencyPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -42,21 +41,18 @@ export default function FuelConsistencyPage() {
   const handleManualReconciliation = async () => {
     setIsReconciling(true);
     try {
-      const response = await fetchWithAuth('/api/density-reconciliation/reconcile/all', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const result = await fuelConsistencyService.reconcileAllTanks();
 
-      if (response) {
+      if (result.success) {
         toast.success('Ručna reconciliation uspješno izvršena!');
         // Osvježavamo prikaz nakon reconciliation
         setRefreshTrigger(prev => prev + 1);
+      } else {
+        toast.error(`Greška pri ručnoj reconciliation: ${result.message}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Greška prilikom ručne reconciliation:', error);
-      toast.error('Greška prilikom ručne reconciliation');
+      toast.error(`Greška prilikom ručne reconciliation: ${error.message}`);
     } finally {
       setIsReconciling(false);
     }
@@ -144,10 +140,23 @@ export default function FuelConsistencyPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <p className="text-gray-600">
-                Ručna reconciliation sinhronizuje stanje svih tankova sa MRN zapisima. 
-                Koristite ovo dugme kada primijetite nekonzistentnosti u podacima.
-              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-medium mb-2">Reconciliation pojedinačnih tankova</h4>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Svaki tank ima svoje dugme "Reconciliation tanka" koje možete koristiti za 
+                    sinhronizaciju stanja tog specifičnog tanka sa MRN zapisima.
+                  </p>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-2">Reconciliation svih tankova</h4>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Ovo dugme sinhronizuje stanje svih tankova sa MRN zapisima odjednom. 
+                    Koristite kada primijetite nekonzistentnosti u podacima.
+                  </p>
+                </div>
+              </div>
+              
               <Button 
                 onClick={handleManualReconciliation}
                 disabled={isReconciling}
@@ -161,7 +170,7 @@ export default function FuelConsistencyPage() {
                 ) : (
                   <>
                     <RefreshCw className="w-4 h-4 mr-2" />
-                    Pokreni ručnu reconciliation
+                    Pokreni reconciliation svih tankova
                   </>
                 )}
               </Button>

@@ -48,6 +48,14 @@ export interface FixedTankToFixedTankTransferPayload {
   quantityLiters: number;
 }
 
+// Payload for MRN-based transfer between fixed tanks
+export interface MrnTransferPayload {
+  sourceTankId: number;
+  destinationTankId: number;
+  mrnId: number;
+  notes?: string;
+}
+
 // API_BASE_URL should be the pure base, e.g., http://localhost:3001
 // The '/api' part will be added in each function call or within fetchWithAuth if preferred.
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
@@ -770,6 +778,17 @@ export const createFixedTankToFixedTankTransfer = async (
   payload: FixedTankToFixedTankTransferPayload
 ): Promise<any> => { // Consider a more specific return type based on backend response
   const url = `${API_BASE_URL}/api/fuel/fixed-tanks/internal-transfer`;
+  return fetchWithAuth<any>(url, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
+// Function for transferring specific MRN record between fixed tanks
+export const createMrnTransfer = async (
+  payload: MrnTransferPayload
+): Promise<any> => {
+  const url = `${API_BASE_URL}/api/fuel/fixed-tanks/mrn-transfer`;
   return fetchWithAuth<any>(url, {
     method: 'POST',
     body: JSON.stringify(payload),

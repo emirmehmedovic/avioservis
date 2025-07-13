@@ -1204,3 +1204,195 @@ export const getTankFuelByCustoms = async (req: Request, res: Response, next: Ne
     next(error);
   }
 };
+
+// POST /api/fuel/fixed-tanks/mrn-transfer - Transfer specific MRN record between fixed tanks
+export const transferMrnBetweenFixedTanks: RequestHandler = async (req, res, next): Promise<void> => {
+  const { sourceTankId, destinationTankId, mrnId, notes } = req.body;
+
+  // Validate input
+  if (!sourceTankId || !destinationTankId || !mrnId) {
+    res.status(400).json({ message: 'Source tank ID, destination tank ID, and MRN ID are required.' });
+    return;
+  }
+
+  try {
+    // Fetch both tanks
+    const sourceTank = await prisma.fixedStorageTanks.findUnique({
+      where: { id: Number(sourceTankId) },
+    });
+    const destinationTank = await prisma.fixedStorageTanks.findUnique({
+      where: { id: Number(destinationTankId) },
+    });
+
+    // Validations
+    if (!sourceTank) {
+      res.status(404).json({ message: `Source tank with ID ${sourceTankId} not found.` });
+      return;
+    }
+    if (!destinationTank) {
+      res.status(404).json({ message: `Destination tank with ID ${destinationTankId} not found.` });
+      return;
+    }
+    if (sourceTank.status !== FixedTankStatus.ACTIVE) {
+      res.status(400).json({ message: `Source tank '${sourceTank.tank_name}' is not active.` });
+      return;
+    }
+    if (destinationTank.status !== FixedTankStatus.ACTIVE) {
+      res.status(400).json({ message: `Destination tank '${destinationTank.tank_name}' is not active.` });
+      return;
+    }
+    if (sourceTank.fuel_type !== destinationTank.fuel_type) {
+      res.status(400).json({
+        message: `Fuel type mismatch: Source tank has '${sourceTank.fuel_type}', destination tank has '${destinationTank.fuel_type}'.`,
+      });
+      return;
+    }
+
+    // Get the specific MRN record
+    const mrnRecord = await prisma.tankFuelByCustoms.findUnique({
+      where: { id: Number(mrnId) },
+      include: {
+        fuelIntakeRecord: true
+      }
+    });
+
+    if (!mrnRecord) {
+      res.status(404).json({ message: `MRN record with ID ${mrnId} not found.` });
+      return;
+    }
+
+    if (mrnRecord.fixed_tank_id !== Number(sourceTankId)) {
+      res.status(400).json({ message: `MRN record does not belong to the source tank.` });
+      return;
+    }
+
+    if (Number(mrnRecord.remaining_quantity_liters) <= 0) {
+      res.status(400).json({ message: `MRN record has no remaining fuel to transfer.` });
+      return;
+    }
+
+    const transferQuantityLiters = Number(mrnRecord.remaining_quantity_liters);
+    const transferQuantityKg = Number(mrnRecord.remaining_quantity_kg || 0);
+
+    // Check destination tank capacity
+    const destinationTankAvailableCapacity = destinationTank.capacity_liters - destinationTank.current_quantity_liters;
+    if (destinationTankAvailableCapacity < transferQuantityLiters) {
+      res.status(400).json({
+        message: `Insufficient capacity in destination tank '${destinationTank.tank_name}'. Available capacity: ${destinationTankAvailableCapacity} L, Required: ${transferQuantityLiters} L.`,
+      });
+      return;
+    }
+
+    const transferPairId = uuidv4();
+    const transferTime = new Date();
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Remove the MRN record from source tank
+      await tx.tankFuelByCustoms.delete({
+        where: { id: Number(mrnId) }
+      });
+
+      // 2. Check if destination tank already has this MRN
+      const existingDestinationMrn = await tx.tankFuelByCustoms.findFirst({
+        where: { 
+          fixed_tank_id: destinationTank.id,
+          customs_declaration_number: mrnRecord.customs_declaration_number
+        }
+      });
+
+      if (existingDestinationMrn) {
+        // Update existing MRN record in destination tank
+        await tx.tankFuelByCustoms.update({
+          where: { id: existingDestinationMrn.id },
+          data: {
+            remaining_quantity_liters: {
+              increment: transferQuantityLiters
+            },
+            remaining_quantity_kg: {
+              increment: transferQuantityKg
+            }
+          }
+        });
+      } else {
+        // Create new MRN record in destination tank
+        await tx.tankFuelByCustoms.create({
+          data: {
+            fixed_tank_id: destinationTank.id,
+            fuel_intake_record_id: mrnRecord.fuel_intake_record_id,
+            customs_declaration_number: mrnRecord.customs_declaration_number,
+            quantity_liters: transferQuantityLiters,
+            remaining_quantity_liters: transferQuantityLiters,
+            quantity_kg: transferQuantityKg,
+            remaining_quantity_kg: transferQuantityKg,
+            date_added: new Date()
+          }
+        });
+      }
+
+      // 3. Update tank quantities
+      await tx.fixedStorageTanks.update({
+        where: { id: sourceTank.id },
+        data: { 
+          current_quantity_liters: { decrement: transferQuantityLiters },
+          current_quantity_kg: { decrement: transferQuantityKg }
+        },
+      });
+
+      await tx.fixedStorageTanks.update({
+        where: { id: destinationTank.id },
+        data: { 
+          current_quantity_liters: { increment: transferQuantityLiters },
+          current_quantity_kg: { increment: transferQuantityKg }
+        },
+      });
+      
+      // 4. Create TRANSFER_OUT record
+      await tx.fixedTankTransfers.create({
+        data: {
+          activity_type: FixedTankActivityType.INTERNAL_TRANSFER_OUT,
+          affected_fixed_tank_id: sourceTank.id,
+          counterparty_fixed_tank_id: destinationTank.id,
+          internal_transfer_pair_id: transferPairId,
+          quantity_liters_transferred: transferQuantityLiters,
+          quantity_kg_transferred: transferQuantityKg,
+          transfer_datetime: transferTime,
+          notes: notes || `MRN transfer: ${mrnRecord.customs_declaration_number}`,
+        },
+      });
+
+      // 5. Create TRANSFER_IN record
+      await tx.fixedTankTransfers.create({
+        data: {
+          activity_type: FixedTankActivityType.INTERNAL_TRANSFER_IN,
+          affected_fixed_tank_id: destinationTank.id,
+          counterparty_fixed_tank_id: sourceTank.id,
+          internal_transfer_pair_id: transferPairId,
+          quantity_liters_transferred: transferQuantityLiters,
+          quantity_kg_transferred: transferQuantityKg,
+          transfer_datetime: transferTime,
+          notes: notes || `MRN transfer: ${mrnRecord.customs_declaration_number}`,
+        },
+      });
+    });
+
+    res.status(200).json({ 
+      message: 'MRN transfer successful.',
+      data: {
+        mrnNumber: mrnRecord.customs_declaration_number,
+        quantityLiters: transferQuantityLiters,
+        quantityKg: transferQuantityKg,
+        sourceTank: sourceTank.tank_name,
+        destinationTank: destinationTank.tank_name
+      }
+    });
+    return;
+
+  } catch (error: any) {
+    console.error('[TransferMrn] Error during MRN transfer:', error);
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        res.status(500).json({ message: 'Database transaction failed.', details: error.message });
+        return;
+    }
+    next(error);
+  }
+};

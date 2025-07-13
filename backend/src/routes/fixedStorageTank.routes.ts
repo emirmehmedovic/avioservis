@@ -12,6 +12,7 @@ import {
   getTotalFixedTankIntake,
   getCombinedIntakeHistoryList,
   transferFuelBetweenFixedTanks,
+  transferMrnBetweenFixedTanks,
   getTankFuelByCustoms,
   getMrnTransactionHistory
 } from '../controllers/fixedStorageTank.controller';
@@ -19,6 +20,7 @@ import {
   createFixedStorageTankRules, 
   updateFixedStorageTankRules, 
   transferFuelBetweenFixedTanksRules, 
+  transferMrnBetweenFixedTanksRules,
   validate 
 } from '../validators/fixedStorageTank.validators';
 import { authenticateToken } from '../middleware/auth';
@@ -119,5 +121,9 @@ router.get('/summary/all-intakes-list', getCombinedIntakeHistoryList);
 // Transfer fuel between two fixed storage tanks
 // POST /api/fuel/fixed-tanks/internal-transfer
 router.post('/internal-transfer', transferFuelBetweenFixedTanksRules, validate, transferFuelBetweenFixedTanks);
+
+// Transfer specific MRN record between fixed storage tanks
+// POST /api/fuel/fixed-tanks/mrn-transfer
+router.post('/mrn-transfer', transferMrnBetweenFixedTanksRules, validate, transferMrnBetweenFixedTanks);
 
 export default router;

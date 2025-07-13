@@ -104,6 +104,28 @@ export const transferFuelBetweenFixedTanksRules = [
     .withMessage('Quantity in liters must be a positive number.'),
 ];
 
+export const transferMrnBetweenFixedTanksRules = [
+  body('sourceTankId')
+    .isInt({ gt: 0 })
+    .withMessage('Source tank ID must be a positive integer.'),
+  body('destinationTankId')
+    .isInt({ gt: 0 })
+    .withMessage('Destination tank ID must be a positive integer.')
+    .custom((value, { req }) => {
+      if (value === req.body.sourceTankId) {
+        throw new Error('Destination tank ID cannot be the same as source tank ID.');
+      }
+      return true;
+    }),
+  body('mrnId')
+    .isInt({ gt: 0 })
+    .withMessage('MRN ID must be a positive integer.'),
+  body('notes')
+    .optional()
+    .isString()
+    .withMessage('Notes must be a string if provided.'),
+];
+
 export const validate = (req: Request, res: Response, next: NextFunction) => {
   const errors = validationResult(req);
   if (errors.isEmpty()) {
