@@ -276,7 +276,6 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
       'Quantity (L)', 
       'Quantity (kg)', 
       'Price/kg', 
-      'Discount (%)', 
       'Amount'
     ];
     
@@ -287,7 +286,6 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
         `${(operation.quantity_liters || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 })}`,
         `${(operation.quantity_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 })}`,
         `${(operation.price_per_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 5 })} ${operation.currency || 'BAM'}`,
-        `${operation.discount_percentage || '0'}%`,
         `${(Number(netAmount) || 0).toFixed(2).replace('.', ',')} ${operation.currency || 'BAM'}`
       ]
     ];
@@ -315,9 +313,8 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
         1: { cellWidth: 25 },     // Tip goriva
         2: { cellWidth: 25 },     // Količina (L)
         3: { cellWidth: 25 },     // Količina (kg)
-        4: { cellWidth: 25 },     // Cijena/kg
-        5: { cellWidth: 20 },     // Rabat (%)
-        6: { cellWidth: 30 }      // Iznos
+        4: { cellWidth: 30 },     // Cijena/kg
+        5: { cellWidth: 35 }      // Iznos
       },
       margin: { left: 14, right: 14 },
       didDrawPage: (data) => {

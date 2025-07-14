@@ -19,8 +19,89 @@ export const generateXMLInvoice = (operation: FuelingOperation): string => {
 
   // Format the date in YYYY-MM-DD format
   const invoiceDate = dayjs(operation.dateTime).format('YYYY-MM-DD');
-  const invoiceDateTime = dayjs(operation.dateTime).format('YYYY-MM-DDTkk:mm:ss');
   
+  // Get customer details from airline data in the system
+  const getCustomerDetails = (airline: any) => {
+    if (!airline) return null;
+    // Map for Wizz Air entities (keys are normalized to uppercase, no dots, trimmed)
+    const wizzAirEntities: Record<string, {
+      vatNumber: string;
+      name: string;
+      street: string;
+      city: string;
+      countryCode: string;
+      postalCode: string;
+    }> = {
+      'WIZZ AIR HUNGARY LTD': {
+        vatNumber: '26648525-2-44',
+        name: 'Wizz Air Hungary Ltd.',
+        street: 'Lechner Ödön fasor 6',
+        city: 'Budapest',
+        countryCode: 'HU',
+        postalCode: '1095'
+      },
+      'WIZZ AIR MALTA LTD': {
+        vatNumber: 'MT16818421006',
+        name: 'Wizz Air Malta Limited',
+        street: 'Skyparks Business Centre, Level 2, Malta International Airport',
+        city: 'Luqa',
+        countryCode: 'MT',
+        postalCode: 'LQA 4000'
+      },
+      'WIZZ AIR UK LTD': {
+        vatNumber: 'GB289124477',
+        name: 'Wizz Air UK Ltd.',
+        street: 'Percival House, 134 Percival Way, London Luton Airport',
+        city: 'Luton',
+        countryCode: 'GB',
+        postalCode: 'LU2 9NU'
+      },
+      'WIZZ AIR ABU DHABI LLC': {
+        vatNumber: '100476688500003',
+        name: 'Wizz Air Abu Dhabi L.L.C.',
+        street: 'Business Park 01, Plot P6, Office 208, Abu Dhabi International Airport',
+        city: 'Abu Dhabi',
+        countryCode: 'AE',
+        postalCode: '00000'
+      }
+    };
+    // Normalize name for matching
+    const normalizedName: string = (airline.name || '').toUpperCase().replace(/\./g, '').trim();
+    if (wizzAirEntities[normalizedName]) {
+      return wizzAirEntities[normalizedName];
+    }
+    // Fallback: parse from DB as before
+    const address = airline.address || '';
+    const addressParts = address.split(',').map((part: string) => part.trim());
+    let city = 'N/A';
+    let postalCode = 'N/A';
+    if (addressParts.length > 0) {
+      const lastPart = addressParts[addressParts.length - 1];
+      const postalCodeMatch = lastPart.match(/(\d{4,5})\s*(.+)/);
+      if (postalCodeMatch) {
+        postalCode = postalCodeMatch[1];
+        city = postalCodeMatch[2];
+      } else {
+        city = lastPart;
+      }
+    }
+    return {
+      vatNumber: airline.taxId || 'N/A',
+      name: airline.name || 'N/A',
+      street: addressParts.length > 1 ? addressParts.slice(0, -1).join(', ') : address,
+      city: city,
+      countryCode: airline.country_code || 'BA',
+      postalCode: postalCode
+    };
+  };
+  
+  const customerDetails = getCustomerDetails(operation.airline);
+  
+  // Ensure correct time format for all date/time fields
+  const invoiceDateTime = dayjs(operation.dateTime).format('YYYY-MM-DDTHH:mm:ss');
+  const taxPointDate = dayjs(operation.dateTime).format('YYYY-MM-DDTHH:mm:ss');
+  const paymentDueDate = dayjs(invoiceDate).add(15, 'day').format('YYYY-MM-DDTHH:mm:ss');
+
   // Generate a unique invoice transmission ID
   const locationCode = operation.destination?.substring(0, 3).toUpperCase() || 'TZL';
   const invoiceTransmissionId = `${locationCode}-${operation.id}-${invoiceDate}`;
@@ -39,11 +120,33 @@ export const generateXMLInvoice = (operation: FuelingOperation): string => {
       <IssuingEntityID>4200468580006</IssuingEntityID>
       <InvoiceNumber>INV-${operation.delivery_note_number || operation.id}-${new Date().getFullYear()}</InvoiceNumber>
       <InvoiceIssueDate>${invoiceDate}</InvoiceIssueDate>
-      <InvoiceType InvoiceTransactionType="CA">INV</InvoiceType>  
+      <InvoiceType InvoiceTransactionType="FI">INV</InvoiceType>
       <InvoiceDeliveryLocation>${locationCode}</InvoiceDeliveryLocation>
+      <InvoicePaymentTermsType>EF14</InvoicePaymentTermsType>
+      <InvoicePaymentTermsDateBasis>ID</InvoicePaymentTermsDateBasis>
+      <InvoicePaymentTermsNetDueDate>${paymentDueDate}</InvoicePaymentTermsNetDueDate>
+      <InvoicePaymentTermsNetDueDays>15</InvoicePaymentTermsNetDueDays>
+      <InvoicePaymentTermsDescription>Payment due 15 days from invoice issue date</InvoicePaymentTermsDescription>
       <TaxInvoiceNumber>INV-${operation.delivery_note_number || operation.id}-${new Date().getFullYear()}</TaxInvoiceNumber>
+      <TaxPointDate>${taxPointDate}</TaxPointDate>
       <InvoiceCurrencyCode>${operation.currency || 'BAM'}</InvoiceCurrencyCode>
       <InvoiceTotalAmount>${totalAmount}</InvoiceTotalAmount>
+      <InvoiceIDDetails InvoiceIDType="II">
+        <InvoiceIDVATRegistrationNumber>4200468580006</InvoiceIDVATRegistrationNumber>
+        <InvoiceIDName1>HIFA-PETROL d.o.o. Sarajevo</InvoiceIDName1>
+        <InvoiceIDStreet1>Hotonj bb</InvoiceIDStreet1>
+        <InvoiceIDCity>Vogosca</InvoiceIDCity>
+        <InvoiceIDCountryCode>BA</InvoiceIDCountryCode>
+        <InvoiceIDPostalCode>71320</InvoiceIDPostalCode>
+      </InvoiceIDDetails>
+      <InvoiceIDDetails InvoiceIDType="BT">
+        <InvoiceIDVATRegistrationNumber>${customerDetails?.vatNumber || 'N/A'}</InvoiceIDVATRegistrationNumber>
+        <InvoiceIDName1>${customerDetails?.name || 'N/A'}</InvoiceIDName1>
+        <InvoiceIDStreet1>${customerDetails?.street || 'N/A'}</InvoiceIDStreet1>
+        <InvoiceIDCity>${customerDetails?.city || 'N/A'}</InvoiceIDCity>
+        <InvoiceIDCountryCode>${customerDetails?.countryCode || 'BA'}</InvoiceIDCountryCode>
+        <InvoiceIDPostalCode>${customerDetails?.postalCode || 'N/A'}</InvoiceIDPostalCode>
+      </InvoiceIDDetails>
     </InvoiceHeader>
     <SubInvoiceHeader>
       <InvoiceLine>
@@ -114,7 +217,7 @@ export const generateConsolidatedXMLInvoice = (operations: FuelingOperation[], f
   // Format the dates
   const startDate = dayjs(firstOperation.dateTime).format('YYYY-MM-DD');
   const endDate = dayjs(lastOperation.dateTime).format('YYYY-MM-DD');
-  const invoiceDateTime = dayjs().format('YYYY-MM-DDTkk:mm:ss');
+  const invoiceDateTime = dayjs().format('YYYY-MM-DDTHH:mm:ss');
   const invoiceDate = dayjs().format('YYYY-MM-DD');
   
   // Generate a unique invoice transmission ID
@@ -123,6 +226,46 @@ export const generateConsolidatedXMLInvoice = (operations: FuelingOperation[], f
   
   // Calculate totals
   const totalAmount = operations.reduce((sum, op) => sum + (op.total_amount || 0), 0);
+  
+  // Calculate payment due date (15 days from issue date)
+  const paymentDueDate = dayjs(invoiceDate).add(15, 'day').format('YYYY-MM-DDTHH:mm:ss[Z]');
+  const taxPointDate = dayjs(firstOperation.dateTime).format('YYYY-MM-DDTHH:mm:ss[Z]');
+  
+  // Get customer details from airline data in the system
+  const getCustomerDetails = (airline: any) => {
+    if (!airline) return null;
+    
+    // Parse address to extract city and postal code if available
+    const address = airline.address || '';
+    const addressParts = address.split(',').map((part: string) => part.trim());
+    
+    // Try to extract city and postal code from address
+    let city = 'N/A';
+    let postalCode = 'N/A';
+    
+    if (addressParts.length > 0) {
+      // Last part might be postal code + city
+      const lastPart = addressParts[addressParts.length - 1];
+      const postalCodeMatch = lastPart.match(/(\d{4,5})\s*(.+)/);
+      if (postalCodeMatch) {
+        postalCode = postalCodeMatch[1];
+        city = postalCodeMatch[2];
+      } else {
+        city = lastPart;
+      }
+    }
+    
+    return {
+      vatNumber: airline.taxId || 'N/A',
+      name: airline.name || 'N/A',
+      street: addressParts.length > 1 ? addressParts.slice(0, -1).join(', ') : address,
+      city: city,
+      countryCode: airline.country_code || 'BA',
+      postalCode: postalCode
+    };
+  };
+  
+  const customerDetails = getCustomerDetails(firstOperation.airline);
   
   // Determine the most common currency
   const currencyCounts = operations.reduce((acc, op) => {
@@ -144,7 +287,7 @@ export const generateConsolidatedXMLInvoice = (operations: FuelingOperation[], f
   const invoiceLines = sortedOperations.map((operation, index) => {
     const quantityLiters = parseFloat(operation.quantity_liters as any || '0');
     const quantityKg = parseFloat(operation.quantity_kg as any || '0');
-    const operationDate = dayjs(operation.dateTime).format('YYYY-MM-DDTkk:mm:ss');
+    const operationDate = dayjs(operation.dateTime).format('YYYY-MM-DDTHH:mm:ss');
     
     return `
       <InvoiceLine>
@@ -196,11 +339,33 @@ export const generateConsolidatedXMLInvoice = (operations: FuelingOperation[], f
       <IssuingEntityID>4200468580006</IssuingEntityID>
       <InvoiceNumber>CONS-INV-${dayjs().format('YYYYMMDD')}-${new Date().getFullYear()}</InvoiceNumber>
       <InvoiceIssueDate>${invoiceDate}</InvoiceIssueDate>
-      <InvoiceType InvoiceTransactionType="CA">INV</InvoiceType>  
+      <InvoiceType InvoiceTransactionType="FI">INV</InvoiceType>
       <InvoiceDeliveryLocation>${locationCode}</InvoiceDeliveryLocation>
+      <InvoicePaymentTermsType>EF14</InvoicePaymentTermsType>
+      <InvoicePaymentTermsDateBasis>ID</InvoicePaymentTermsDateBasis>
+      <InvoicePaymentTermsNetDueDate>${paymentDueDate}</InvoicePaymentTermsNetDueDate>
+      <InvoicePaymentTermsNetDueDays>15</InvoicePaymentTermsNetDueDays>
+      <InvoicePaymentTermsDescription>Payment due 15 days from invoice issue date</InvoicePaymentTermsDescription>
       <TaxInvoiceNumber>CONS-INV-${dayjs().format('YYYYMMDD')}-${new Date().getFullYear()}</TaxInvoiceNumber>
+      <TaxPointDate>${taxPointDate}</TaxPointDate>
       <InvoiceCurrencyCode>${mostCommonCurrency}</InvoiceCurrencyCode>
       <InvoiceTotalAmount>${totalAmount}</InvoiceTotalAmount>
+      <InvoiceIDDetails InvoiceIDType="II">
+        <InvoiceIDVATRegistrationNumber>4200468580006</InvoiceIDVATRegistrationNumber>
+        <InvoiceIDName1>HIFA-PETROL d.o.o. Sarajevo</InvoiceIDName1>
+        <InvoiceIDStreet1>Hotonj bb</InvoiceIDStreet1>
+        <InvoiceIDCity>Vogosca</InvoiceIDCity>
+        <InvoiceIDCountryCode>BA</InvoiceIDCountryCode>
+        <InvoiceIDPostalCode>71320</InvoiceIDPostalCode>
+      </InvoiceIDDetails>
+      <InvoiceIDDetails InvoiceIDType="BT">
+        <InvoiceIDVATRegistrationNumber>${customerDetails?.vatNumber || 'N/A'}</InvoiceIDVATRegistrationNumber>
+        <InvoiceIDName1>${customerDetails?.name || 'N/A'}</InvoiceIDName1>
+        <InvoiceIDStreet1>${customerDetails?.street || 'N/A'}</InvoiceIDStreet1>
+        <InvoiceIDCity>${customerDetails?.city || 'N/A'}</InvoiceIDCity>
+        <InvoiceIDCountryCode>${customerDetails?.countryCode || 'BA'}</InvoiceIDCountryCode>
+        <InvoiceIDPostalCode>${customerDetails?.postalCode || 'N/A'}</InvoiceIDPostalCode>
+      </InvoiceIDDetails>
     </InvoiceHeader>
     <SubInvoiceHeader>${invoiceLines}
     </SubInvoiceHeader>

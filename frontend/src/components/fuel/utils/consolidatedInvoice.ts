@@ -304,7 +304,7 @@ export const generateConsolidatedPDFInvoice = async (operations: FuelingOperatio
     doc.text('OPERATIONS OVERVIEW:', 14, 20); // Počni od vrha nove stranice
     doc.setFont(FONT_NAME, 'normal');
     
-    const tableColumn = ['Date', 'Aircraft Reg.', 'Destination', 'MRN', 'Delivery Note', 'Qty (L)', 'Qty (kg)', 'Price/kg', 'Discount', 'Amount', 'Currency'];
+    const tableColumn = ['Date', 'Aircraft Reg.', 'Destination', 'MRN', 'Delivery Note', 'Qty (L)', 'Qty (kg)', 'Price/kg', 'Amount', 'Currency'];
     const tableRows = operationsWithCalculations.map(operation => [
       formatDate(operation.dateTime),
       operation.aircraft_registration || 'N/A',
@@ -319,7 +319,6 @@ export const generateConsolidatedPDFInvoice = async (operations: FuelingOperatio
       (operation.quantity_liters || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
       (operation.quantity_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
       (operation.price_per_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
-      operation.discount_percentage ? `${operation.discount_percentage}%` : '0%',
       operation.netAmount.toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
       operation.currency || 'BAM'
     ]);
@@ -330,7 +329,6 @@ export const generateConsolidatedPDFInvoice = async (operations: FuelingOperatio
       totalLiters.toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
       totalKg.toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
       '',
-      totalDiscountAmount.toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
       finalTotalNetAmount.toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
       mostCommonCurrency
     ]);
@@ -422,7 +420,7 @@ export const generateConsolidatedPDFInvoice = async (operations: FuelingOperatio
           }
           
           // Boldiraj zadnju kolonu (Amount)
-          if (data.column.index === 9) { // Amount kolona
+          if (data.column.index === 8) { // Amount kolona
             data.cell.styles.fontStyle = 'bold';
           }
       },
