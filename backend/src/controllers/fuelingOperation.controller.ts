@@ -46,6 +46,15 @@ export const getAllFuelingOperations = async (req: Request, res: Response): Prom
   try {
     const { startDate, endDate, airlineId, destination, tankId, tip_saobracaja, currency, deliveryVoucher } = req.query;
 
+    // Debug logging
+    console.log('🔍 All query parameters:', req.query);
+    console.log('🔍 airlineIds from req.query:', req.query.airlineIds);
+    console.log('🔍 destinations from req.query:', req.query.destinations);
+    console.log('🔍 airlineIds type:', typeof req.query.airlineIds);
+    console.log('🔍 destinations type:', typeof req.query.destinations);
+    console.log('🔍 airlineIds isArray:', Array.isArray(req.query.airlineIds));
+    console.log('🔍 destinations isArray:', Array.isArray(req.query.destinations));
+
     const whereClause: any = {};
 
     if (startDate) {
@@ -54,12 +63,36 @@ export const getAllFuelingOperations = async (req: Request, res: Response): Prom
     if (endDate) {
       whereClause.dateTime = { ...whereClause.dateTime, lte: new Date(endDate as string) };
     }
-    if (airlineId) {
+    
+    // Handle airline filtering - support both single airlineId and multiple airlineIds
+    // Express parses multiple parameters with same name as array or string
+    if (req.query.airlineIds) {
+      if (Array.isArray(req.query.airlineIds) && req.query.airlineIds.length > 0) {
+        // Multiple airline IDs as array
+        whereClause.airlineId = { in: req.query.airlineIds.map((id: any) => parseInt(id as string)) };
+      } else if (typeof req.query.airlineIds === 'string' && req.query.airlineIds.length > 0) {
+        // Single airline ID as string
+        whereClause.airlineId = parseInt(req.query.airlineIds);
+      }
+    } else if (airlineId) {
+      // Single airline ID
       whereClause.airlineId = parseInt(airlineId as string);
     }
-    if (destination) {
+    
+    // Handle destination filtering - support both single destination and multiple destinations
+    if (req.query.destinations) {
+      if (Array.isArray(req.query.destinations) && req.query.destinations.length > 0) {
+        // Multiple destinations as array
+        whereClause.destination = { in: req.query.destinations };
+      } else if (typeof req.query.destinations === 'string' && req.query.destinations.length > 0) {
+        // Single destination as string
+        whereClause.destination = req.query.destinations;
+      }
+    } else if (destination) {
+      // Single destination
       whereClause.destination = { contains: destination as string, mode: 'insensitive' };
     }
+    
     if (tankId) {
       whereClause.tankId = parseInt(tankId as string);
     }
@@ -72,6 +105,9 @@ export const getAllFuelingOperations = async (req: Request, res: Response): Prom
     if (deliveryVoucher) {
       whereClause.delivery_note_number = { endsWith: deliveryVoucher as string, mode: 'insensitive' };
     }
+
+    // Debug logging for whereClause
+    console.log('🔍 Final whereClause:', JSON.stringify(whereClause, null, 2));
 
     const fuelingOperations = await (prisma as any).fuelingOperation.findMany({
       where: {

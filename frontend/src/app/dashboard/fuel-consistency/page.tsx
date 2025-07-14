@@ -153,7 +153,7 @@ export default function FuelConsistencyPage() {
                   <p className="text-sm text-gray-600 mb-3">
                     Ovo dugme sinhronizuje stanje svih tankova sa MRN zapisima odjednom. 
                     Koristite kada primijetite nekonzistentnosti u podacima.
-                  </p>
+              </p>
                 </div>
               </div>
               

@@ -95,7 +95,13 @@ export const addFooter = (doc: jsPDF) => {
     const footerY = doc.internal.pageSize.height - 20;
     doc.setFontSize(8);
     doc.setFont(FONT_NAME, 'normal');
-    doc.text(`Izvještaj generisan: ${formatDateTimeForReport(new Date())}`, 14, footerY);
+    
+    // Only add "Izvještaj generisan" text on the last page
+    // to prevent clashing with tables on other pages
+    if (i === pageCount) {
+      doc.text(`Izvještaj generisan: ${formatDateTimeForReport(new Date())}`, 14, footerY);
+    }
+    
     doc.text(`Stranica ${i} od ${pageCount}`, doc.internal.pageSize.width - 30, footerY);
   }
 };

@@ -203,7 +203,8 @@ export async function generateMrnProfitabilityReport(filter: DateRangeFilter): P
       },
       mrnBreakdown: {
         not: null
-      }
+      },
+      is_deleted: false
     },
     orderBy: {
       dateTime: 'asc'
@@ -387,7 +388,8 @@ export async function generateDestinationProfitabilityReport(filter: DateRangeFi
       dateTime: {
         gte: filter.startDate,
         lte: filter.endDate
-      }
+      },
+      is_deleted: false
     },
     include: {
       airline: true,  // Uključujemo aviokompaniju da dobijemo njeno ime
@@ -488,7 +490,8 @@ export async function generateAirlineProfitabilityReport(filter: DateRangeFilter
       dateTime: {
         gte: filter.startDate,
         lte: filter.endDate
-      }
+      },
+      is_deleted: false
     },
     include: {
       airline: true  // Uključujemo aviokompaniju da dobijemo njeno ime
@@ -597,7 +600,8 @@ export async function generateSummaryFinancialReport(filter: DateRangeFilter): P
       dateTime: {
         gte: filter.startDate,
         lte: filter.endDate
-      }
+      },
+      is_deleted: false
     },
     orderBy: {
       dateTime: 'asc'

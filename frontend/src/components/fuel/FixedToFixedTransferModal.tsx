@@ -127,18 +127,18 @@ export default function FixedToFixedTransferModal({
       const quantity = parseFloat(quantityLiters);
       if (isNaN(quantity) || quantity <= 0) {
         setError('Količina mora biti pozitivan broj.');
-        return;
-      }
+      return;
+    }
 
-      if (sourceTank && quantity > sourceTank.current_quantity_liters) {
-        setError(`Nedovoljno goriva u izvornom tanku. Dostupno: ${sourceTank.current_quantity_liters.toLocaleString()} L`);
-        return;
-      }
+    if (sourceTank && quantity > sourceTank.current_quantity_liters) {
+      setError(`Nedovoljno goriva u izvornom tanku. Dostupno: ${sourceTank.current_quantity_liters.toLocaleString()} L`);
+      return;
+    }
 
-      if (destinationTank && quantity > (destinationTank.capacity_liters - destinationTank.current_quantity_liters)) {
-        setError(`Nema dovoljno kapaciteta u odredišnom tanku. Slobodno: ${(destinationTank.capacity_liters - destinationTank.current_quantity_liters).toLocaleString()} L`);
-        return;
-      }
+    if (destinationTank && quantity > (destinationTank.capacity_liters - destinationTank.current_quantity_liters)) {
+      setError(`Nema dovoljno kapaciteta u odredišnom tanku. Slobodno: ${(destinationTank.capacity_liters - destinationTank.current_quantity_liters).toLocaleString()} L`);
+      return;
+    }
     } else {
       // Transfer po MRN-u
       if (!selectedMrnId) {
@@ -162,11 +162,11 @@ export default function FixedToFixedTransferModal({
     try {
       if (transferMode === 'quantity') {
         // Postojeći transfer po količini
-        await createFixedTankToFixedTankTransfer({
-          sourceTankId: parseInt(sourceTankId),
-          destinationTankId: parseInt(destinationTankId),
+      await createFixedTankToFixedTankTransfer({
+        sourceTankId: parseInt(sourceTankId),
+        destinationTankId: parseInt(destinationTankId),
           quantityLiters: parseFloat(quantityLiters),
-        });
+      });
         toast.success('Transfer goriva uspješno izvršen!');
       } else {
         // Novi transfer po MRN-u
@@ -225,52 +225,52 @@ export default function FixedToFixedTransferModal({
             <TabsContent value="quantity" className="space-y-4">
               {/* Transfer po količini */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="sourceTank" className="text-white/90 font-medium">Izvorni Tank</Label>
-                  <Select value={sourceTankId} onValueChange={setSourceTankId} required>
-                    <SelectTrigger id="sourceTank" className="bg-white/10 border-white/20 text-white focus:border-[#E60026]/70 focus:ring-[#E60026]/20">
-                      <SelectValue placeholder="Odaberite izvorni tank" />
-                    </SelectTrigger>
+          <div className="space-y-2">
+            <Label htmlFor="sourceTank" className="text-white/90 font-medium">Izvorni Tank</Label>
+            <Select value={sourceTankId} onValueChange={setSourceTankId} required>
+              <SelectTrigger id="sourceTank" className="bg-white/10 border-white/20 text-white focus:border-[#E60026]/70 focus:ring-[#E60026]/20">
+                <SelectValue placeholder="Odaberite izvorni tank" />
+              </SelectTrigger>
                     <SelectContent className="bg-white border-gray-200 text-gray-900">
-                      {availableTanks.map(tank => (
+                {availableTanks.map(tank => (
                         <SelectItem key={tank.id} value={tank.id.toString()} disabled={tank.id.toString() === destinationTankId} className="text-gray-900 hover:bg-gray-100 focus:bg-[#E60026]/20 focus:text-white">
-                          {tank.tank_name} ({tank.tank_identifier}) - {tank.fuel_type} ({tank.current_quantity_liters.toLocaleString()} L)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    {tank.tank_name} ({tank.tank_identifier}) - {tank.fuel_type} ({tank.current_quantity_liters.toLocaleString()} L)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="destinationTank" className="text-white/90 font-medium">Odredišni Tank</Label>
-                  <Select value={destinationTankId} onValueChange={setDestinationTankId} required>
-                    <SelectTrigger id="destinationTank" className="bg-white/10 border-white/20 text-white focus:border-[#E60026]/70 focus:ring-[#E60026]/20">
-                      <SelectValue placeholder="Odaberite odredišni tank" />
-                    </SelectTrigger>
+          <div className="space-y-2">
+            <Label htmlFor="destinationTank" className="text-white/90 font-medium">Odredišni Tank</Label>
+            <Select value={destinationTankId} onValueChange={setDestinationTankId} required>
+              <SelectTrigger id="destinationTank" className="bg-white/10 border-white/20 text-white focus:border-[#E60026]/70 focus:ring-[#E60026]/20">
+                <SelectValue placeholder="Odaberite odredišni tank" />
+              </SelectTrigger>
                     <SelectContent className="bg-white border-gray-200 text-gray-900">
-                      {availableTanks.map(tank => (
+                {availableTanks.map(tank => (
                         <SelectItem key={tank.id} value={tank.id.toString()} disabled={tank.id.toString() === sourceTankId} className="text-gray-900 hover:bg-gray-100 focus:bg-[#E60026]/20 focus:text-white">
-                          {tank.tank_name} ({tank.tank_identifier}) - {tank.fuel_type} (Slobodno: {(tank.capacity_liters - tank.current_quantity_liters).toLocaleString()} L)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    {tank.tank_name} ({tank.tank_identifier}) - {tank.fuel_type} (Slobodno: {(tank.capacity_liters - tank.current_quantity_liters).toLocaleString()} L)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
                 </div>
-              </div>
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="quantityLiters" className="text-white/90 font-medium">Količina (L)</Label>
-                <Input
-                  id="quantityLiters"
-                  type="number"
-                  value={quantityLiters}
-                  onChange={(e) => setQuantityLiters(e.target.value)}
-                  placeholder="Unesite količinu u litrama"
-                  required
-                  min="1"
-                  className="bg-white/10 border-white/20 text-white focus:border-[#E60026]/70 focus:ring-[#E60026]/20"
-                />
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="quantityLiters" className="text-white/90 font-medium">Količina (L)</Label>
+            <Input
+              id="quantityLiters"
+              type="number"
+              value={quantityLiters}
+              onChange={(e) => setQuantityLiters(e.target.value)}
+              placeholder="Unesite količinu u litrama"
+              required
+              min="1"
+              className="bg-white/10 border-white/20 text-white focus:border-[#E60026]/70 focus:ring-[#E60026]/20"
+            />
+          </div>
             </TabsContent>
 
             <TabsContent value="mrn" className="space-y-4">

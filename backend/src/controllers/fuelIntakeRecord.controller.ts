@@ -72,7 +72,8 @@ export const getMrnBalances = async (req: Request, res: Response): Promise<void>
       where: {
         mrnBreakdown: {
           not: null
-        }
+        },
+        is_deleted: false
       },
       select: {
         id: true,

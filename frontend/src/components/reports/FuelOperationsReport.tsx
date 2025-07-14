@@ -288,6 +288,7 @@ export default function FuelOperationsReport() {
       if (filterTrafficType && filterTrafficType !== '__ALL__') {
         queryParams.append('tip_saobracaja', filterTrafficType);
       }
+      // Handle airline filtering - support multiple airlineIds
       if (filterAirlines.length > 0) {
         // Add multiple airline IDs as separate parameters
         filterAirlines.forEach(airlineId => {
@@ -297,6 +298,8 @@ export default function FuelOperationsReport() {
         // Fallback to single airline filter for backward compatibility
         queryParams.append('airlineId', filterAirline);
       }
+      
+      // Handle destination filtering - support multiple destinations
       if (filterDestinations.length > 0) {
         // Add multiple destinations as separate parameters
         filterDestinations.forEach(destination => {
@@ -1202,6 +1205,11 @@ export default function FuelOperationsReport() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <label htmlFor="airlines" className="text-sm font-medium text-gray-700 dark:text-gray-300">Avio Kompanije</label>
+                  {filterAirlines.length > 1 && (
+                    <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded">
+                      Više kompanija odabrano - prikazuju se sve
+                    </div>
+                  )}
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -1218,7 +1226,7 @@ export default function FuelOperationsReport() {
                         }
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-80 p-0" align="start">
+                    <PopoverContent className="w-80 p-0 max-h-60 overflow-y-auto" align="start">
                       <div className="p-4">
                         <div className="space-y-2">
                           <div className="flex items-center space-x-2">
@@ -1333,6 +1341,11 @@ export default function FuelOperationsReport() {
                 
                 <div className="space-y-2">
                   <label htmlFor="destinations" className="text-sm font-medium text-gray-700 dark:text-gray-300">Destinacije</label>
+                  {filterDestinations.length > 1 && (
+                    <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded">
+                      Više destinacija odabrano - prikazuju se sve
+                    </div>
+                  )}
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -1349,7 +1362,7 @@ export default function FuelOperationsReport() {
                         }
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-80 p-0" align="start">
+                    <PopoverContent className="w-80 p-0 max-h-60 overflow-y-auto" align="start">
                       <div className="p-4">
                         <div className="space-y-2">
                           <div className="flex items-center space-x-2">
