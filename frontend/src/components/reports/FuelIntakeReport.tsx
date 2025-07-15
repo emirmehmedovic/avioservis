@@ -685,7 +685,7 @@ const FuelIntakeReport: React.FC = () => {
             typeof quantity_liters === 'number' ? 
               Math.abs(quantity_liters).toLocaleString('bs-BA') : 'N/A',
             typeof quantity_kg === 'number' ? 
-              Math.abs(quantity_kg).toLocaleString('bs-BA', { maximumFractionDigits: 2 }) : 'N/A',
+              Math.round(Math.abs(quantity_kg)).toString() : 'N/A',
             typeof specific_density === 'number' && specific_density > 0 ? 
               specific_density.toLocaleString('bs-BA', { maximumFractionDigits: 4 }) : 'N/A',
             typeof price_per_kg === 'number' ? 
@@ -735,7 +735,7 @@ const FuelIntakeReport: React.FC = () => {
           getTrafficTypeDisplay(op),
           op.delivery_note_number || 'N/A',
           typeof liters === 'number' ? Math.abs(liters).toLocaleString('bs-BA') : 'N/A',
-          typeof kilograms === 'number' ? Math.abs(kilograms).toLocaleString('bs-BA', { maximumFractionDigits: 2 }) : 'N/A',
+          typeof kilograms === 'number' ? Math.round(Math.abs(kilograms)).toString() : 'N/A',
           typeof density === 'number' && density > 0 ? density.toLocaleString('bs-BA', { maximumFractionDigits: 4 }) : 'N/A',
           typeof op.price_per_kg === 'number' ? op.price_per_kg.toLocaleString('bs-BA', { maximumFractionDigits: 5 }) : 'N/A',
           op.destination || 'N/A',
@@ -867,7 +867,7 @@ const FuelIntakeReport: React.FC = () => {
             
             return 'N/A';
           })()],
-          ['Količina (kg)', typeof opQuantityKg === 'number' ? Math.abs(opQuantityKg).toLocaleString('bs-BA', { maximumFractionDigits: 2 }) : 'N/A'],
+          ['Količina (kg)', typeof opQuantityKg === 'number' ? Math.round(Math.abs(opQuantityKg)).toString() : 'N/A'],
           ['Specifična gustoća', typeof opSpecificDensity === 'number' && opSpecificDensity > 0 
             ? opSpecificDensity.toLocaleString('bs-BA', { maximumFractionDigits: 4 }) 
             : 'N/A']
@@ -946,9 +946,9 @@ const FuelIntakeReport: React.FC = () => {
                 typeof entry.quantity === 'number' ? entry.quantity.toLocaleString('bs-BA') + ' L' : 'N/A',
                 // Dodajemo kilograme ako postoje, ili izračunavamo iz količine i specifične gustoće
                 typeof entry.kg === 'number' ? 
-                  entry.kg.toLocaleString('bs-BA') + ' KG' : 
+                  Math.round(entry.kg).toString() + ' KG' : 
                   (op.specific_density && typeof entry.quantity === 'number' ? 
-                    (entry.quantity * op.specific_density).toLocaleString('bs-BA') + ' KG' : 
+                    Math.round(entry.quantity * op.specific_density).toString() + ' KG' : 
                     'N/A'),
                 // Poboljšan izračun postotka - sada koristi UKUPNU količinu svih MRN zapisa za izračun
                 typeof entry.quantity === 'number' ? 
@@ -1129,9 +1129,9 @@ const FuelIntakeReport: React.FC = () => {
     const totalDrainedLiters = drainedFuel.reduce((sum, df) => sum + (df.quantityLiters || df.quantity_liters || 0), 0);
 
     const weightData = [
-      ['Težina - Primljeno (kg)', balance.totalIntakeKg.toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
-      ['Težina - Isporučeno (kg)', balance.totalOutflowKg.toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
-      ['Težina - Preostalo (kg)', balance.remainingKg.toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
+      ['Težina - Primljeno (kg)', Math.round(balance.totalIntakeKg).toString()],
+      ['Težina - Isporučeno (kg)', Math.round(balance.totalOutflowKg).toString()],
+      ['Težina - Preostalo (kg)', Math.round(balance.remainingKg).toString()],
       ['Prosječna specifična gustoća', (balance.averageDensity || 0).toLocaleString('bs-BA', { minimumFractionDigits: 4, maximumFractionDigits: 4 })]
     ];
 
@@ -1294,7 +1294,7 @@ const FuelIntakeReport: React.FC = () => {
     doc.setFont(FONT_NAME, 'bold'); 
     doc.text('Količina (KG):', leftMargin, yPos);
     doc.setFont(FONT_NAME, 'normal'); 
-    doc.text(parseFloat(record.quantity_kg_received).toLocaleString('bs-BA'), valueX, yPos); yPos += lineHeight;
+    doc.text(Math.round(parseFloat(record.quantity_kg_received)).toString(), valueX, yPos); yPos += lineHeight;
 
     doc.setFont(FONT_NAME, 'bold'); 
     doc.text('Specifična Gustoća:', leftMargin, yPos);
@@ -1445,7 +1445,7 @@ const FuelIntakeReport: React.FC = () => {
       record.fuel_type,
       record.fuel_category || 'Domaće tržište',
       record.quantity_liters_received.toLocaleString('bs-BA', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' L',
-      (parseFloat(record.quantity_kg_received) || 0).toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' kg',
+      Math.round(parseFloat(record.quantity_kg_received) || 0).toString() + ' kg',
       (typeof record.specific_gravity === 'number' ? record.specific_gravity.toFixed(4) : 'N/A'),
       typeof record.price_per_kg === 'number' ? record.price_per_kg.toLocaleString('bs-BA', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'N/A',
       record.currency || 'N/A',
@@ -1476,7 +1476,7 @@ const FuelIntakeReport: React.FC = () => {
         // Display totals in the footer
         const footerY = doc.internal.pageSize.height - 20;
         doc.text(`Ukupno Litara: ${totalLiters.toLocaleString('bs-BA')} L`, data.settings.margin.left, footerY - 12);
-        doc.text(`Ukupno Kilograma: ${totalKg.toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`, data.settings.margin.left, footerY - 8);
+        doc.text(`Ukupno Kilograma: ${Math.round(totalKg).toString()} kg`, data.settings.margin.left, footerY - 8);
         doc.text(`Prosječna Gustoća: ${averageDensity.toLocaleString('bs-BA', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} kg/L`, data.settings.margin.left, footerY - 4);
         
         // Add total price if there are records with price information
@@ -1782,13 +1782,13 @@ const FuelIntakeReport: React.FC = () => {
                               {record.quantity_liters_received.toLocaleString('hr-HR')} L
                             </td>
                             <td className="px-2 py-2 break-words text-xs text-gray-700 dark:text-gray-300 font-medium">
-                              {record.quantity_kg_received ? (parseFloat(record.quantity_kg_received) || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' kg' : 'N/A'}
+                              {record.quantity_kg_received ? Math.round(parseFloat(record.quantity_kg_received) || 0).toString() + ' kg' : 'N/A'}
                             </td>
                             <td className="px-2 py-2 break-words text-xs text-gray-700 dark:text-gray-300">
                               {record.customs_declaration_number && mrnBalances[record.customs_declaration_number] ? 
                                 <span className={`font-medium ${mrnBalances[record.customs_declaration_number].remainingFuel > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                   {typeof mrnBalances[record.customs_declaration_number].remainingFuel === 'number' ? mrnBalances[record.customs_declaration_number].remainingFuel.toLocaleString('hr-HR', { maximumFractionDigits: 1 }) : '0'} L / 
-                                  {typeof mrnBalances[record.customs_declaration_number].remainingFuelKg === 'number' ? mrnBalances[record.customs_declaration_number].remainingFuelKg.toLocaleString('hr-HR', { maximumFractionDigits: 1 }) : '0'} KG
+                                  {typeof mrnBalances[record.customs_declaration_number].remainingFuelKg === 'number' ? Math.round(mrnBalances[record.customs_declaration_number].remainingFuelKg).toString() : '0'} KG
                                 </span> : 
                                 'N/A'
                               }
@@ -1931,7 +1931,7 @@ const FuelIntakeReport: React.FC = () => {
                       </div>
                       <div>
                         <p className="text-sm text-gray-500 dark:text-gray-400">Ukupna težina</p>
-                        <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{totalKg.toLocaleString('bs-BA', { maximumFractionDigits: 1 })} kg</p>
+                        <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{Math.round(totalKg).toString()} kg</p>
                       </div>
                     </div>
                   </div>
