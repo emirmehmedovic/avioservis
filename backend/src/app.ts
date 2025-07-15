@@ -56,9 +56,6 @@ const PORT = process.env.PORT || 4000;
 
 app.use(cors({
   origin: function (origin, callback) {
-    console.log(`CORS DEBUG: Request from origin: ${origin}`);
-    console.log(`CORS DEBUG: FRONTEND_URL env var: ${process.env.FRONTEND_URL}`);
-    
     // Allow requests with no origin (mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
     
@@ -73,10 +70,7 @@ app.use(cors({
       ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : [])
     ];
     
-    console.log(`CORS DEBUG: Allowed origins:`, allowedOrigins);
-    
     if (allowedOrigins.includes(origin)) {
-      console.log(`CORS DEBUG: Origin ${origin} is ALLOWED`);
       callback(null, true);
     } else {
       console.warn(`CORS: Blocked request from origin: ${origin}`);

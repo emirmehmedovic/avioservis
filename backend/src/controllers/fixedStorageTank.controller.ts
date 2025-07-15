@@ -154,10 +154,18 @@ export const createFixedStorageTank: RequestHandler = async (req, res, next): Pr
 // GET /api/fuel/fixed-tanks - Dobijanje liste svih fiksnih tankova
 export const getAllFixedStorageTanks: RequestHandler = async (req, res, next) => {
   try {
-    const { status, fuel_type } = req.query;
-    const filters: any = {};
+    const { status, fuel_type, includeDeleted } = req.query;
+    const filters: any = {
+      deletedAt: null // Only show non-deleted tanks by default
+    };
+    
     if (status) filters.status = status as string;
     if (fuel_type) filters.fuel_type = fuel_type as string;
+    
+    // If includeDeleted is true, show all tanks including deleted ones
+    if (includeDeleted === 'true') {
+      delete filters.deletedAt;
+    }
 
     const tanks = await prisma.fixedStorageTanks.findMany({
       where: filters,
@@ -336,18 +344,80 @@ export const updateFixedStorageTank: RequestHandler = async (req, res, next) => 
 export const deleteFixedStorageTank: RequestHandler = async (req, res, next) => {
   try {
     const { id } = req.params;
-    // Option 1: Change status to 'Neaktivan' (logical delete)
-    const deactivatedTank = await prisma.fixedStorageTanks.update({
-      where: { id: parseInt(id) },
-      data: { status: FixedTankStatus.INACTIVE }, // Or some other status indicating it's not in use
-    });
-    // Option 2: Actual delete (if preferred and safe considering relations)
-    // await prisma.fixedStorageTanks.delete({ where: { id: parseInt(id) } });
+    const tankId = parseInt(id);
     
-    res.status(200).json({ message: 'Fixed storage tank status set to Neaktivan (logically deleted).', tank: deactivatedTank });
+    // Check if tank exists and is not already deleted
+    const existingTank = await prisma.fixedStorageTanks.findUnique({
+      where: { id: tankId },
+    });
+    
+    if (!existingTank) {
+      res.status(404).json({ message: 'Fixed storage tank not found.' });
+      return;
+    }
+    
+    if (existingTank.deletedAt) {
+      res.status(400).json({ message: 'Fixed storage tank is already deleted.' });
+      return;
+    }
+    
+    // Check if tank has any active fuel (current_quantity_liters > 0)
+    if (existingTank.current_quantity_liters > 0) {
+      res.status(400).json({ 
+        message: 'Cannot delete tank that contains fuel. Please transfer or drain all fuel before deletion.',
+        currentFuel: existingTank.current_quantity_liters
+      });
+      return;
+    }
+    
+    // Check for active MRN records
+    const activeMrnRecords = await prisma.$queryRaw`
+      SELECT COUNT(*) as count 
+      FROM "TankFuelByCustoms" 
+      WHERE fixed_tank_id = ${tankId} 
+      AND remaining_quantity_liters > 0
+    `;
+    
+    if (Array.isArray(activeMrnRecords) && activeMrnRecords[0] && (activeMrnRecords[0] as any).count > 0) {
+      res.status(400).json({ 
+        message: 'Cannot delete tank that has active MRN records with remaining fuel. Please transfer all MRN records before deletion.'
+      });
+      return;
+    }
+    
+    // Perform soft delete
+    const deletedTank = await prisma.fixedStorageTanks.update({
+      where: { id: tankId },
+      data: { 
+        deletedAt: new Date(),
+        status: FixedTankStatus.OUT_OF_SERVICE // Set status to indicate it's deleted
+      },
+    });
+    
+    // Log the deletion
+    const authReq = req as AuthRequest;
+    if (authReq.user) {
+      await prisma.activity.create({
+        data: {
+          userId: authReq.user.id,
+          username: authReq.user.username,
+          actionType: 'DELETE_FIXED_TANK',
+          resourceType: 'FIXED_STORAGE_TANK',
+          resourceId: tankId,
+          description: `Deleted fixed storage tank: ${existingTank.tank_name} (ID: ${tankId})`,
+          timestamp: new Date()
+        }
+      });
+    }
+    
+    res.status(200).json({ 
+      message: 'Fixed storage tank successfully deleted.',
+      tank: deletedTank 
+    });
   } catch (error: any) {
+    console.error('Error deleting fixed storage tank:', error);
     if (error.code === 'P2025') {
-        res.status(404).json({ message: 'Fixed storage tank not found for deactivation/deletion.' });
+        res.status(404).json({ message: 'Fixed storage tank not found for deletion.' });
         return;
     }
     next(error);
