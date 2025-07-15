@@ -1,0 +1,1750 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:IATAFC="http://www.IATA.com/IATA_FUEL_CodeDirectory" xmlns:IATABDT="http://www.IATA.com/IATA_FUEL_BaseDataTypeDirectory" xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="unqualified" attributeFormDefault="unqualified" version="3.2.1">
+	<xs:import namespace="http://www.IATA.com/IATA_FUEL_CodeDirectory" schemaLocation="IATA_FUEL_CodeDirectory.xsd"/>
+	<xs:import namespace="http://www.IATA.com/IATA_FUEL_BaseDataTypeDirectory" schemaLocation="IATA_FUEL_BaseDataTypeDirectory.xsd"/>
+	<xs:annotation>
+		<xs:documentation>Draft V1.3 edited on September 22, 2004. by Laurie Kern (BearingPoint)</xs:documentation>
+	</xs:annotation>
+	<xs:annotation>
+		<xs:documentation>Draft V1.3.1 edited on October 14, 2004. by Laurie Kern (BearingPoint)</xs:documentation>
+	</xs:annotation>
+	<xs:annotation>
+		<xs:documentation>Draft V1.3.2 edited on October 21, 2004. by Laurie Kern (BearingPoint)</xs:documentation>
+	</xs:annotation>
+	<xs:annotation>
+		<xs:documentation>Draft V1.3.3 edited on Novenber 11, 2004. by Laurie Kern (BearingPoint)</xs:documentation>
+	</xs:annotation>
+	<xs:annotation>
+		<xs:documentation>RC V1.0.0 edited on December 03, 2004 by Laurie Kern (BearingPoint)</xs:documentation>
+	</xs:annotation>
+	<xs:annotation>
+		<xs:documentation>RC V1.0.1 edited on 28 February 2005 by Laurie Kern (BearingPoint)</xs:documentation>
+	</xs:annotation>
+	<xs:annotation>
+		<xs:documentation>RC V1.0.2 edited on 08 March 2005 by Laurie Kern (BearingPoint)</xs:documentation>
+	</xs:annotation>
+	<xs:annotation>
+		<xs:documentation> V1.1 edited on 28 April 2005 by Chaithanya Kadiyala (BearingPoint)</xs:documentation>
+	</xs:annotation>
+	<xs:annotation>
+		<xs:documentation> V1.2edited on 26 Oct 2005 by Chaithanya Kadiyala (BearingPoint)</xs:documentation>
+	</xs:annotation>
+	<xs:annotation>
+		<xs:documentation>Modified: 5 Dec 2005 Version: 2.0.0 Author: Mark Johnson (Carter Ground Fueling).  This version contains a number of amendments based on discussions at the Miami meeting  (29-30 November 2005). The version number has been updated to 2.0.0 following major changes to the schema.  It will now reference 2 additional schemas (1 contains the Fuel Code Directory and the other contains the Base Data Type Directory).</xs:documentation>
+	</xs:annotation>
+	<xs:annotation>
+		<xs:documentation>Modified: 12 Jan 2006 Version: 2.0.1 Author: Mark Johnson (Carter Ground Fueling).  
+		Amended to reference non-versioned dependency files.
+		Amendment to filename to remove version numbering.
+		</xs:documentation>
+	</xs:annotation>
+	<xs:annotation>
+		<xs:documentation>Modified: 24 Feb 2006 Version: 2.0.2 Author: Mark Johnson (Carter Ground Fueling).  
+		SubInvoiceIDState type increased to 50 characters from 25 to bring into line with documentation
+		</xs:documentation>
+	</xs:annotation>
+	<xs:annotation>
+		<xs:documentation>Modified: 26 Jun 2007 Version: 3.0.0  Author: Guido Peetermans (IATA).  
+		Various changes as agreed by Fuel Data Standards Group
+		</xs:documentation>
+	</xs:annotation>
+	<xs:annotation>
+		<xs:documentation>Modified: 09 May 2008 Version: 3.0.1  Author: Jean-Christophe Rossand (IATA).  
+		Minor updates compared to 3.0.0:
+		   - Declaration of the element ItemDeliveryReferenceValue corrected
+		   - Comment added: Recommendation that each implementation should update manually the schemaLocation for Base Datatype and Fuel Directory, and that spaces should be avoided in the Schema Location.
+		</xs:documentation>
+	</xs:annotation>
+	<xs:annotation>
+		<xs:documentation>Modified: 13 Jun 2008 Version: 3.1.0  Author: Jean-Christophe Rossand (IATA).  
+		Update compared to 3.0.1: Optional elements introduced:
+		- In the transmission: IssuingOrganizationID, ReceivingOrganizationID, TestFlag, TransmissionData @Name
+		- In the invoice message: InvoiceDeliveryCountryCode, SubItemInvoiceUOMFactor, SubItemTaxInvoiceUOMFactor and SubTaxInvoiceUOMFactor
+		Element Version changed from AN10 to AN50, new version is: "IATA:FuelInvoiceV3.1.0"
+		Amendment 20080818: Correction in TransmissionHeader (unnecessary field TransmissionID)
+		Amendment 20080924: Correction in TransmissionHeader (unnecessary field TransmissionData)
+		Amendment 20081029: Comment about schema location update corrected
+		</xs:documentation>
+	</xs:annotation>
+	<xs:annotation>
+		<xs:documentation>Modified: 26 Feb 2018 Version: 3.2.0  Author: Mark Johnson (EBITS).  
+		Update compared to 3.1.0: 
+			- Encoding amendment "UTF-8" in place of "UTF-16" to match other standards
+			- Addition of DensityInformation to ItemQuantity allowing Temperature and Density Information to be added to Delivery Info (non-mandatory)
+		</xs:documentation>
+	</xs:annotation>
+	<xs:annotation>
+		<xs:documentation>Modified: 12 Mar 2018 Version: 3.2.1  Author: Chris Dodson (IATA).  
+			Update compared to 3.2.0: 
+			- imports changed to IATA file naming standard
+			- version attribute added in header
+		</xs:documentation>
+	</xs:annotation>
+	<xs:element name="InvoiceTransmission">
+		<xs:annotation>
+			<xs:documentation>Defines an Invoice transmission file Required Node</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="InvoiceTransmissionHeader"/>
+				<xs:element ref="Invoice" maxOccurs="100000"/>
+				<xs:element ref="InvoiceTransmissionSmry"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="InvoiceTransmissionHeader">
+		<xs:annotation>
+			<xs:documentation>Header Information node in the transmission.</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="InvoiceTransmissionId"/>
+				<xs:element ref="InvoiceCreationDate"/>
+				<xs:element ref="Version"/>
+				<xs:element ref="IssuingOrganizationID" minOccurs="0"/>
+				<xs:element ref="ReceivingOrganizationID" minOccurs="0"/>
+				<xs:element ref="TestFlag" minOccurs="0"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="InvoiceTransmissionId" type="IATABDT:AN50Base">
+		<xs:annotation>
+			<xs:documentation>Unique identifier for the file transmitted.</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceCreationDate" type="IATABDT:DTBase">
+		<xs:annotation>
+			<xs:documentation>Date of creation of the invoice file</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="Version">
+		<xs:annotation>
+			<xs:documentation>Current Version of Schema</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:AN50Base">
+				<xs:enumeration value="IATA:FuelInvoiceV3.2.1"/>
+			</xs:restriction>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="IssuingOrganizationID">
+		<xs:annotation>
+			<xs:documentation>Identifies the organization sending the message</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:AN25Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="ReceivingOrganizationID">
+		<xs:annotation>
+			<xs:documentation>Identifies the organization receiving the message</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:AN25Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="TestFlag">
+		<xs:annotation>
+			<xs:documentation>Identifies if the file is a test file or not. 1: The transmission contains test data; 0: The transmission contains production data. 0 is assumed when not instantiated.</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:AN01Base">
+				<xs:enumeration value="0"/>
+				<xs:enumeration value="1"/>
+			</xs:restriction>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="Invoice">
+		<xs:annotation>
+			<xs:documentation>Required node for each invoice being transmitted</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="InvoiceHeader"/>
+				<xs:element ref="SubInvoiceHeader" maxOccurs="200"/>
+				<xs:element ref="InvoiceSummary"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="InvoiceHeader">
+		<xs:annotation>
+			<xs:documentation>Invoice Header Details Once per Invoice</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="CustomerEntityID"/>
+				<xs:element ref="IssuingEntityID"/>
+				<xs:element ref="IssuingEntityName" minOccurs="0"/>
+				<xs:element ref="IssuingEntityAffiliateName" minOccurs="0"/>
+				<xs:element ref="IssuingEntityAffiliateNotes" minOccurs="0"/>
+				<xs:element ref="InvoiceNumber"/>
+				<xs:element ref="InvoiceIssueDate"/>
+				<xs:element ref="InvoiceType"/>
+				<xs:element ref="InvoiceDeliveryLocation"/>
+				<xs:element ref="InvoiceDeliveryCountryCode" minOccurs="0"/>
+				<xs:element ref="InvoicePaymentTermsType" minOccurs="0"/>
+				<xs:element ref="InvoicePaymentTermsDateBasis" minOccurs="0"/>
+				<xs:element ref="InvoicePaymentTermsDiscountPercent" minOccurs="0"/>
+				<xs:element ref="InvoicePaymentTermsDiscountDueDate" minOccurs="0"/>
+				<xs:element ref="InvoicePaymentTermsNetDueDate" minOccurs="0"/>
+				<xs:element ref="InvoicePaymentTermsNetDueDays" minOccurs="0"/>
+				<xs:element ref="InvoicePaymentTermsDescription" minOccurs="0" maxOccurs="20"/>
+				<xs:element ref="InvoiceReferenceValue" minOccurs="0" maxOccurs="12"/>
+				<xs:element ref="TaxInvoiceNumber"/>
+				<xs:element ref="TaxPointDate" minOccurs="0"/>
+				<xs:element ref="InvoiceTaxClause" minOccurs="0" maxOccurs="10"/>
+				<xs:element ref="InvoiceCurrencyCode"/>
+				<xs:element ref="InvoiceCurrencyCodeLocal" minOccurs="0"/>
+				<xs:element ref="InvoiceCurrencyConversion" minOccurs="0"/>
+				<xs:element ref="InvoiceTotalAmount"/>
+				<xs:element ref="InvoiceTotalAmountLocal" minOccurs="0"/>
+				<xs:element ref="InvoiceDiscountAmount" minOccurs="0"/>
+				<xs:element ref="InvoiceDiscountAmountLocal" minOccurs="0"/>
+				<xs:element ref="InvoiceNotes" minOccurs="0" maxOccurs="50"/>
+				<xs:element ref="InvoiceIDDetails" minOccurs="0" maxOccurs="200"/>
+				<xs:element ref="InvoiceTaxes" minOccurs="0"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="CustomerEntityID">
+		<xs:annotation>
+			<xs:documentation>Identification Code to the receiving party</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:AN25Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="IssuingEntityID">
+		<xs:annotation>
+			<xs:documentation>Identification Code of the issuing party</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:AN25Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="IssuingEntityName">
+		<xs:annotation>
+			<xs:documentation>Name of Entity issuing the Invoice</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:AN50Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="IssuingEntityAffiliateName">
+		<xs:annotation>
+			<xs:documentation>Name of affliate that the Issuing Entity is creating an invoice on behalf of the affliate</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:AN50Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="IssuingEntityAffiliateNotes" type="IATABDT:AN200Base">
+		<xs:annotation>
+			<xs:documentation>Free form text to describe relationship of Issuing Entity and Affliate or background on the different entities for the issuer of the invoice and the "Remit To:" entity.</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceNumber">
+		<xs:annotation>
+			<xs:documentation>Invoice Number</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:AN25Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="InvoiceIssueDate" type="xs:date">
+		<xs:annotation>
+			<xs:documentation>InvoiceDate </xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceType">
+		<xs:annotation>
+			<xs:documentation>Type of invoice to indicate original invoice or credit note. For the attribute InvoiceTransactionType use IATA Codes, Section H </xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:simpleContent>
+				<xs:extension base="IATAFC:InvoiceTypeBase">
+					<xs:attribute name="InvoiceTransactionType" type="IATAFC:InvoiceTransactionType" use="required"/>
+				</xs:extension>
+			</xs:simpleContent>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="InvoiceDeliveryLocation" type="IATABDT:AN20Base">
+		<xs:annotation>
+			<xs:documentation>Delivery location of goods or services</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceDeliveryCountryCode" type="IATAFC:CountryCode">
+		<xs:annotation>
+			<xs:documentation>Country Code Use IATA Codes, Section G </xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoicePaymentTermsType">
+		<xs:annotation>
+			<xs:documentation>Code identifying type of payment terms</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:AN20Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="InvoicePaymentTermsDateBasis" type="IATAFC:PaymentTermsDateBasis">
+		<xs:annotation>
+			<xs:documentation>Code identifying date for basis of terms. Use IATA Codes, Section N </xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoicePaymentTermsDiscountPercent">
+		<xs:annotation>
+			<xs:documentation>Discount Percent</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D186Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="InvoicePaymentTermsDiscountDueDate" type="IATABDT:DTBase">
+		<xs:annotation>
+			<xs:documentation>Discount Due Date  (YYYY-MM-DD)</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoicePaymentTermsNetDueDate" type="IATABDT:DTBase">
+		<xs:annotation>
+			<xs:documentation>Net Due Date  (YYYY-MM-DD)</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoicePaymentTermsNetDueDays">
+		<xs:annotation>
+			<xs:documentation>Discount offer in days</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="xs:integer">
+				<xs:totalDigits value="10"/>
+				<xs:fractionDigits value="0"/>
+			</xs:restriction>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="InvoicePaymentTermsDescription">
+		<xs:annotation>
+			<xs:documentation>Description of payment terms free form text</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:AN80Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="InvoiceReferenceValue">
+		<xs:annotation>
+			<xs:documentation>Reference Information Attribute: Reference type such as contract number, purchase order number, bill of lading, workorder or service orderUse IATA Codes, Section J </xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:simpleContent>
+				<xs:extension base="IATABDT:AN35Base">
+					<xs:attribute name="InvoiceReferenceType" type="IATAFC:InvoiceReferenceType" use="required"/>
+				</xs:extension>
+			</xs:simpleContent>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="TaxInvoiceNumber">
+		<xs:annotation>
+			<xs:documentation>InvoiceNumber for Tax Jurisdiction</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:AN25Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="TaxPointDate" type="IATABDT:DTBase">
+		<xs:annotation>
+			<xs:documentation>Date on which tax is due or calculated</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceTaxClause">
+		<xs:annotation>
+			<xs:documentation>Free form tax notes</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:AN80Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="InvoiceCurrencyCode" type="IATAFC:CurrencyCodeBase">
+		<xs:annotation>
+			<xs:documentation>ISO Standard Currency Code Use IATA Codes, Section C </xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceCurrencyCodeLocal" type="IATAFC:CurrencyCodeBase">
+		<xs:annotation>
+			<xs:documentation>Local Currency Code (Standard ISO Code)</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceCurrencyConversion">
+		<xs:annotation>
+			<xs:documentation>Describes how an amount in CurrencyFrom is converted into an amount in CurrencyTo</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="ConversionMechanism"/>
+				<xs:element ref="CurrencyFrom"/>
+				<xs:element ref="CurrencyTo"/>
+				<xs:element ref="ExchangeRate"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="ConversionMechanism">
+		<xs:annotation>
+			<xs:documentation>Multiply or Divide</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="xs:string">
+				<xs:enumeration value="M"/>
+				<xs:enumeration value="D"/>
+			</xs:restriction>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="CurrencyFrom">
+		<xs:annotation>
+			<xs:documentation>Currency from which to convert</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:simpleContent>
+				<xs:extension base="IATAFC:CurrencyCodeBase">
+					<xs:attribute name="FactorFrom" use="required">
+						<xs:simpleType>
+							<xs:restriction base="xs:integer">
+								<xs:totalDigits value="9"/>
+								<xs:fractionDigits value="0"/>
+							</xs:restriction>
+						</xs:simpleType>
+					</xs:attribute>
+				</xs:extension>
+			</xs:simpleContent>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="CurrencyTo">
+		<xs:annotation>
+			<xs:documentation>Currency to which to convert</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:simpleContent>
+				<xs:extension base="IATAFC:CurrencyCodeBase">
+					<xs:attribute name="FactorTo" use="required">
+						<xs:simpleType>
+							<xs:restriction base="xs:integer">
+								<xs:totalDigits value="9"/>
+								<xs:fractionDigits value="0"/>
+							</xs:restriction>
+						</xs:simpleType>
+					</xs:attribute>
+				</xs:extension>
+			</xs:simpleContent>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="ExchangeRate">
+		<xs:annotation>
+			<xs:documentation>Exchange rate value</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D186Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="InvoiceTotalAmount" type="IATABDT:D182Base">
+		<xs:annotation>
+			<xs:documentation>Total Amount Due on the Invoice (including InvoiceTax, fees and InvoiceFreight etc.)</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceTotalAmountLocal" type="IATABDT:D182Base">
+		<xs:annotation>
+			<xs:documentation>Total Amount due on the Invoice in local currency.</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceDiscountAmount" type="IATABDT:D182Base">
+		<xs:annotation>
+			<xs:documentation>Total Invoice Discount Amount</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceDiscountAmountLocal" type="IATABDT:D182Base">
+		<xs:annotation>
+			<xs:documentation>Total Invoice discount amount in local currency.</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceNotes" type="IATABDT:AN200Base">
+		<xs:annotation>
+			<xs:documentation>Free Form Notes</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceIDDetails">
+		<xs:annotation>
+			<xs:documentation>Invoice ID node. Attribute: Identification Type Code. Such as Bill to, ship to , Remit to....Use IATA Codes, Section K </xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="InvoiceIDVATRegistrationNumber"/>
+				<xs:element ref="InvoiceIDName1"/>
+				<xs:element ref="InvoiceIDName2" minOccurs="0"/>
+				<xs:element ref="InvoiceIDStreet1" minOccurs="0"/>
+				<xs:element ref="InvoiceIDStreet2" minOccurs="0"/>
+				<xs:element ref="InvoiceIDCity" minOccurs="0"/>
+				<xs:element ref="InvoiceIDState" minOccurs="0"/>
+				<xs:element ref="InvoiceIDCountryCode" minOccurs="0"/>
+				<xs:element ref="InvoiceIDPostalCode" minOccurs="0"/>
+				<xs:element ref="InvoiceIDCustomField" minOccurs="0" maxOccurs="99"/>
+			</xs:sequence>
+			<xs:attribute name="InvoiceIDType" type="IATAFC:InvoiceIDType" use="required"/>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="InvoiceIDVATRegistrationNumber" type="IATABDT:AN25Base">
+		<xs:annotation>
+			<xs:documentation>VAT or Other Tax Registration Number</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceIDName1" type="IATABDT:AN50Base">
+		<xs:annotation>
+			<xs:documentation>Name related to the Invoice ID Type</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceIDName2" type="IATABDT:AN50Base">
+		<xs:annotation>
+			<xs:documentation>Additonal name related to InvoiceIDType</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceIDStreet1" type="IATABDT:AN50Base">
+		<xs:annotation>
+			<xs:documentation>Street Address</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceIDStreet2" type="IATABDT:AN50Base">
+		<xs:annotation>
+			<xs:documentation>Street Address</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceIDCity" type="IATABDT:AN50Base">
+		<xs:annotation>
+			<xs:documentation>City</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceIDState" type="IATABDT:AN50Base">
+		<xs:annotation>
+			<xs:documentation>State/Province/Region/County</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceIDCountryCode" type="IATAFC:CountryCode">
+		<xs:annotation>
+			<xs:documentation>Country Code Use IATA Codes, Section G </xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceIDPostalCode">
+		<xs:annotation>
+			<xs:documentation>Postal Code</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="xs:string">
+				<xs:maxLength value="9"/>
+				<xs:minLength value="1"/>
+			</xs:restriction>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="InvoiceIDCustomField">
+		<xs:annotation>
+			<xs:documentation>Custom Field Attribute: Counter for the nodes. </xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="InvoiceIDCustomFieldDescription" minOccurs="0"/>
+				<xs:element ref="InvoiceIDCustomFieldValue"/>
+			</xs:sequence>
+			<xs:attribute name="InvoiceIDCustomFieldNumber" use="required">
+				<xs:annotation>
+					<xs:documentation>Sort order of custom fields.</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:integer">
+						<xs:minInclusive value="1"/>
+						<xs:maxInclusive value="99"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="InvoiceIDCustomFieldDescription" type="IATABDT:AN35Base">
+		<xs:annotation>
+			<xs:documentation>Description of CustomField</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceIDCustomFieldValue" type="IATABDT:AN35Base">
+		<xs:annotation>
+			<xs:documentation>Value of CustomField</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceTaxes">
+		<xs:annotation>
+			<xs:documentation>Header Level tax detail</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="InvoiceTaxDetail" maxOccurs="200"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="InvoiceTaxDetail">
+		<xs:annotation>
+			<xs:documentation>Tax Detail Header, one per tax type.</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="InvoiceTaxDetailType"/>
+				<xs:element ref="InvoiceTaxDetailDescription" minOccurs="0"/>
+				<xs:element ref="InvoiceTaxDetailRate"/>
+				<xs:element ref="InvoiceTaxDetailAmount"/>
+				<xs:element ref="InvoiceTaxDetailAmountLocal" minOccurs="0"/>
+				<xs:element ref="InvoiceTaxIndicator"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="InvoiceTaxDetailType" type="IATAFC:TaxTypeBase">
+		<xs:annotation>
+			<xs:documentation>Type of Tax Use IATA Codes, Section F</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceTaxDetailRate">
+		<xs:annotation>
+			<xs:documentation>Tax Rate as Decimal</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D186Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="InvoiceTaxDetailDescription">
+		<xs:annotation>
+			<xs:documentation>Tax Description OR Tax in Local Currency</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:AN80Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="InvoiceTaxDetailAmount">
+		<xs:annotation>
+			<xs:documentation>Amount of Invoice Tax in Invoice Currency</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D182Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="InvoiceTaxDetailAmountLocal" type="IATABDT:D182Base">
+		<xs:annotation>
+			<xs:documentation>Amount of tax in invoice local currency.</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceTaxIndicator">
+		<xs:annotation>
+			<xs:documentation>Official Posting (O) or For Info Only (I)</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="xs:string">
+				<xs:enumeration value="O"/>
+				<xs:enumeration value="I"/>
+			</xs:restriction>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubInvoiceHeader">
+		<xs:annotation>
+			<xs:documentation>SubInvoice Header Details (max 200 per Invoice)</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="SubInvoiceNumber" minOccurs="0"/>
+				<xs:element ref="SubInvoiceIssueDate" minOccurs="0"/>
+				<xs:element ref="SubInvoiceCurrencyCode" minOccurs="0"/>
+				<xs:element ref="SubInvoiceCurrencyCodeLocal" minOccurs="0"/>
+				<xs:element ref="SubInvoiceCurrencyConversion" minOccurs="0"/>
+				<xs:element ref="SubInvoiceTotalAmount" minOccurs="0"/>
+				<xs:element ref="SubInvoiceTotalAmountLocal" minOccurs="0"/>
+				<xs:element ref="SubInvoiceIDDetails" minOccurs="0" maxOccurs="5"/>
+				<xs:element ref="SubInvoiceTaxes" minOccurs="0"/>
+				<xs:element ref="SubInvoiceFootNotes" minOccurs="0" maxOccurs="99"/>
+				<xs:element ref="InvoiceLine" maxOccurs="10000"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="SubInvoiceNumber">
+		<xs:annotation>
+			<xs:documentation>Invoice Number</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:AN25Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubInvoiceIssueDate" type="IATABDT:DTBase">
+		<xs:annotation>
+			<xs:documentation>InvoiceDate </xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubInvoiceCurrencyCode" type="IATAFC:CurrencyCodeBase">
+		<xs:annotation>
+			<xs:documentation>ISO Standard Currency Code Use IATA Codes, Section C </xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubInvoiceCurrencyCodeLocal" type="IATAFC:CurrencyCodeBase">
+		<xs:annotation>
+			<xs:documentation>Local Currency Code (Standard ISO Code)</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubInvoiceCurrencyConversion">
+		<xs:annotation>
+			<xs:documentation>Describes how an amount in CurrencyFrom is converted into an amount in CurrencyTo</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="ConversionMechanism"/>
+				<xs:element ref="CurrencyFrom"/>
+				<xs:element ref="CurrencyTo"/>
+				<xs:element ref="ExchangeRate"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="SubInvoiceTotalAmount" type="IATABDT:D182Base">
+		<xs:annotation>
+			<xs:documentation>Total Amount Due on the Invoice (including InvoiceTax, fees and InvoiceFreight etc.)</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubInvoiceTotalAmountLocal" type="IATABDT:D182Base">
+		<xs:annotation>
+			<xs:documentation>Total Amount Due on the affiliate Invoice in local currency.</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubInvoiceIDDetails">
+		<xs:annotation>
+			<xs:documentation>SubInvoice ID node. Attribute: Identification Type Code. Such as Bill to, ship to , Remit to....Use IATA Codes, Section K </xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="SubInvoiceIDVATRegistrationNumber"/>
+				<xs:element ref="SubInvoiceIDName1"/>
+				<xs:element ref="SubInvoiceIDName2" minOccurs="0"/>
+				<xs:element ref="SubInvoiceIDStreet1" minOccurs="0"/>
+				<xs:element ref="SubInvoiceIDStreet2" minOccurs="0"/>
+				<xs:element ref="SubInvoiceIDCity" minOccurs="0"/>
+				<xs:element ref="SubInvoiceIDState" minOccurs="0"/>
+				<xs:element ref="SubInvoiceIDCountryCode" minOccurs="0"/>
+				<xs:element ref="SubInvoiceIDPostalCode" minOccurs="0"/>
+				<xs:element ref="SubInvoiceIDCustomField" minOccurs="0" maxOccurs="99"/>
+			</xs:sequence>
+			<xs:attribute name="SubInvoiceIDType" type="IATAFC:InvoiceIDType" use="required"/>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="SubInvoiceIDVATRegistrationNumber" type="IATABDT:AN25Base">
+		<xs:annotation>
+			<xs:documentation>VAT or Other Tax Registration Number</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubInvoiceIDName1" type="IATABDT:AN50Base">
+		<xs:annotation>
+			<xs:documentation>Name related to the Invoice ID Type</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubInvoiceIDName2" type="IATABDT:AN50Base">
+		<xs:annotation>
+			<xs:documentation>Additonal name related to InvoiceIDType</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubInvoiceIDStreet1" type="IATABDT:AN50Base">
+		<xs:annotation>
+			<xs:documentation>Street Address</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubInvoiceIDStreet2" type="IATABDT:AN50Base">
+		<xs:annotation>
+			<xs:documentation>Street Address</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubInvoiceIDCity" type="IATABDT:AN50Base">
+		<xs:annotation>
+			<xs:documentation>City</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubInvoiceIDState" type="IATABDT:AN50Base">
+		<xs:annotation>
+			<xs:documentation>State/Province/Region/County</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubInvoiceIDCountryCode" type="IATAFC:CountryCode">
+		<xs:annotation>
+			<xs:documentation>Country Code Use IATA Codes, Section G </xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubInvoiceIDPostalCode">
+		<xs:annotation>
+			<xs:documentation>Postal Code</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="xs:string">
+				<xs:maxLength value="9"/>
+				<xs:minLength value="1"/>
+			</xs:restriction>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubInvoiceIDCustomField">
+		<xs:annotation>
+			<xs:documentation>Custom Field Attribute: Counter for the nodes. </xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="SubInvoiceIDCustomFieldDescription" minOccurs="0"/>
+				<xs:element ref="SubInvoiceIDCustomFieldValue"/>
+			</xs:sequence>
+			<xs:attribute name="SubInvoiceIDCustomFieldNumber" use="required">
+				<xs:annotation>
+					<xs:documentation>Sort order of custom fields.</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:integer">
+						<xs:minInclusive value="1"/>
+						<xs:maxInclusive value="99"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="SubInvoiceIDCustomFieldDescription" type="IATABDT:AN35Base">
+		<xs:annotation>
+			<xs:documentation>Description of CustomField</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubInvoiceIDCustomFieldValue" type="IATABDT:AN35Base">
+		<xs:annotation>
+			<xs:documentation>Value of CustomField</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubInvoiceTaxes">
+		<xs:annotation>
+			<xs:documentation>Header Level tax detail</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="SubInvoiceTaxDetail" maxOccurs="200"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="SubInvoiceTaxDetail">
+		<xs:annotation>
+			<xs:documentation>Tax Detail Header, one per tax type.</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="SubInvoiceTaxDetailType"/>
+				<xs:element ref="SubInvoiceTaxDetailDescription" minOccurs="0"/>
+				<xs:element ref="SubInvoiceTaxDetailRate"/>
+				<xs:element ref="SubInvoiceTaxDetailAmount"/>
+				<xs:element ref="SubInvoiceTaxDetailAmountLocal" minOccurs="0"/>
+				<xs:element ref="SubInvoiceTaxIndicator"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="SubInvoiceTaxDetailType" type="IATAFC:TaxTypeBase">
+		<xs:annotation>
+			<xs:documentation>Type of Tax Use IATA Codes, Section F</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubInvoiceTaxDetailRate">
+		<xs:annotation>
+			<xs:documentation>Tax Rate as Decimal</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D186Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubInvoiceTaxDetailDescription">
+		<xs:annotation>
+			<xs:documentation>Tax Description OR Tax in Local Currency</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:AN80Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubInvoiceTaxDetailAmount">
+		<xs:annotation>
+			<xs:documentation>Amount of Invoice Tax in Invoice Currency</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D182Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubInvoiceTaxDetailAmountLocal" type="IATABDT:D182Base">
+		<xs:annotation>
+			<xs:documentation>Amount of tax in local currency.</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubInvoiceTaxIndicator">
+		<xs:annotation>
+			<xs:documentation>Official Posting (O) or For Info Only (I)</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="xs:string">
+				<xs:enumeration value="O"/>
+				<xs:enumeration value="I"/>
+			</xs:restriction>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubInvoiceFootNotes">
+		<xs:annotation>
+			<xs:documentation>Free Form text</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="xs:string">
+				<xs:maxLength value="200"/>
+				<xs:minLength value="1"/>
+			</xs:restriction>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="InvoiceLine">
+		<xs:annotation>
+			<xs:documentation>Invoice Line Information, one for each line on the invoice</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="ItemNumber"/>
+				<xs:element ref="ItemQuantity" maxOccurs="2"/>
+				<xs:element name="ItemDeliveryReferenceValue" minOccurs="0" maxOccurs="20"/>
+				<xs:element ref="ItemTaxInvoiceNumber" minOccurs="0"/>
+				<xs:element ref="ItemDeliveryLocation" minOccurs="0"/>
+				<xs:element ref="ItemTransportation" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="ItemReferenceLocalDate" maxOccurs="10"/>
+				<xs:element ref="ItemReferenceGMTDate" minOccurs="0" maxOccurs="10"/>
+				<xs:element ref="ItemDescription" minOccurs="0"/>
+				<xs:element ref="ItemInvoiceAmount"/>
+				<xs:element ref="ItemInvoiceAmountLocal" minOccurs="0"/>
+				<xs:element ref="SubItem"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="ItemNumber">
+		<xs:annotation>
+			<xs:documentation>Serial line item number</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="xs:integer">
+				<xs:minInclusive value="1"/>
+				<xs:maxInclusive value="999999"/>
+				<xs:totalDigits value="6"/>
+			</xs:restriction>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="ItemQuantity">
+		<xs:annotation>
+			<xs:documentation>Node for quantity information</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="ItemQuantityType"/>
+				<xs:element ref="ItemQuantityFlag"/>
+				<xs:element ref="DensityInformation" minOccurs="0"/>
+				<xs:element ref="ItemQuantityQty"/>
+				<xs:element ref="ItemQuantityUOM"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="DensityInformation">
+		<xs:annotation>
+			<xs:documentation>Information relating to the parameters used to correct the volume to its net amount</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="Density" minOccurs="0"/>
+				<xs:element ref="Temperature" minOccurs="0"/>
+			</xs:sequence>
+			<xs:attribute name="DensityType" type="IATAFC:DensityType" use="required"/>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="Density">
+		<xs:annotation>
+			<xs:documentation>Density of fuel</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:simpleContent>
+				<xs:extension base="IATABDT:D184Base">
+					<xs:attribute name="DensityUOM" type="IATAFC:VUOMBase" use="required"/>
+				</xs:extension>
+			</xs:simpleContent>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="Temperature">
+		<xs:complexType>
+			<xs:simpleContent>
+				<xs:extension base="IATABDT:D41Base">
+					<xs:attribute name="TUOM" type="IATAFC:TUOM" use="required"/>
+				</xs:extension>
+			</xs:simpleContent>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="ItemQuantityType">
+		<xs:annotation>
+			<xs:documentation>delivered quantity (always)</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="xs:string">
+				<xs:enumeration value="DL"/>
+			</xs:restriction>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="ItemQuantityFlag" type="IATAFC:BaseBasis">
+		<xs:annotation>
+			<xs:documentation>Gross or Net quantity</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="ItemQuantityQty">
+		<xs:annotation>
+			<xs:documentation>Quantity of product or service</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D186Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="ItemQuantityUOM" type="IATAFC:PUOMBase">
+		<xs:annotation>
+			<xs:documentation>Unit of measure</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="ItemDeliveryReferenceValue">
+		<xs:annotation>
+			<xs:documentation>Reference Value. Attribute: Reference type such as contract number, po number, flight number Use IATA Codes, Section Q</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:simpleContent>
+				<xs:extension base="IATABDT:AN25Base">
+					<xs:attribute name="ItemDeliveryReferenceType" type="IATAFC:ItemReferenceCode" use="required"/>
+				</xs:extension>
+			</xs:simpleContent>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="ItemTaxInvoiceNumber">
+		<xs:annotation>
+			<xs:documentation>Tax Number for the line item</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:AN25Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="ItemDeliveryLocation" type="IATABDT:AN20Base">
+		<xs:annotation>
+			<xs:documentation>Delivery location of goods or services. REQUIRED if 'MULTIPLE' is selected in InvoiceDeliveryLocation</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="ItemTransportation">
+		<xs:annotation>
+			<xs:documentation>Node listing all transportation information. Attribute: Transport or Carrier Type Use IATA Codes, Section M</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="ItemTransportationRouting" minOccurs="0"/>
+				<xs:element ref="ItemTransportationReferenceCode" minOccurs="0"/>
+				<xs:element ref="ItemTransportationReferenceValue" minOccurs="0"/>
+				<xs:element ref="ItemTransportationAmount" minOccurs="0"/>
+			</xs:sequence>
+			<xs:attribute ref="ItemTransportationType"/>
+		</xs:complexType>
+	</xs:element>
+	<xs:attribute name="ItemTransportationType" type="IATAFC:TransportationType">
+		<xs:annotation>
+			<xs:documentation>Transportation or carrier type.</xs:documentation>
+		</xs:annotation>
+	</xs:attribute>
+	<xs:element name="ItemTransportationRouting">
+		<xs:annotation>
+			<xs:documentation>Description on transportation routing or carrier name</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:AN35Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="ItemTransportationReferenceCode">
+		<xs:annotation>
+			<xs:documentation>Reference Code</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="xs:string">
+				<xs:maxLength value="2"/>
+				<xs:minLength value="1"/>
+			</xs:restriction>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="ItemTransportationReferenceValue">
+		<xs:annotation>
+			<xs:documentation>Reference Value</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:AN35Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="ItemTransportationAmount">
+		<xs:annotation>
+			<xs:documentation>Amount of Transportation</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D182Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="ItemReferenceLocalDate">
+		<xs:annotation>
+			<xs:documentation>Reference Date Attribute: Invoice Date for tax point date, service period start, end dates, delivery ticket date Use IATA Codes, Section N </xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:simpleContent>
+				<xs:extension base="IATABDT:DTBase">
+					<xs:attribute ref="ItemReferenceDateTypes" use="required"/>
+				</xs:extension>
+			</xs:simpleContent>
+		</xs:complexType>
+	</xs:element>
+	<xs:attribute name="ItemReferenceDateTypes" type="IATAFC:ItemReferenceDateType">
+		<xs:annotation>
+			<xs:documentation>Code indicating invoice dates for Tax Point Date, service period start, end dates.</xs:documentation>
+		</xs:annotation>
+	</xs:attribute>
+	<xs:element name="ItemReferenceGMTDate">
+		<xs:annotation>
+			<xs:documentation>Reference Date Attribute: Invoice Date for tax point date, service period start, end dates, delivery ticket dateUse IATA Codes, Section N </xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:simpleContent>
+				<xs:extension base="IATABDT:DTBase">
+					<xs:attribute ref="ItemReferenceGMTDateTypes" use="required"/>
+				</xs:extension>
+			</xs:simpleContent>
+		</xs:complexType>
+	</xs:element>
+	<xs:attribute name="ItemReferenceGMTDateTypes" type="IATAFC:ItemReferenceDateType">
+		<xs:annotation>
+			<xs:documentation>Invoice dates for Tax Point Date, Service Period, Start, end dates delivery ticket dates.</xs:documentation>
+		</xs:annotation>
+	</xs:attribute>
+	<xs:element name="ItemDescription">
+		<xs:annotation>
+			<xs:documentation>Description of part, product or service</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:AN80Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="ItemInvoiceAmount">
+		<xs:annotation>
+			<xs:documentation>Line item invoice amount</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D182Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="ItemInvoiceAmountLocal" type="IATABDT:D182Base">
+		<xs:annotation>
+			<xs:documentation>Line item invoice amount in local currency.</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubItem">
+		<xs:annotation>
+			<xs:documentation>Node for all subitems</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="SubItemProduct" maxOccurs="200"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="SubItemProduct">
+		<xs:annotation>
+			<xs:documentation>node for all the product details. Attribute: qualifier of product or service</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="SubItemProductID"/>
+				<xs:element ref="SubItemDescription" minOccurs="0"/>
+				<xs:element ref="SubItemPricingUnitRateType"/>
+				<xs:element ref="SubItemPricingUnitRate"/>
+				<xs:element ref="SubItemPricingUOM"/>
+				<xs:element ref="SubItemPricingUOMFactor"/>
+				<xs:element ref="SubItemPricingCurrencyCode"/>
+				<xs:element ref="SubItemPricingAmount"/>
+				<xs:element ref="SubItemCurrencyConversion" minOccurs="0"/>
+				<xs:element ref="SubItemInvoiceUOM"/>
+				<xs:element ref="SubItemInvoiceUOMFactor" minOccurs="0"/>
+				<xs:element ref="SubItemQuantity" maxOccurs="4"/>
+				<xs:element ref="SubItemInvoiceUnitRate"/>
+				<xs:element ref="SubItemInvoiceAmount"/>
+				<xs:element ref="SubItemInvoiceAmountLocal" minOccurs="0"/>
+				<xs:element ref="SubItemTax" minOccurs="0" maxOccurs="unbounded"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="SubItemProductID">
+		<xs:annotation>
+			<xs:documentation>Idenification of product or service . For the attribute,Use IATA Codes, Section D </xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:simpleContent>
+				<xs:extension base="IATAFC:ProductIDBase">
+					<xs:attribute ref="SubItemProductIDQualifier"/>
+				</xs:extension>
+			</xs:simpleContent>
+		</xs:complexType>
+	</xs:element>
+	<xs:attribute name="SubItemProductIDQualifier">
+		<xs:annotation>
+			<xs:documentation>Qualifier of product service.</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="xs:string">
+				<xs:enumeration value="PRDT"/>
+				<xs:enumeration value="FEE"/>
+				<xs:enumeration value="OTHR"/>
+			</xs:restriction>
+		</xs:simpleType>
+	</xs:attribute>
+	<xs:element name="SubItemDescription">
+		<xs:annotation>
+			<xs:documentation>Description of product or service</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:AN80Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubItemPricingUnitRateType">
+		<xs:annotation>
+			<xs:documentation>Item Pricing Type used for the unit rate</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="xs:string">
+				<xs:enumeration value="UR"/>
+				<xs:enumeration value="FF"/>
+			</xs:restriction>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubItemPricingUnitRate">
+		<xs:annotation>
+			<xs:documentation>line item pricing unit rate</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D186Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubItemPricingUOM" type="IATAFC:PUOMBase">
+		<xs:annotation>
+			<xs:documentation>Item pricing unit of measure  Use IATA Codes, Section E</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubItemPricingUOMFactor">
+		<xs:annotation>
+			<xs:documentation>UOM factor used to convert for pricing</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D186Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubItemPricingCurrencyCode" type="IATAFC:CurrencyCodeBase">
+		<xs:annotation>
+			<xs:documentation>Currency code  Use IATA Codes, Section C</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubItemPricingAmount">
+		<xs:annotation>
+			<xs:documentation>Pricing Amount</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D182Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubItemCurrencyConversion">
+		<xs:annotation>
+			<xs:documentation>Describes how an amount in CurrencyFrom is converted into an amount in CurrencyTo</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="ConversionMechanism"/>
+				<xs:element ref="CurrencyFrom"/>
+				<xs:element ref="CurrencyTo"/>
+				<xs:element ref="ExchangeRate"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="SubItemInvoiceUOM" type="IATAFC:PUOMBase">
+		<xs:annotation>
+			<xs:documentation>UOM associated with the invoice quantity and invoice unit rate  Use IATA Codes, Section E</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubItemInvoiceUOMFactor">
+		<xs:annotation>
+			<xs:documentation>UOM factor used to convert for invoicing</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D186Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubItemQuantity">
+		<xs:annotation>
+			<xs:documentation>Parent Node for quantity information</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="SubItemInvoiceQuantity"/>
+				<xs:element ref="SubItemQuantityType"/>
+				<xs:element ref="SubItemQuantityFlag"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="SubItemInvoiceQuantity">
+		<xs:annotation>
+			<xs:documentation>Quantity of product or service</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D186Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubItemQuantityType" type="IATAFC:QuantityType">
+		<xs:annotation>
+			<xs:documentation>Delivered or Invoiced Amount</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubItemQuantityFlag" type="IATAFC:BaseBasis">
+		<xs:annotation>
+			<xs:documentation>Gross or Net Quantity</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubItemInvoiceUnitRate">
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D186Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubItemInvoiceAmount" type="IATABDT:D182Base">
+		<xs:annotation>
+			<xs:documentation>Line Item Invoice amount</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubItemInvoiceAmountLocal" type="IATABDT:D182Base">
+		<xs:annotation>
+			<xs:documentation>Line Item invoice amount in local currency.</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubItemTax">
+		<xs:annotation>
+			<xs:documentation>Node for all the sub item tax details. Attribute: Type of tax such as VAT, GST, Custom, represented by the Invoice lines  Use IATA Codes, Section F</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="SubItemTaxDescription" minOccurs="0"/>
+				<xs:element ref="SubItemTaxCategoryCode" minOccurs="0"/>
+				<xs:element ref="SubItemTaxLocalJurisdictionTaxBasis" minOccurs="0"/>
+				<xs:element ref="SubItemTaxJurisdictionCodeQualifier" minOccurs="0"/>
+				<xs:element ref="SubItemTaxJurisdictionCode" minOccurs="0"/>
+				<xs:element ref="SubItemTaxRateType"/>
+				<xs:element ref="SubItemTaxPricingCurrencyCode"/>
+				<xs:element ref="SubItemTaxCurrencyConversion" minOccurs="0"/>
+				<xs:element ref="SubItemTaxPricingUOM" minOccurs="0"/>
+				<xs:element ref="SubItemTaxPricingUOMFactor" minOccurs="0"/>
+				<xs:element ref="SubItemTaxPricingRate" minOccurs="0"/>
+				<xs:element ref="SubItemTaxPricingAmount"/>
+				<xs:element ref="SubItemTaxInvoiceUOM"/>
+				<xs:element ref="SubItemTaxInvoiceUOMFactor" minOccurs="0"/>
+				<xs:element ref="SubItemTaxInvoiceUnitRate"/>
+				<xs:element ref="SubItemTaxQuantity" maxOccurs="2"/>
+				<xs:element ref="SubItemTaxInvoiceAmount"/>
+				<xs:element ref="SubItemTaxInvoiceAmountLocal" minOccurs="0"/>
+				<xs:element ref="SubItemTaxIndicator"/>
+				<xs:element ref="SubTax" minOccurs="0" maxOccurs="unbounded"/>
+			</xs:sequence>
+			<xs:attribute ref="SubItemTaxType"/>
+		</xs:complexType>
+	</xs:element>
+	<xs:attribute name="SubItemTaxType" type="IATAFC:TaxTypeBase">
+		<xs:annotation>
+			<xs:documentation>Type of tax such as GST, VAT,Federal Excise, Custom, Petroleum, Environmental.</xs:documentation>
+		</xs:annotation>
+	</xs:attribute>
+	<xs:element name="SubItemTaxDescription">
+		<xs:annotation>
+			<xs:documentation>Description of tax</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:AN35Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubItemTaxCategoryCode" type="IATAFC:TaxCategoryBase">
+		<xs:annotation>
+			<xs:documentation>Specific Tax Codes within a tax type </xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubItemTaxLocalJurisdictionTaxBasis" type="IATAFC:BaseBasis">
+		<xs:annotation>
+			<xs:documentation>Tax basis for local tax jurisdiction</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubItemTaxJurisdictionCodeQualifier" type="IATABDT:AN10Base">
+		<xs:annotation>
+			<xs:documentation>Indentifies source of the tax jurisdiction code</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubItemTaxJurisdictionCode" type="IATABDT:AN10Base">
+		<xs:annotation>
+			<xs:documentation>Tax jurisdiction Code </xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubItemTaxRateType" type="IATAFC:RateTypeBase">
+		<xs:annotation>
+			<xs:documentation>Indicates how tax is determined</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubItemTaxPricingCurrencyCode" type="IATAFC:CurrencyCodeBase">
+		<xs:annotation>
+			<xs:documentation>Currency Code  Use IATA Codes, Section C</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubItemTaxCurrencyConversion">
+		<xs:annotation>
+			<xs:documentation>Describes how an amount in CurrencyFrom is converted into an amount in CurrencyTo</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="ConversionMechanism"/>
+				<xs:element ref="CurrencyFrom"/>
+				<xs:element ref="CurrencyTo"/>
+				<xs:element ref="ExchangeRate"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="SubItemTaxPricingUOM" type="IATAFC:PUOMBase">
+		<xs:annotation>
+			<xs:documentation>Unit of Measure associated with pricing quantity and tax rate  Use IATA Codes, Section E</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubItemTaxPricingUOMFactor">
+		<xs:annotation>
+			<xs:documentation>UOM factor used to convert for tax calculation</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D186Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubItemTaxPricingRate">
+		<xs:annotation>
+			<xs:documentation>Tax rate (in decimal) used in pricing</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D186Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubItemTaxPricingAmount">
+		<xs:annotation>
+			<xs:documentation>Tax represented for the pricing quantity and rate</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D182Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubItemTaxInvoiceUOM" type="IATAFC:PUOMBase">
+		<xs:annotation>
+			<xs:documentation>Unit of Measure associated with pricing quantity and tax rate  Use IATA Codes, Section E</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubItemTaxInvoiceUOMFactor">
+		<xs:annotation>
+			<xs:documentation>UOM factor used to convert for tax calculation</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D186Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubItemTaxInvoiceUnitRate">
+		<xs:annotation>
+			<xs:documentation>Tax rate (in decimal) used in pricing</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D186Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubItemTaxQuantity">
+		<xs:annotation>
+			<xs:documentation>Invoiced quantity is required, delivered quantity is optional</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="SubItemTaxInvoiceQuantity"/>
+				<xs:element ref="SubItemTaxQuantityType"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="SubItemTaxInvoiceQuantity">
+		<xs:annotation>
+			<xs:documentation>Quantity</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D186Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubItemTaxQuantityType" type="IATAFC:QuantityType">
+		<xs:annotation>
+			<xs:documentation>Deliver or Invoiced quantity identifier</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubItemTaxInvoiceAmount">
+		<xs:annotation>
+			<xs:documentation>Tax represented for the invoice quantity and rate</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D182Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubItemTaxInvoiceAmountLocal" type="IATABDT:D182Base">
+		<xs:annotation>
+			<xs:documentation>Tax represented for Invoice quantity and rate</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubItemTaxIndicator">
+		<xs:annotation>
+			<xs:documentation>Official Posting (O) or For Info Only (I)</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="xs:string">
+				<xs:enumeration value="O"/>
+				<xs:enumeration value="I"/>
+			</xs:restriction>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubTax">
+		<xs:annotation>
+			<xs:documentation>Node for all the sub tax details. Attribute: Type of tax such as VAT, GST, Custom, represented by the Invoice lines  Use IATA Codes, Section F</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="SubTaxDescription" minOccurs="0"/>
+				<xs:element ref="SubTaxCategoryCode" minOccurs="0"/>
+				<xs:element ref="SubTaxLocalJurisdictionTaxBasis" minOccurs="0"/>
+				<xs:element ref="SubTaxJurisdictionCodeQualifier" minOccurs="0"/>
+				<xs:element ref="SubTaxJurisdictionCode" minOccurs="0"/>
+				<xs:element ref="SubTaxRateType"/>
+				<xs:element ref="SubTaxPricingCurrencyCode"/>
+				<xs:element ref="SubTaxCurrencyConversion" minOccurs="0"/>
+				<xs:element ref="SubTaxPricingUOM" minOccurs="0"/>
+				<xs:element ref="SubTaxPricingUOMFactor" minOccurs="0"/>
+				<xs:element ref="SubTaxPricingRate" minOccurs="0"/>
+				<xs:element ref="SubTaxPricingAmount"/>
+				<xs:element ref="SubTaxInvoiceUOM"/>
+				<xs:element ref="SubTaxInvoiceUOMFactor" minOccurs="0"/>
+				<xs:element ref="SubTaxInvoiceUnitRate"/>
+				<xs:element ref="SubTaxQuantity" maxOccurs="2"/>
+				<xs:element ref="SubTaxInvoiceAmount"/>
+				<xs:element ref="SubTaxInvoiceAmountLocal" minOccurs="0"/>
+			</xs:sequence>
+			<xs:attribute ref="SubTaxType"/>
+		</xs:complexType>
+	</xs:element>
+	<xs:attribute name="SubTaxType" type="IATAFC:TaxTypeBase">
+		<xs:annotation>
+			<xs:documentation>Type of tax such as GST, VAT, Federal Excise, Custom, Petroleum.</xs:documentation>
+		</xs:annotation>
+	</xs:attribute>
+	<xs:element name="SubTaxDescription">
+		<xs:annotation>
+			<xs:documentation>Description of tax</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:AN35Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubTaxCategoryCode" type="IATAFC:TaxCategoryBase">
+		<xs:annotation>
+			<xs:documentation>Specific Tax Codes within a tax type</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubTaxLocalJurisdictionTaxBasis" type="IATAFC:BaseBasis">
+		<xs:annotation>
+			<xs:documentation>Tax basis for local tax jurisdiction</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubTaxJurisdictionCodeQualifier" type="IATABDT:AN10Base">
+		<xs:annotation>
+			<xs:documentation>Indentifies source of the tax jurisdiction code</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubTaxJurisdictionCode" type="IATABDT:AN10Base">
+		<xs:annotation>
+			<xs:documentation>Tax jurisdiction Code </xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubTaxRateType" type="IATAFC:RateTypeBase">
+		<xs:annotation>
+			<xs:documentation>Indicates how tax is determined</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubTaxPricingCurrencyCode" type="IATAFC:CurrencyCodeBase">
+		<xs:annotation>
+			<xs:documentation>Currency Code  Use IATA Codes, Section F</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubTaxCurrencyConversion">
+		<xs:annotation>
+			<xs:documentation>Describes how an amount in CurrencyFrom is converted into an amount in CurrencyTo</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="ConversionMechanism"/>
+				<xs:element ref="CurrencyFrom"/>
+				<xs:element ref="CurrencyTo"/>
+				<xs:element ref="ExchangeRate"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="SubTaxPricingUOM" type="IATAFC:PUOMBase">
+		<xs:annotation>
+			<xs:documentation>Unit of Measure associated with pricing quantity and tax rate</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubTaxPricingUOMFactor">
+		<xs:annotation>
+			<xs:documentation>UOM factor used to convert for tax calculation</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D186Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubTaxPricingRate">
+		<xs:annotation>
+			<xs:documentation>Tax rate (in decimal) used in pricing</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D186Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubTaxPricingAmount">
+		<xs:annotation>
+			<xs:documentation>Tax represented for the pricing quantity and rate</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D182Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubTaxInvoiceUOM" type="IATAFC:PUOMBase">
+		<xs:annotation>
+			<xs:documentation>Unit of Measure associated with pricing quantity and tax rate  Use IATA Codes, Section E</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubTaxInvoiceUOMFactor">
+		<xs:annotation>
+			<xs:documentation>UOM factor used to convert for tax calculation</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D186Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubTaxInvoiceUnitRate">
+		<xs:annotation>
+			<xs:documentation>Tax rate (in decimal) used in pricing</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D186Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubTaxQuantity">
+		<xs:annotation>
+			<xs:documentation>Invoiced quantity, delivered quantity</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="SubTaxInvoiceQuantity"/>
+				<xs:element ref="SubTaxQuantityType"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="SubTaxInvoiceQuantity" type="IATABDT:D186Base">
+		<xs:annotation>
+			<xs:documentation>Quantity</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubTaxQuantityType" type="IATAFC:QuantityType">
+		<xs:annotation>
+			<xs:documentation>Delivered or Invoiced quantity type.</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="SubTaxInvoiceAmount">
+		<xs:annotation>
+			<xs:documentation>Tax represented for the invoice quantity and rate</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="IATABDT:D182Base"/>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="SubTaxInvoiceAmountLocal" type="IATABDT:D182Base">
+		<xs:annotation>
+			<xs:documentation>Tax represented for the invoice quantity and rate in local currency.</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceSummary">
+		<xs:annotation>
+			<xs:documentation>Invoice Summary Information, once per Invoice</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="InvoiceLineCount"/>
+				<xs:element ref="TotalInvoiceLineAmount"/>
+				<xs:element ref="TotalInvoiceLineAmountLocal" minOccurs="0"/>
+				<xs:element ref="TotalInvoiceTaxAmount"/>
+				<xs:element ref="TotalInvoiceTaxAmountLocal" minOccurs="0"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="InvoiceLineCount">
+		<xs:annotation>
+			<xs:documentation>Count of InvoiceLines</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="xs:integer">
+				<xs:totalDigits value="18"/>
+			</xs:restriction>
+		</xs:simpleType>
+	</xs:element>
+	<xs:element name="TotalInvoiceLineAmount" type="IATABDT:D182Base">
+		<xs:annotation>
+			<xs:documentation>Total of the Invoice amounts for all the line items</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="TotalInvoiceLineAmountLocal" type="IATABDT:D182Base">
+		<xs:annotation>
+			<xs:documentation>Total of invoice amounts for all the line items in local currency</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="TotalInvoiceTaxAmount" type="IATABDT:D182Base">
+		<xs:annotation>
+			<xs:documentation>Total of Invoice Tax amounts for all the line items</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="TotalInvoiceTaxAmountLocal" type="IATABDT:D182Base">
+		<xs:annotation>
+			<xs:documentation>total of invoice tax amounts for all the line items in local currency.</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="InvoiceTransmissionSmry">
+		<xs:annotation>
+			<xs:documentation>Defines the invoice transmission summary information</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="InvoiceMessageCount"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="InvoiceMessageCount">
+		<xs:annotation>
+			<xs:documentation>Number of InvoiceMessages in the Invoice Transmission File</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="xs:integer">
+				<xs:totalDigits value="6"/>
+				<xs:maxInclusive value="100000"/>
+				<xs:minInclusive value="0"/>
+			</xs:restriction>
+		</xs:simpleType>
+	</xs:element>
+</xs:schema>
+Hi Emir,
+
+ 
+
+The correct VAT for Wizz Malta is MT29298624.
+
+ 
+
+The other details are right, thank you!
+
+ 
+
+Kind regards,
+
+Roland

@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 // Helper function to safely parse and format numbers
 const formatDecimal = (value: any): string => {
   const number = parseFloat(value || '0');
-  return number.toFixed(2);
+  return number.toFixed(6);
 };
 
 /**
@@ -41,7 +41,7 @@ export const generateXMLInvoice = (operation: FuelingOperation): string => {
         postalCode: '1095'
       },
       'WIZZ AIR MALTA LTD': {
-        vatNumber: 'MT16818421006',
+        vatNumber: 'MT29298624',
         name: 'Wizz Air Malta Limited',
         street: 'Skyparks Business Centre, Level 2, Malta International Airport',
         city: 'Luqa',
@@ -106,13 +106,18 @@ export const generateXMLInvoice = (operation: FuelingOperation): string => {
   const locationCode = operation.destination?.substring(0, 3).toUpperCase() || 'TZL';
   const invoiceTransmissionId = `${locationCode}-${operation.id}-${invoiceDate}`;
   
+  // Validate and format flight data
+  const flightNumber = operation.flight_number ? operation.flight_number.trim().toUpperCase() : 'N/A';
+  const aircraftRegistration = operation.aircraft_registration ? operation.aircraft_registration.trim().toUpperCase() : 'N/A';
+  const destination = operation.destination ? operation.destination.trim().toUpperCase() : 'TZL';
+  
   // Format the XML content
   const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <InvoiceTransmission xmlns="http://WizzAir.DI.Loaders.Fuel.IATA3.FuelInvoice_IATA3_v1_0">
   <InvoiceTransmissionHeader>
     <InvoiceTransmissionId>${invoiceTransmissionId}</InvoiceTransmissionId>
     <InvoiceCreationDate>${invoiceDateTime}</InvoiceCreationDate>
-    <Version>V3_NS_Minimal</Version>
+    <Version>IATA:FuelInvoiceV3.2.1</Version>
   </InvoiceTransmissionHeader>
   <Invoice>
     <InvoiceHeader>
@@ -157,9 +162,10 @@ export const generateXMLInvoice = (operation: FuelingOperation): string => {
           <ItemQuantityQty>${quantityKg}</ItemQuantityQty>
           <ItemQuantityUOM>KG</ItemQuantityUOM>
         </ItemQuantity>
-        <ItemDeliveryReferenceValue ItemDeliveryReferenceType="FNO">${operation.flight_number || 'N/A'}</ItemDeliveryReferenceValue>
-        <ItemDeliveryReferenceValue ItemDeliveryReferenceType="ARN">${operation.aircraft_registration || 'N/A'}</ItemDeliveryReferenceValue>
-        <ItemDeliveryReferenceValue ItemDeliveryReferenceType="DTN">${operation.destination || 'N/A'}</ItemDeliveryReferenceValue>
+        <ItemDeliveryLocation>${destination}</ItemDeliveryLocation>
+        <ItemDeliveryReferenceValue ItemDeliveryReferenceType="FNO">${flightNumber}</ItemDeliveryReferenceValue>
+        <ItemDeliveryReferenceValue ItemDeliveryReferenceType="ARN">${aircraftRegistration}</ItemDeliveryReferenceValue>
+        <ItemDeliveryReferenceValue ItemDeliveryReferenceType="DTN">${destination}</ItemDeliveryReferenceValue>
         <ItemReferenceLocalDate ItemReferenceDateTypes="DTA">${invoiceDateTime}</ItemReferenceLocalDate>
         <ItemInvoiceAmount>${totalAmount}</ItemInvoiceAmount>
         <SubItem>
@@ -289,18 +295,24 @@ export const generateConsolidatedXMLInvoice = (operations: FuelingOperation[], f
     const quantityKg = parseFloat(operation.quantity_kg as any || '0');
     const operationDate = dayjs(operation.dateTime).format('YYYY-MM-DDTHH:mm:ss');
     
+    // Validate and format flight data for each operation
+    const flightNumber = operation.flight_number ? operation.flight_number.trim().toUpperCase() : 'N/A';
+    const aircraftRegistration = operation.aircraft_registration ? operation.aircraft_registration.trim().toUpperCase() : 'N/A';
+    const destination = operation.destination ? operation.destination.trim().toUpperCase() : 'TZL';
+    
     return `
       <InvoiceLine>
         <ItemNumber>${index + 1}</ItemNumber>
         <ItemQuantity>
           <ItemQuantityType>DL</ItemQuantityType>
           <ItemQuantityFlag>GR</ItemQuantityFlag>
-          <ItemQuantityQty>${quantityKg.toFixed(2)}</ItemQuantityQty>
+          <ItemQuantityQty>${quantityKg.toFixed(6)}</ItemQuantityQty>
           <ItemQuantityUOM>KG</ItemQuantityUOM>
         </ItemQuantity>
-        <ItemDeliveryReferenceValue ItemDeliveryReferenceType="FNO">${operation.flight_number || 'N/A'}</ItemDeliveryReferenceValue>
-        <ItemDeliveryReferenceValue ItemDeliveryReferenceType="ARN">${operation.aircraft_registration || 'N/A'}</ItemDeliveryReferenceValue>
-        <ItemDeliveryReferenceValue ItemDeliveryReferenceType="DTN">${operation.destination || 'N/A'}</ItemDeliveryReferenceValue>
+        <ItemDeliveryLocation>${destination}</ItemDeliveryLocation>
+        <ItemDeliveryReferenceValue ItemDeliveryReferenceType="FNO">${flightNumber}</ItemDeliveryReferenceValue>
+        <ItemDeliveryReferenceValue ItemDeliveryReferenceType="ARN">${aircraftRegistration}</ItemDeliveryReferenceValue>
+        <ItemDeliveryReferenceValue ItemDeliveryReferenceType="DTN">${destination}</ItemDeliveryReferenceValue>
         <ItemReferenceLocalDate ItemReferenceDateTypes="DTA">${operationDate}</ItemReferenceLocalDate>
         <ItemInvoiceAmount>${operation.total_amount || 0}</ItemInvoiceAmount>
         <SubItem>
@@ -311,10 +323,10 @@ export const generateConsolidatedXMLInvoice = (operations: FuelingOperation[], f
             <SubItemPricingUOM>KG</SubItemPricingUOM>
             <SubItemPricingUOMFactor>1</SubItemPricingUOMFactor>
             <SubItemPricingCurrencyCode>${operation.currency || 'BAM'}</SubItemPricingCurrencyCode>
-            <SubItemPricingAmount>${quantityKg.toFixed(2)}</SubItemPricingAmount>
+            <SubItemPricingAmount>${quantityKg.toFixed(6)}</SubItemPricingAmount>
             <SubItemInvoiceUOM>KG</SubItemInvoiceUOM>
             <SubItemQuantity>
-              <SubItemInvoiceQuantity>${quantityKg.toFixed(2)}</SubItemInvoiceQuantity>
+              <SubItemInvoiceQuantity>${quantityKg.toFixed(6)}</SubItemInvoiceQuantity>
               <SubItemQuantityType>DL</SubItemQuantityType>
               <SubItemQuantityFlag>GR</SubItemQuantityFlag>
             </SubItemQuantity>
@@ -331,7 +343,7 @@ export const generateConsolidatedXMLInvoice = (operations: FuelingOperation[], f
   <InvoiceTransmissionHeader>
     <InvoiceTransmissionId>${invoiceTransmissionId}</InvoiceTransmissionId>
     <InvoiceCreationDate>${invoiceDateTime}</InvoiceCreationDate>
-    <Version>V3_NS_Minimal</Version>
+    <Version>IATA:FuelInvoiceV3.2.1</Version>
   </InvoiceTransmissionHeader>
   <Invoice>
     <InvoiceHeader>

@@ -22,7 +22,7 @@ interface OperationDetailsModalProps {
   operation: ExtendedFuelingOperation;
 }
 
-const OperationDetailsModal: React.FC<OperationDetailsModalProps> = ({ operation, onClose }) => {
+const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo(({ operation, onClose }) => {
   // State for ExdKNumber edit modal
   const [isExdKNumberModalOpen, setIsExdKNumberModalOpen] = useState(false);
   const [updatedOperation, setUpdatedOperation] = useState<ExtendedFuelingOperation>(operation);
@@ -174,12 +174,14 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = ({ operation
               <thead>
                 <tr>
                   <th className="px-4 py-3 bg-gray-50 dark:bg-gray-800 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">MRN Broj</th>
+                  <th className="px-4 py-3 bg-gray-50 dark:bg-gray-800 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Kilogrami</th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
                 {formattedData.map((item, index) => (
                   <tr key={index} className={index % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50 dark:bg-gray-800'}>
                     <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{item.mrnNumber}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 text-right font-medium">{Math.round(item.quantityKg).toLocaleString('hr-HR')} kg</td>
                   </tr>
                 ))}
               </tbody>
@@ -190,34 +192,31 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = ({ operation
     );
   };
   
-  // Pomoćna funkcija za renderiranje MRN sekcije
-  const renderMrnSection = () => {
-    // Debug: ispiši sve podatke o operaciji
-    console.log('Operation data:', operation);
-    console.log('MRN Breakdown:', operation.mrnBreakdown);
-    console.log('Parsed MRN Breakdown:', operation.parsedMrnBreakdown);
-    
-    // Pripremi podatke za prikaz
-    let mrnDataToDisplay: any[] = [];
+  // Memoiziraj MRN podatke da se ne računaju ponovo na svaki render
+  const mrnDataToDisplay = React.useMemo(() => {
+    let data: any[] = [];
     
     try {
-      // Prvo provjeri parsedMrnBreakdown koji dolazi direktno s backenda
-      if (operation.parsedMrnBreakdown && Array.isArray(operation.parsedMrnBreakdown)) {
-        console.log('Using parsedMrnBreakdown:', operation.parsedMrnBreakdown);
-        mrnDataToDisplay = operation.parsedMrnBreakdown;
-      }
-      // Ako nema parsedMrnBreakdown, pokušaj parsirati mrnBreakdown string
-      else if (typeof operation.mrnBreakdown === 'string') {
-        console.log('Parsing mrnBreakdown string:', operation.mrnBreakdown);
+      // Prvo pokušaj parsirati mrnBreakdown string jer sadrži sve podatke uključujući quantity_kg
+      if (typeof operation.mrnBreakdown === 'string') {
         const parsedData = JSON.parse(operation.mrnBreakdown);
         if (Array.isArray(parsedData)) {
-          mrnDataToDisplay = parsedData;
+          data = [...parsedData];
         }
+      }
+      // Ako nema mrnBreakdown, koristi parsedMrnBreakdown kao fallback
+      else if (operation.parsedMrnBreakdown && Array.isArray(operation.parsedMrnBreakdown)) {
+        data = [...operation.parsedMrnBreakdown];
       }
     } catch (e) {
       console.error('Error parsing MRN data:', e);
-      // Nastavi s praznim nizom ako je došlo do greške
     }
+    
+    return data;
+  }, [operation.id, operation.parsedMrnBreakdown, operation.mrnBreakdown]);
+  
+  // Pomoćna funkcija za renderiranje MRN sekcije
+  const renderMrnSection = () => {
     
     // Uvijek prikaži MRN sekciju, čak i ako nema podataka
     return (
@@ -231,30 +230,34 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = ({ operation
           </h3>
         </div>
         <div className="p-4">
-          {mrnDataToDisplay.length > 0 ? (
+          {mrnDataToDisplay && mrnDataToDisplay.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead>
                   <tr>
                     <th className="px-4 py-3 bg-gray-50 dark:bg-gray-800 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">MRN Broj</th>
+                    <th className="px-4 py-3 bg-gray-50 dark:bg-gray-800 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Količina (kg)</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
                   {mrnDataToDisplay.map((item, index) => {
                     const mrnNumber = item.mrn || (Object.keys(item).length === 1 ? Object.keys(item)[0] : 'N/A');
-                    // Preferiramo quantity_kg ako postoji, inače računamo iz količine i gustoće
-                    let quantityKg = item.quantity_kg;
                     
-                    if (quantityKg === undefined) {
-                      // Ako nemamo quantity_kg, izračunaj iz quantity i density ako je moguće
-                      const quantity = item.quantity || (Object.keys(item).length === 1 ? item[Object.keys(item)[0]] : 0);
-                      const density = item.density_at_intake || 0.8; // Koristi defaultnu gustoću ako nije definirana
-                      quantityKg = Number(quantity) * Number(density);
+                    // Koristi SAMO direktne podatke iz backenda - ne računaj ništa!
+                    let quantityKg = item.quantity_kg || item.kg || 0;
+                    
+                    // Konvertuj string u broj ako je potrebno
+                    if (typeof quantityKg === 'string') {
+                      quantityKg = parseFloat(quantityKg);
                     }
+                    
+                    // Zaokruži na cijeli broj
+                    const roundedKg = Math.round(Number(quantityKg) || 0);
                     
                     return (
                       <tr key={index} className={index % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50 dark:bg-gray-800'}>
                         <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{mrnNumber}</td>
+                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 font-medium text-right">{roundedKg.toLocaleString('hr-HR')} kg</td>
                       </tr>
                     );
                   })}
@@ -949,6 +952,6 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = ({ operation
     </div>,
     document.body
   );
-};
+});
 
 export default OperationDetailsModal;
