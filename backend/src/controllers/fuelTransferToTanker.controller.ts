@@ -433,6 +433,14 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
             }
           });
 
+          // Debug: ispiši informacije o dohvaćanju originalnog datuma
+          logger.info(`🔍 Looking for original MRN record: ${detail.mrn}`);
+          logger.info(`🔍 Original MRN record found:`, originalMrnRecord ? {
+            density_at_intake: originalMrnRecord.density_at_intake,
+            date_added: originalMrnRecord.date_added,
+            date_added_iso: originalMrnRecord.date_added?.toISOString()
+          } : 'NOT FOUND');
+
           let itemDensity: Decimal;
           let originalDateAdded: Date;
           
@@ -576,6 +584,14 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
             logger.info(`🆕 CREATING new MobileTankCustoms record for MRN: ${item.mrn}`);
             logger.info(`🆕 Data: ${item.quantityLiters.toNumber()} L, ${item.quantityKg.toNumber()} kg, density: ${item.densityAtIntake.toNumber()}`);
             
+            // Debug: ispiši informacije o datumu koji se koristi
+            logger.info(`📅 Creating MRN with date_added:`, {
+              mrn: item.mrn,
+              originalDateAdded: item.originalDateAdded,
+              originalDateAdded_iso: item.originalDateAdded?.toISOString(),
+              currentDate: new Date().toISOString()
+            });
+
             const createResult = await tx.mobileTankCustoms.create({
               data: {
                 mobile_tank_id: parsedTargetMobileTankId,
