@@ -406,7 +406,7 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
           quantity = 0;
         }
         
-        const quantityFormatted = typeof quantity === 'number' ? quantity.toFixed(2) : quantity;
+        const quantityFormatted = typeof quantity === 'number' ? Math.round(quantity).toString() : quantity;
         
         doc.text(`MRN: ${mrnNumber} - ${quantityFormatted} kg`, 14, mrnY); // Changed L to kg
         mrnY += 6; // Razmak između MRN redova

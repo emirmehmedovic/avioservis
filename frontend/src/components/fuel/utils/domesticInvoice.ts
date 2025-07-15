@@ -304,7 +304,7 @@ export const generateDomesticPDFInvoice = async (operation: FuelingOperation): P
       let mrnY = summaryBoxY + 11;
       const maxMrnsToShow = 4;
       processedMrnData.slice(0, maxMrnsToShow).forEach((item, index) => {
-        const quantityFormatted = item.quantityKg.toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const quantityFormatted = Math.round(item.quantityKg).toString();
         doc.text(`MRN: ${item.mrn} - ${quantityFormatted} kg`, 14, mrnY);
         mrnY += 5;
       });
@@ -652,8 +652,8 @@ export const generateConsolidatedDomesticPDFInvoice = async (operations: Fueling
         // Display MRN data if available, otherwise show 'N/A'
         op.parsedMrnBreakdown && op.parsedMrnBreakdown.length > 0
             ? (op.parsedMrnBreakdown.length > 1
-                ? `${op.parsedMrnBreakdown[0].mrn}: ${Number(op.parsedMrnBreakdown[0].quantity_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 })} kg, ... (+${op.parsedMrnBreakdown.length - 1})`
-                : `${op.parsedMrnBreakdown[0].mrn}: ${Number(op.parsedMrnBreakdown[0].quantity_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 })} kg`)
+                ? `${op.parsedMrnBreakdown[0].mrn}: ${Math.round(Number(op.parsedMrnBreakdown[0].quantity_kg || 0))} kg, ... (+${op.parsedMrnBreakdown.length - 1})`
+                : `${op.parsedMrnBreakdown[0].mrn}: ${Math.round(Number(op.parsedMrnBreakdown[0].quantity_kg || 0))} kg`)
             : 'N/A',
         op.delivery_note_number || 'N/A',
         (op.quantity_liters || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
