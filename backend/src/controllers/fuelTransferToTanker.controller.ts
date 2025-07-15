@@ -417,6 +417,7 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
           quantityKg: Decimal;
           quantityLiters: Decimal;
           densityAtIntake: Decimal; // Specific density for this MRN batch
+          originalDateAdded: Date; // Original date from fixed tank
         }> = [];
 
         let totalDeductedKgFromMrns = new Decimal(0);
@@ -426,18 +427,26 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
           // Dohvati originalni TankFuelByCustoms zapis da bismo dobili točnu gustoću za taj MRN
           const originalMrnRecord = await tx.tankFuelByCustoms.findFirst({
             where: { customs_declaration_number: detail.mrn }, // U TankFuelByCustoms, MRN je pohranjem kao customs_declaration_number
-            select: { density_at_intake: true } // Assuming density_at_intake is stored per MRN
+            select: { 
+              density_at_intake: true,
+              date_added: true // Dodajemo date_added da sačuvamo originalni datum
+            }
           });
 
           let itemDensity: Decimal;
+          let originalDateAdded: Date;
+          
           if (!originalMrnRecord || !originalMrnRecord.density_at_intake) {
             // Ako gustoća nije pronađena u MRN zapisu, koristimo onu koja je prosljeđena u zahtjevu ili početnu
             logger.warn(`Gustoća nije pronađena za MRN ${detail.mrn}. Koristimo ukupnu gustoću transfera ${parsedSpecificGravity.toFixed(4)} kao rezervnu vrijednost.`);
             itemDensity = parsedSpecificGravity;
+            originalDateAdded = new Date(); // Fallback na trenutni datum
           } else {
             // Koristimo stvarnu gustoću zapisanu pri unosu tog MRN-a
             itemDensity = new Decimal(String(originalMrnRecord.density_at_intake));
+            originalDateAdded = originalMrnRecord.date_added; // Sačuvaj originalni datum
             logger.info(`Koristi se stvarna gustoća: ${itemDensity.toFixed(4)} za MRN: ${detail.mrn}. Originalna vrijednost iz baze: ${originalMrnRecord.density_at_intake}`);
+            logger.info(`Sačuvan originalni datum MRN-a: ${originalDateAdded.toISOString()}`);
           }
           
           // Dodatna provjera valjanosti gustoće
@@ -469,6 +478,7 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
             quantityKg: deductedKg,
             quantityLiters: deductedLiters,
             densityAtIntake: itemDensity, // Store the specific density for this MRN batch
+            originalDateAdded: originalDateAdded, // Store the original date from fixed tank
           });
           totalDeductedKgFromMrns = totalDeductedKgFromMrns.plus(deductedKg);
           totalDeductedLitersFromMrns = totalDeductedLitersFromMrns.plus(deductedLiters);
@@ -578,7 +588,7 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
                 // Uklonjena polja koja ne postoje u Prisma shemi:
                 // source_fixed_tank_id: parsedSourceFixedStorageTankId,
                 // source_mrn_record_id: item.sourceMrnRecordId,
-                date_added: new Date(),
+                date_added: item.originalDateAdded, // Sačuvaj originalni datum iz fiksnog tanka
               },
             });
             

@@ -6,6 +6,7 @@ import { FuelingOperation } from '../types';
 import { formatDate } from './helpers';
 import { notoSansRegularBase64 } from '@/lib/fonts';
 import { notoSansBoldBase64 } from '@/lib/notoSansBoldBase64';
+import { mergeAndDownloadInvoice } from './pdfMerger';
 
 // VAT rate for domestic traffic (17%)
 const VAT_RATE = 0.17;
@@ -162,9 +163,26 @@ export const generateDomesticPDFInvoice = async (operation: FuelingOperation): P
     doc.setFont(FONT_NAME, 'bold');
     doc.text(`Dostavnica/Voucher: ${operation.delivery_note_number || 'N/A'}`, 14, 95);
     doc.setFont(FONT_NAME, 'normal');
-    doc.text(`Registracija aviona: ${operation.aircraft_registration || 'N/A'}`, 14, 101);
-    doc.text(`Destinacija: ${operation.destination}`, 14, 107);
-    doc.text(`Broj leta: ${operation.flight_number || 'N/A'}`, 14, 113);
+    
+    // Prvo izračunaj pozicije za adresu i ostale elemente
+    const rightColumnWidth = pageWidth / 2 - 14; // Širina desne kolone
+    const addressText = operation.airline?.address || 'N/A';
+    const addressLines = doc.splitTextToSize(addressText, rightColumnWidth);
+    let currentY = 83;
+    addressLines.forEach((line: string) => {
+      currentY += 6; // Razmak između redova
+    });
+    
+    // ID/PDV i Tel informacije - pomjeri ih ispod adrese
+    const contactY = currentY + 2; // Dodaj malo prostora nakon adrese
+    
+    // Izračunaj dinamičku poziciju za sve elemente ispod adrese
+    const baseY = contactY + 12; // Osnovna pozicija nakon contact informacija
+    
+    // Sada prikaži sve elemente na pravilnim pozicijama
+    doc.text(`Registracija aviona: ${operation.aircraft_registration || 'N/A'}`, 14, baseY);
+    doc.text(`Destinacija: ${operation.destination}`, 14, baseY + 6);
+    doc.text(`Broj leta: ${operation.flight_number || 'N/A'}`, 14, baseY + 12);
     
     doc.setFontSize(11);
     doc.setFont(FONT_NAME, 'bold');
@@ -174,9 +192,17 @@ export const generateDomesticPDFInvoice = async (operation: FuelingOperation): P
     doc.setFontSize(9);
     doc.setTextColor(0, 0, 0);
     doc.text(`${operation.airline?.name || 'N/A'}`, rightColumnX, 77);
-    doc.text(`${operation.airline?.address || 'N/A'}`, rightColumnX, 83);
-    doc.text(`ID/PDV: ${operation.airline?.taxId || 'N/A'}`, rightColumnX, 89);
-    doc.text(`Tel: ${operation.airline?.contact_details || 'N/A'}`, rightColumnX, 95);
+    
+    // Prikaži adresu
+    currentY = 83;
+    addressLines.forEach((line: string) => {
+      doc.text(line, rightColumnX, currentY);
+      currentY += 6; // Razmak između redova
+    });
+    
+    // Prikaži ID/PDV i Tel informacije
+    doc.text(`ID/PDV: ${operation.airline?.taxId || 'N/A'}`, rightColumnX, contactY);
+    doc.text(`Tel: ${operation.airline?.contact_details || 'N/A'}`, rightColumnX, contactY + 6);
 
     const baseAmount = (operation.quantity_kg || 0) * (operation.price_per_kg || 0);
     const discountPercentage = operation.discount_percentage || 0;
@@ -407,7 +433,26 @@ export const generateDomesticPDFInvoice = async (operation: FuelingOperation): P
     doc.text(`Faktura generisana: ${new Date().toLocaleString('hr-HR')}`, pageWidth / 2, finalFooterY + 5, { align: 'center' });
     // END: Footer section
 
-    doc.save(`Faktura-Domaca-${invoiceNumber}.pdf`);
+    // Generiši PDF kao bytes umjesto direktnog save-a
+    const pdfBytes = doc.output('arraybuffer');
+    
+    console.log('🔍 generateDomesticPDFInvoice - Početak spajanja...');
+    console.log('📄 Operacija za spajanje:', operation);
+    console.log('📋 Dokumenti u operaciji:', operation.documents);
+    
+    // Spoji s prikačenim dokumentom ako postoji
+    try {
+      await mergeAndDownloadInvoice(
+        new Uint8Array(pdfBytes),
+        operation,
+        `Faktura-Domaca-${invoiceNumber}.pdf`
+      );
+      console.log('✅ Spajanje uspješno završeno');
+    } catch (mergeError) {
+      console.warn('❌ Greška pri spajanju s prikačenim dokumentom, downloadujem samo fakturu:', mergeError);
+      // Fallback: downloaduj samo fakturu
+      doc.save(`Faktura-Domaca-${invoiceNumber}.pdf`);
+    }
     
   } catch (error) {
     console.error('Error generating domestic PDF:', error);

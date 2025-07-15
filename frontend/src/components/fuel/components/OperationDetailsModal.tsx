@@ -752,7 +752,19 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = ({ operation
                 }
                 
                 operationForInvoice.parsedMrnBreakdown = mrnDataForPdf;
-                generatePDFInvoice(operationForInvoice);
+                // Koristi originalnu operaciju koja ima dokumente, ali sa ažuriranim MRN podacima
+                const operationWithDocuments = {
+                  ...operation,
+                  parsedMrnBreakdown: mrnDataForPdf
+                } as any; // Type assertion za kompatibilnost
+                
+                console.log('🔍 OperationDetailsModal - Prije poziva generatePDFInvoice:');
+                console.log('📄 Originalna operacija:', operation);
+                console.log('📋 Dokumenti u originalnoj operaciji:', operation.documents);
+                console.log('📄 Operacija sa dokumentima:', operationWithDocuments);
+                console.log('📋 Dokumenti u operaciji sa dokumentima:', operationWithDocuments.documents);
+                
+                generatePDFInvoice(operationWithDocuments);
               }}
               className="group relative bg-white border border-gray-200 rounded-lg shadow-sm p-4 hover:border-indigo-300 hover:shadow-md transition-all duration-200 text-left flex flex-col h-full"
               title="Standardna faktura za izvoz"
@@ -834,7 +846,19 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = ({ operation
                 }
                 
                 operationForDomesticInvoice.parsedMrnBreakdown = mrnDataForDomesticPdf;
-                generateDomesticPDFInvoice(operationForDomesticInvoice);
+                // Koristi originalnu operaciju koja ima dokumente, ali sa ažuriranim MRN podacima
+                const operationWithDocuments = {
+                  ...operation,
+                  parsedMrnBreakdown: mrnDataForDomesticPdf
+                } as any; // Type assertion za kompatibilnost
+                
+                console.log('🔍 OperationDetailsModal - Prije poziva generateDomesticPDFInvoice:');
+                console.log('📄 Originalna operacija:', operation);
+                console.log('📋 Dokumenti u originalnoj operaciji:', operation.documents);
+                console.log('📄 Operacija sa dokumentima:', operationWithDocuments);
+                console.log('📋 Dokumenti u operaciji sa dokumentima:', operationWithDocuments.documents);
+                
+                generateDomesticPDFInvoice(operationWithDocuments);
               }}
               className="group relative bg-white border border-gray-200 rounded-lg shadow-sm p-4 hover:border-indigo-300 hover:shadow-md transition-all duration-200 text-left flex flex-col h-full"
               title="Faktura za unutarnji saobraćaj sa PDV-om"

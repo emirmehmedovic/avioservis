@@ -180,7 +180,7 @@ export const correctTankInconsistency = async (req: Request, res: Response): Pro
             customs_declaration_number: `BAL-${new Date().toISOString().slice(0, 10)}-${Math.floor(Math.random() * 10000)}`,
             quantity_liters: quantityToAdd,
             remaining_quantity_liters: quantityToAdd,
-            date_added: new Date(),
+            date_added: new Date(), // Za balansni zapis koristimo trenutni datum
             fuel_intake_record_id: 1, // Mora biti postavljen na postojeći Fuel Intake Record ID
           }
         });

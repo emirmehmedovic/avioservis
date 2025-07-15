@@ -4,6 +4,7 @@ import timezone from 'dayjs/plugin/timezone';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { FuelingOperation, AirlineFE } from '../types';
+import { mergeAndDownloadInvoice } from './pdfMerger';
 
 // Konfiguriraj dayjs za rad s vremenskim zonama
 dayjs.extend(utc);
@@ -219,23 +220,38 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
     
     // Desna kolona - informacije o kupcu
     const rightColumnX = pageWidth / 2;
+    const rightColumnWidth = pageWidth / 2 - 14; // Širina desne kolone
     doc.setTextColor(0, 0, 0);
     doc.text(`${operation.airline?.name || 'N/A'}`, rightColumnX, 77 + topPadding); // Adjusted Y for padding
-    doc.text(`${operation.airline?.address || 'N/A'}`, rightColumnX, 83 + topPadding); // Adjusted Y for padding
-    doc.text(`ID/VAT No.: ${operation.airline?.taxId || 'N/A'}`, rightColumnX, 89 + topPadding); // Adjusted Y for padding
-    doc.text(`Contact: ${operation.airline?.contact_details || 'N/A'}`, rightColumnX, 95 + topPadding); // Adjusted Y for padding
+    
+    // Automatsko prelomljavanje adrese
+    const addressText = operation.airline?.address || 'N/A';
+    const addressLines = doc.splitTextToSize(addressText, rightColumnWidth);
+    let currentY = 83 + topPadding;
+    addressLines.forEach((line: string) => {
+      doc.text(line, rightColumnX, currentY);
+      currentY += 6; // Razmak između redova
+    });
+    
+    // ID/VAT i Contact informacije - pomjeri ih ispod adrese
+    const contactY = currentY + 2; // Dodaj malo prostora nakon adrese
+    doc.text(`ID/VAT No.: ${operation.airline?.taxId || 'N/A'}`, rightColumnX, contactY);
+    doc.text(`Contact: ${operation.airline?.contact_details || 'N/A'}`, rightColumnX, contactY + 6);
+    
+    // Izračunaj dinamičku poziciju za sve elemente ispod adrese
+    const baseY = contactY + 12; // Osnovna pozicija nakon contact informacija
     
     // Lijeva kolona - informacije o letu
     doc.setTextColor(0, 0, 0);
-    doc.text(`Aircraft Registration: ${operation.aircraft_registration || 'N/A'}`, 14, 101 + topPadding); // Adjusted Y for padding
-    doc.text(`Destination: ${operation.destination}`, 14, 107 + topPadding); // Adjusted Y for padding
-    doc.text(`Flight Number: ${operation.flight_number || 'N/A'}`, 14, 113 + topPadding); // Adjusted Y for padding
-    doc.text('Parity - CPT Tuzla Airport', 14, 119 + topPadding); // Adjusted Y for padding
+    doc.text(`Aircraft Registration: ${operation.aircraft_registration || 'N/A'}`, 14, baseY);
+    doc.text(`Destination: ${operation.destination}`, 14, baseY + 6);
+    doc.text(`Flight Number: ${operation.flight_number || 'N/A'}`, 14, baseY + 12);
+    doc.text('Parity - CPT Tuzla Airport', 14, baseY + 18);
     
     // Desna kolona - informacije o dostavnici i tipu prometa
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0);
-    doc.text(`Delivery Voucher: ${operation.delivery_note_number || 'N/A'}`, rightColumnX, 101 + topPadding); // Adjusted Y for padding
+    doc.text(`Delivery Voucher: ${operation.delivery_note_number || 'N/A'}`, rightColumnX, baseY);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
     // Mapiranje Traffic Type vrijednosti
@@ -250,19 +266,20 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
       return mappings[type] || type;
     };
     
-    doc.text(`Traffic Type: ${mapTrafficType(operation.tip_saobracaja)}`, rightColumnX, 107 + topPadding);
-    doc.text(`Specific Density: ${(operation.specific_density || 0).toLocaleString('hr-HR', { minimumFractionDigits: 3 })}`, rightColumnX, 113 + topPadding);
+    doc.text(`Traffic Type: ${mapTrafficType(operation.tip_saobracaja)}`, rightColumnX, baseY + 6);
+    doc.text(`Specific Density: ${(operation.specific_density || 0).toLocaleString('hr-HR', { minimumFractionDigits: 3 })}`, rightColumnX, baseY + 12);
     
     // Dodaj liniju iznad tabele
+    const lineY = baseY + 24; // Pozicija linije nakon svih informacija
     doc.setDrawColor(200, 200, 220);
     doc.setLineWidth(0.5);
-    doc.line(14, 130 + topPadding, pageWidth - 14, 130 + topPadding); // Adjusted Y for padding
+    doc.line(14, lineY, pageWidth - 14, lineY);
     
     // Dodaj tabelu s uslugama
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0);
-    doc.text('SERVICE DETAILS:', 14, 140 + topPadding); // Adjusted Y for padding
+    doc.text('SERVICE DETAILS:', 14, lineY + 10); // Pozicija naslova tabele
     
     // Koristimo autoTable za tabelu usluga da bi se tekst automatski prelomio
     const baseAmount = (operation.quantity_kg || 0) * (operation.price_per_kg || 0);
@@ -291,10 +308,10 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
     ];
     
     // Koristimo autoTable za automatsko prelomljavanje teksta i spremamo finalnu poziciju
-    let finalY = 150 + topPadding; // Adjusted Y for padding
+    let finalY = lineY + 20; // Pozicija tabele nakon naslova
     
     autoTable(doc, {
-      startY: 150 + topPadding, // Adjusted Y for padding
+      startY: lineY + 20, // Pozicija tabele
       head: [tableHeaders],
       body: tableData,
       theme: 'grid',
@@ -599,8 +616,26 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
       doc.internal.pageSize.height = totalHeight;
     }
     
-    // Save the PDF
-    doc.save(`Invoice-${invoiceNumber}.pdf`);
+    // Generiši PDF kao bytes umjesto direktnog save-a
+    const pdfBytes = doc.output('arraybuffer');
+    
+    console.log('🔍 generatePDFInvoice - Početak spajanja...');
+    console.log('📄 Operacija za spajanje:', operation);
+    console.log('📋 Dokumenti u operaciji:', operation.documents);
+    
+    // Spoji s prikačenim dokumentom ako postoji
+    try {
+      await mergeAndDownloadInvoice(
+        new Uint8Array(pdfBytes),
+        operation,
+        `Invoice-${invoiceNumber}.pdf`
+      );
+      console.log('✅ Spajanje uspješno završeno');
+    } catch (mergeError) {
+      console.warn('❌ Greška pri spajanju s prikačenim dokumentom, downloadujem samo fakturu:', mergeError);
+      // Fallback: downloaduj samo fakturu
+      doc.save(`Invoice-${invoiceNumber}.pdf`);
+    }
     
   } catch (error) {
     console.error('Error generating PDF:', error);

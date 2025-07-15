@@ -254,7 +254,7 @@ export async function processExcessFuelExchange(
           remaining_quantity_liters: new Decimal(substitutionLiters.toString()),
           quantity_kg: new Decimal(substitutionKg.toString()),
           remaining_quantity_kg: new Decimal(substitutionKg.toString()),
-          date_added: new Date(),
+          date_added: new Date(), // Za automatsku zamjenu koristimo trenutni datum
           supplier_name: `Automatska zamjena - fiksni tank ${fifoFixedTank.tankId}`,
           density_at_intake: new Decimal((substitutionKg / substitutionLiters).toFixed(4))
         }
@@ -618,7 +618,7 @@ async function substituteFuelFromFixedToMobile(
         remaining_quantity_liters: new Decimal(liters.toString()),
         quantity_kg: new Decimal(kg.toString()),
         remaining_quantity_kg: new Decimal(kg.toString()),
-        date_added: new Date(),
+        date_added: new Date(), // Za automatsku zamjenu koristimo trenutni datum
         supplier_name: `Automatska zamjena - fiksni tank ${fixedTankId}`,
         density_at_intake: new Decimal((kg / liters).toFixed(4)) // Izračun gustoće iz kg i litara
       }
