@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient, Prisma } from '@prisma/client'; // Added Prisma for error handling
+import { AuthRequest } from '../middleware/auth';
 const prisma = new PrismaClient();
 
 export const findFuelPriceRule = async (req: Request, res: Response): Promise<Response | void> => {
@@ -41,7 +42,7 @@ export const findFuelPriceRule = async (req: Request, res: Response): Promise<Re
   }
 };
 
-export const createFuelPriceRule = async (req: Request, res: Response): Promise<Response | void> => {
+export const createFuelPriceRule = async (req: AuthRequest, res: Response): Promise<Response | void> => {
   const { airlineId, price, currency } = req.body;
 
   if (typeof airlineId !== 'number' || airlineId <= 0) {
@@ -106,7 +107,7 @@ export const getAllFuelPriceRules = async (req: Request, res: Response): Promise
   }
 };
 
-export const updateFuelPriceRule = async (req: Request, res: Response): Promise<Response | void> => {
+export const updateFuelPriceRule = async (req: AuthRequest, res: Response): Promise<Response | void> => {
   const { id } = req.params;
   const { price, currency } = req.body;
 

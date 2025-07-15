@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import * as z from 'zod';
+import { AuthRequest } from '../middleware/auth';
 
 const prisma = new PrismaClient();
 
@@ -47,8 +48,15 @@ export const getAirlineById = async (req: Request, res: Response): Promise<void>
   }
 };
 
-export const createAirline = async (req: Request, res: Response): Promise<void> => {
+export const createAirline = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    // Check if user has permission to create airlines
+    const userRole = req.user?.role;
+    if (userRole !== 'ADMIN' && userRole !== 'KONTROLA' && userRole !== 'FUEL_OPERATOR') {
+      res.status(403).json({ message: 'Nemate ovlaštenje za dodavanje avio kompanija' });
+      return;
+    }
+
     const validationResult = airlineSchema.safeParse(req.body);
     
     if (!validationResult.success) {
@@ -89,10 +97,17 @@ export const createAirline = async (req: Request, res: Response): Promise<void> 
   }
 };
 
-export const updateAirline = async (req: Request, res: Response): Promise<void> => {
+export const updateAirline = async (req: AuthRequest, res: Response): Promise<void> => {
   const { id } = req.params;
   
   try {
+    // Check if user has permission to update airlines
+    const userRole = req.user?.role;
+    if (userRole !== 'ADMIN' && userRole !== 'KONTROLA' && userRole !== 'FUEL_OPERATOR') {
+      res.status(403).json({ message: 'Nemate ovlaštenje za ažuriranje avio kompanija' });
+      return;
+    }
+
     const validationResult = airlineSchema.safeParse(req.body);
     
     if (!validationResult.success) {
@@ -147,10 +162,17 @@ export const updateAirline = async (req: Request, res: Response): Promise<void> 
   }
 };
 
-export const deleteAirline = async (req: Request, res: Response): Promise<void> => {
+export const deleteAirline = async (req: AuthRequest, res: Response): Promise<void> => {
   const { id } = req.params;
   
   try {
+    // Check if user has permission to delete airlines
+    const userRole = req.user?.role;
+    if (userRole !== 'ADMIN' && userRole !== 'KONTROLA' && userRole !== 'FUEL_OPERATOR') {
+      res.status(403).json({ message: 'Nemate ovlaštenje za brisanje avio kompanija' });
+      return;
+    }
+
     // Check if the airline exists
     const existingAirline = await (prisma as any).airline.findUnique({
       where: { id: Number(id) },

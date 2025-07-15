@@ -685,8 +685,12 @@ export const getMobileTankCustomsBreakdown = async (req: Request, res: Response,
 // GET /api/fuel/summary - Get total fuel summary with both liters and kilograms
 export const getTotalFuelSummary = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Get fixed tanks data
+    // Get fixed tanks data (excluding EXCESS_FUEL_HOLDING tank with ID 4)
     const fixedTanks = await prisma.fixedStorageTanks.findMany({
+      where: {
+        id: { not: 4 }, // Exclude EXCESS_FUEL_HOLDING tank
+        deletedAt: null // Only include non-deleted tanks
+      },
       select: {
         id: true,
         tank_name: true,

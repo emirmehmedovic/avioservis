@@ -196,13 +196,15 @@ export default function FixedTanksDisplay({
   }, []);
 
   useEffect(() => {
-    const currentTotal = tanks.reduce((sum, tank) => sum + tank.current_quantity_liters, 0);
+    // Calculate total fuel from real tanks (excluding EXCESS FUEL tank with ID 4 and hidden tanks)
+    const realTanks = tanks.filter(tank => tank.id !== 4 && !hiddenTankIds.has(tank.id));
+    const currentTotal = realTanks.reduce((sum, tank) => sum + tank.current_quantity_liters, 0);
     setTotalFuel(currentTotal);
     
     // Izračunaj ukupnu masu goriva u kilogramima iz tanksCustomsData
-    if (tanks.length > 0) {
+    if (realTanks.length > 0) {
       let totalKg = 0;
-      tanks.forEach(tank => {
+      realTanks.forEach(tank => {
         const customsData = tanksCustomsData[tank.id] || { totalKg: 0, avgDensity: 0.8 };
         // Ako imamo izračunate totalKg iz MRN podataka, koristi to, inače izračunaj iz litara i gustoće
         totalKg += customsData.totalKg > 0 ? 
@@ -211,7 +213,7 @@ export default function FixedTanksDisplay({
       });
       setTotalFuelKg(totalKg);
     }
-  }, [tanks, tanksCustomsData]);
+  }, [tanks, tanksCustomsData, hiddenTankIds]);
 
   useEffect(() => {
     let tempTanks = [...tanks];

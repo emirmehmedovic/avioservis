@@ -25,7 +25,7 @@ export default function AirlineManagement() {
   const [currentAirline, setCurrentAirline] = useState<Airline | null>(null);
 
   // Check if user has permission to edit
-  const canEdit = authUser?.role === 'ADMIN' || authUser?.role === 'KONTROLA';
+  const canEdit = authUser?.role === 'ADMIN' || authUser?.role === 'KONTROLA' || authUser?.role === 'FUEL_OPERATOR';
 
   // Form state
   const [formData, setFormData] = useState({
@@ -208,16 +208,18 @@ export default function AirlineManagement() {
               Upravljanje avio kompanijama i njihovim podacima
             </p>
           </div>
-          <button
-            onClick={() => {
-              resetForm();
-              setShowAddModal(true);
-            }}
-            className="backdrop-blur-md bg-[#F08080]/30 border border-white/20 text-white shadow-lg hover:bg-[#F08080]/40 transition-all font-medium rounded-xl flex items-center gap-2 px-4 py-2"
-          >
-            <PlusIcon className="h-5 w-5" />
-            <span>Dodaj Avio Kompaniju</span>
-          </button>
+          {canEdit && (
+            <button
+              onClick={() => {
+                resetForm();
+                setShowAddModal(true);
+              }}
+              className="backdrop-blur-md bg-[#F08080]/30 border border-white/20 text-white shadow-lg hover:bg-[#F08080]/40 transition-all font-medium rounded-xl flex items-center gap-2 px-4 py-2"
+            >
+              <PlusIcon className="h-5 w-5" />
+              <span>Dodaj Avio Kompaniju</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -228,15 +230,17 @@ export default function AirlineManagement() {
       ) : airlines.length === 0 ? (
         <div className="bg-white shadow rounded-lg p-6 text-center">
           <p className="text-gray-500">Nema unesenih avio kompanija.</p>
-          <button
-            onClick={() => {
-              resetForm();
-              setShowAddModal(true);
-            }}
-            className="mt-3 inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            Dodaj Prvu Avio Kompaniju
-          </button>
+          {canEdit && (
+            <button
+              onClick={() => {
+                resetForm();
+                setShowAddModal(true);
+              }}
+              className="mt-3 inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Dodaj Prvu Avio Kompaniju
+            </button>
+          )}
         </div>
       ) : (
         <div className="mt-4 overflow-x-auto">
@@ -264,18 +268,22 @@ export default function AirlineManagement() {
                   <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{airline.isForeign ? 'Strana' : 'Domaća'}</td>
                   <td className="whitespace-pre-wrap px-3 py-4 text-sm text-gray-500">{airline.operatingDestinations?.join(', ') || '-'}</td>
                   <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                    <button
-                      onClick={() => openEditModal(airline)}
-                      className="inline-flex items-center text-indigo-600 hover:text-indigo-900 mr-3"
-                    >
-                      <PencilIcon className="h-4 w-4 mr-1" /> Uredi
-                    </button>
-                    <button
-                      onClick={() => handleDeleteAirline(airline.id)}
-                      className="inline-flex items-center text-red-600 hover:text-red-900"
-                    >
-                      <TrashIcon className="h-4 w-4 mr-1" /> Obriši
-                    </button>
+                    {canEdit && (
+                      <>
+                        <button
+                          onClick={() => openEditModal(airline)}
+                          className="inline-flex items-center text-indigo-600 hover:text-indigo-900 mr-3"
+                        >
+                          <PencilIcon className="h-4 w-4 mr-1" /> Uredi
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAirline(airline.id)}
+                          className="inline-flex items-center text-red-600 hover:text-red-900"
+                        >
+                          <TrashIcon className="h-4 w-4 mr-1" /> Obriši
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}

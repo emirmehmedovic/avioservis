@@ -13,12 +13,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table'; // Corrected casing to Table
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog'; // Assuming Dialog components exist
 import { toast } from 'sonner'; // Assuming sonner for notifications
+import { useAuth } from '@/contexts/AuthContext';
 
 // Constants for widget height
 const WIDGET_HEIGHT = '500px';
 const INFO_CARD_HEIGHT = '200px';
 
 const FuelPrices: React.FC = () => {
+  const { authUser } = useAuth();
+  
+  // Check if user has permission to edit fuel price rules
+  const canEdit = authUser?.role === 'ADMIN' || authUser?.role === 'KONTROLA';
+  
   // State for existing data
   const [airlines, setAirlines] = useState<Airline[]>([]);
   const [fuelPriceRules, setFuelPriceRules] = useState<FuelPriceRule[]>([]);
@@ -80,6 +86,11 @@ const FuelPrices: React.FC = () => {
   }, []);
 
   const handleUpdateRule = async () => {
+    if (!canEdit) {
+      toast.error('Nemate ovlaštenje za ažuriranje pravila o cijenama goriva');
+      return;
+    }
+    
     if (!editingRule || editPrice.trim() === '' || !editCurrency) {
       toast.error('Molimo unesite cijenu i odaberite valutu.');
       return;
@@ -123,6 +134,11 @@ const FuelPrices: React.FC = () => {
 
   const handleAddRule = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canEdit) {
+      toast.error('Nemate ovlaštenje za dodavanje pravila o cijenama goriva');
+      return;
+    }
+    
     if (!selectedAirline || !price || !currency) {
       toast.error('Molimo popunite sva polja.');
       return;
@@ -260,8 +276,9 @@ const FuelPrices: React.FC = () => {
         <TabsContent value="manage-prices" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
             {/* Form for adding new fuel price rule */}
-            <div className="lg:col-span-1">
-              <Card className="bg-white shadow-lg rounded-xl border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-xl">
+            {canEdit && (
+              <div className="lg:col-span-1">
+                <Card className="bg-white shadow-lg rounded-xl border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-xl">
                 <CardHeader className="relative overflow-hidden rounded-t-xl border-b border-white/10 backdrop-blur-md bg-gradient-to-br from-[#4d4c4c] to-[#1a1a1a] shadow-lg pb-6">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-[#F08080] rounded-full filter blur-3xl opacity-5 -translate-y-1/2 translate-x-1/4 z-0"></div>
                   <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#F08080] rounded-full filter blur-3xl opacity-5 translate-y-1/2 -translate-x-1/4 z-0"></div>
@@ -346,9 +363,10 @@ const FuelPrices: React.FC = () => {
                 </CardContent>
               </Card>
             </div>
+            )}
 
             {/* Table for displaying existing fuel price rules */}
-            <div className="lg:col-span-4">
+            <div className={canEdit ? "lg:col-span-4" : "lg:col-span-5"}>
               <Card className="bg-white shadow-lg rounded-xl border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-xl">
                 <CardContent className="p-6">
                   <div className="overflow-x-auto rounded-lg">
@@ -372,7 +390,9 @@ const FuelPrices: React.FC = () => {
                               <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Valuta</TableHead>
                               <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Datum Unosa</TableHead>
                               <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Posljednja Izmjena</TableHead>
-                              <TableHead className="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider">Akcije</TableHead>
+                              {canEdit && (
+                                <TableHead className="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider">Akcije</TableHead>
+                              )}
                             </TableRow>
                           </TableHeader>
                           <TableBody className="bg-white divide-y divide-gray-200">
@@ -388,17 +408,19 @@ const FuelPrices: React.FC = () => {
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{new Date(rule.createdAt).toLocaleDateString()}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{new Date(rule.updatedAt).toLocaleDateString()} {new Date(rule.updatedAt).toLocaleTimeString()}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    onClick={() => handleOpenEditDialog(rule)} 
-                                    className="inline-flex items-center px-3 py-1 border border-white/20 text-sm leading-5 font-medium rounded-md text-white bg-black/40 hover:bg-white/10 hover:text-[#E60026]/80 focus:outline-none focus:border-white/30 active:bg-black/50 transition ease-in-out duration-150"
-                                  >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                                    </svg>
-                                    Uredi
-                                  </Button>
+                                  {canEdit && (
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm" 
+                                      onClick={() => handleOpenEditDialog(rule)} 
+                                      className="inline-flex items-center px-3 py-1 border border-white/20 text-sm leading-5 font-medium rounded-md text-white bg-black/40 hover:bg-white/10 hover:text-[#E60026]/80 focus:outline-none focus:border-white/30 active:bg-black/50 transition ease-in-out duration-150"
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                      </svg>
+                                      Uredi
+                                    </Button>
+                                  )}
                                 </TableCell>
                               </TableRow>
                             ))}
@@ -411,7 +433,11 @@ const FuelPrices: React.FC = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                         </svg>
                         <p className="text-center text-gray-500 mb-1">Nema unesenih pravila o cijenama goriva.</p>
-                        <p className="text-center text-sm text-gray-400">Koristite formu sa lijeve strane da dodate novo pravilo.</p>
+                        {canEdit ? (
+                          <p className="text-center text-sm text-gray-400">Koristite formu sa lijeve strane da dodate novo pravilo.</p>
+                        ) : (
+                          <p className="text-center text-sm text-gray-400">Kontaktirajte administratora za dodavanje novih pravila.</p>
+                        )}
                       </div>
                     )}
                     {error && (

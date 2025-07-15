@@ -42,9 +42,9 @@ router.use('/operations', authenticateToken, checkRole(['ADMIN', 'FUEL_OPERATOR'
 // Airline routes
 router.get('/airlines', authenticateToken, airlineController.getAllAirlines);
 router.get('/airlines/:id', authenticateToken, airlineController.getAirlineById);
-router.post('/airlines', authenticateToken, checkRole(['ADMIN', 'FUEL_OPERATOR']), airlineController.createAirline);
-router.put('/airlines/:id', authenticateToken, checkRole(['ADMIN', 'FUEL_OPERATOR']), airlineController.updateAirline);
-router.delete('/airlines/:id', authenticateToken, checkRole(['ADMIN']), airlineController.deleteAirline);
+router.post('/airlines', authenticateToken, checkRole(['ADMIN', 'KONTROLA', 'FUEL_OPERATOR']), airlineController.createAirline);
+router.put('/airlines/:id', authenticateToken, checkRole(['ADMIN', 'KONTROLA', 'FUEL_OPERATOR']), airlineController.updateAirline);
+router.delete('/airlines/:id', authenticateToken, checkRole(['ADMIN', 'KONTROLA', 'FUEL_OPERATOR']), airlineController.deleteAirline);
 
 // MRN routes - Allow FUEL_OPERATOR to access MRN reports and balances
 router.get('/mrn-report/:mrn', authenticateToken, checkRole(['ADMIN', 'KONTROLA', 'FUEL_OPERATOR']), fuelIntakeRecordController.getMrnReport);
