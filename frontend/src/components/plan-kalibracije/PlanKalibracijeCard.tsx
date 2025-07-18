@@ -13,15 +13,14 @@ interface PlanKalibracijeCardProps {
   onGeneratePDF: (id: number) => void;
 }
 
-// Status tipovi
-type StatusType = 'aktivan' | 'istekao' | 'uskoro_istice' | 'nepotpun';
-
 interface StatusInfo {
-  status: StatusType;
+  status: 'aktivan' | 'istekao' | 'uskoro_istice' | 'nepotpun';
   message: string;
   expiredInstruments: string[];
   expiringSoonInstruments: string[];
 }
+
+type StatusType = 'aktivan' | 'istekao' | 'uskoro_istice' | 'nepotpun';
 
 // Helper funkcija za provjeru statusa
 const getStatusInfo = (plan: PlanKalibracije): StatusInfo => {
@@ -73,7 +72,7 @@ const getStatusInfo = (plan: PlanKalibracije): StatusInfo => {
   if (expiredInstruments.length > 0) {
     return {
       status: 'istekao',
-      message: `Istekli instrumenti: ${expiredInstruments.join(', ')}`,
+      message: `${expiredInstruments.length} instrument(a) je isteklo`,
       expiredInstruments,
       expiringSoonInstruments
     };
@@ -82,7 +81,7 @@ const getStatusInfo = (plan: PlanKalibracije): StatusInfo => {
   if (expiringSoonInstruments.length > 0) {
     return {
       status: 'uskoro_istice',
-      message: `Uskoro ističu: ${expiringSoonInstruments.join(', ')}`,
+      message: `${expiringSoonInstruments.length} instrument(a) uskoro ističe`,
       expiredInstruments,
       expiringSoonInstruments
     };
@@ -90,7 +89,7 @@ const getStatusInfo = (plan: PlanKalibracije): StatusInfo => {
 
   return {
     status: 'aktivan',
-    message: 'Svi instrumenti su važeći',
+    message: 'Svi instrumenti su aktuelni',
     expiredInstruments,
     expiringSoonInstruments
   };
@@ -103,15 +102,15 @@ export function PlanKalibracijeCard({ plan, onEdit, onDelete, onGeneratePDF }: P
   const getStatusColor = (status: StatusType) => {
     switch (status) {
       case 'aktivan':
-        return { bg: 'bg-green-500/20', text: 'text-green-400', border: 'border-green-500/20' };
+        return { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200', icon: 'text-green-600' };
       case 'istekao':
-        return { bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/20' };
+        return { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', icon: 'text-red-600' };
       case 'uskoro_istice':
-        return { bg: 'bg-yellow-500/20', text: 'text-yellow-400', border: 'border-yellow-500/20' };
+        return { bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200', icon: 'text-yellow-600' };
       case 'nepotpun':
-        return { bg: 'bg-gray-500/20', text: 'text-gray-400', border: 'border-gray-500/20' };
+        return { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200', icon: 'text-gray-600' };
       default:
-        return { bg: 'bg-gray-500/20', text: 'text-gray-400', border: 'border-gray-500/20' };
+        return { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200', icon: 'text-gray-600' };
     }
   };
 
@@ -153,68 +152,59 @@ export function PlanKalibracijeCard({ plan, onEdit, onDelete, onGeneratePDF }: P
   ];
 
   return (
-    <Card className="h-full flex flex-col overflow-hidden border border-white/10 backdrop-blur-md bg-gradient-to-br from-[#4d4c4c]/60 to-[#1a1a1a]/80 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 rounded-xl relative">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 rounded-full filter blur-3xl opacity-20 -mr-10 -mt-10 z-0"></div>
-      <div className="absolute bottom-0 left-0 w-40 h-40 bg-indigo-500/20 rounded-full filter blur-3xl opacity-20 -ml-10 -mb-10 z-0"></div>
+    <Card className="group relative bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden">
+      {/* Gradient border effect */}
+      <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
       
-      <CardHeader className="relative z-10 pb-4">
+      {/* Subtle background patterns */}
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full filter blur-3xl opacity-30 -mr-16 -mt-16"></div>
+      <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full filter blur-3xl opacity-30 -ml-20 -mb-20"></div>
+      
+      <CardHeader className="relative z-10 pb-4 border-b border-gray-100">
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center space-x-3 min-w-0">
-            <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-              <Settings2 className="w-6 h-6 text-blue-400" />
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+              <Settings2 className="w-6 h-6 text-white" />
             </div>
-            <span className="truncate text-xl font-bold text-white">{plan.naziv_opreme}</span>
+            <div className="min-w-0">
+              <span className="block text-lg font-bold text-gray-900 truncate">{plan.naziv_opreme}</span>
+              <span className="text-sm text-gray-500">#{plan.identifikacijski_broj}</span>
+            </div>
           </div>
-          <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${statusColors.bg} ${statusColors.text} ${statusColors.border} border flex-shrink-0`}>
-            {getStatusIcon(statusInfo.status)}
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${statusColors.bg} ${statusColors.text} ${statusColors.border} border flex-shrink-0 shadow-sm`}>
+            <span className={statusColors.icon}>{getStatusIcon(statusInfo.status)}</span>
             {statusInfo.status.replace('_', ' ').toUpperCase()}
           </div>
         </CardTitle>
       </CardHeader>
       
-      <CardContent className="flex-grow flex flex-col space-y-5 p-6 relative z-10">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="relative p-3 rounded-lg border border-white/10 backdrop-blur-md bg-gradient-to-br from-white/10 to-white/5 shadow-lg hover:shadow-xl hover:bg-gradient-to-br hover:from-white/15 hover:to-white/8 transition-all duration-200">
-            <div className="absolute top-0 right-0 w-8 h-8 bg-blue-500/20 rounded-full filter blur-xl opacity-50 -mr-2 -mt-2"></div>
+      <CardContent className="relative z-10 p-6 space-y-6">
+        {/* Basic Info Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="group/item relative p-4 rounded-xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200">
+            <div className="absolute top-0 right-0 w-8 h-8 bg-blue-100 rounded-full filter blur-xl opacity-50 -mr-2 -mt-2 group-hover/item:bg-blue-200 transition-colors duration-200"></div>
             <div className="flex items-center space-x-3 relative z-10">
-              <div className="w-6 h-6 rounded-full bg-blue-500/30 flex items-center justify-center flex-shrink-0">
-                <svg className="w-3 h-3 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 2L3 7v11a1 1 0 001 1h3v-7h6v7h3a1 1 0 001-1V7l-7-5z" clipRule="evenodd" />
-                </svg>
+              <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0 group-hover/item:bg-blue-200 transition-colors duration-200">
+                <User className="w-4 h-4 text-blue-600" />
               </div>
               <div className="min-w-0">
-                <span className="font-semibold text-white text-xs">ID Broj:</span>
-                <p className="text-blue-400 truncate text-sm font-bold" title={plan.identifikacijski_broj}>
-                  #{plan.identifikacijski_broj}
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="relative p-3 rounded-lg border border-white/10 backdrop-blur-md bg-gradient-to-br from-white/10 to-white/5 shadow-lg hover:shadow-xl hover:bg-gradient-to-br hover:from-white/15 hover:to-white/8 transition-all duration-200">
-            <div className="absolute top-0 right-0 w-8 h-8 bg-green-500/20 rounded-full filter blur-xl opacity-50 -mr-2 -mt-2"></div>
-            <div className="flex items-center space-x-3 relative z-10">
-              <div className="w-6 h-6 rounded-full bg-green-500/30 flex items-center justify-center flex-shrink-0">
-                <User className="w-3 h-3 text-green-400" />
-              </div>
-              <div className="min-w-0">
-                <span className="font-semibold text-white text-xs">Vlasnik:</span>
-                <p className="text-white/90 truncate text-sm font-medium" title={plan.vlasnik_opreme}>
+                <span className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Vlasnik</span>
+                <p className="text-gray-900 font-semibold truncate" title={plan.vlasnik_opreme}>
                   {plan.vlasnik_opreme}
                 </p>
               </div>
             </div>
           </div>
           
-          <div className="col-span-2 relative p-3 rounded-lg border border-white/10 backdrop-blur-md bg-gradient-to-br from-white/10 to-white/5 shadow-lg hover:shadow-xl hover:bg-gradient-to-br hover:from-white/15 hover:to-white/8 transition-all duration-200">
-            <div className="absolute top-0 right-0 w-12 h-12 bg-purple-500/20 rounded-full filter blur-xl opacity-50 -mr-3 -mt-3"></div>
+          <div className="group/item relative p-4 rounded-xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white shadow-sm hover:shadow-md hover:border-green-200 transition-all duration-200">
+            <div className="absolute top-0 right-0 w-8 h-8 bg-green-100 rounded-full filter blur-xl opacity-50 -mr-2 -mt-2 group-hover/item:bg-green-200 transition-colors duration-200"></div>
             <div className="flex items-center space-x-3 relative z-10">
-              <div className="w-6 h-6 rounded-full bg-purple-500/30 flex items-center justify-center flex-shrink-0">
-                <MapPin className="w-3 h-3 text-purple-400" />
+              <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0 group-hover/item:bg-green-200 transition-colors duration-200">
+                <MapPin className="w-4 h-4 text-green-600" />
               </div>
               <div className="min-w-0">
-                <span className="font-semibold text-white text-xs">Mjesto korištenja:</span>
-                <p className="text-white/90 text-sm font-medium" title={plan.mjesto_koristenja_opreme}>
+                <span className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Mjesto</span>
+                <p className="text-gray-900 font-semibold truncate" title={plan.mjesto_koristenja_opreme}>
                   {plan.mjesto_koristenja_opreme}
                 </p>
               </div>
@@ -222,49 +212,56 @@ export function PlanKalibracijeCard({ plan, onEdit, onDelete, onGeneratePDF }: P
           </div>
         </div>
 
-        <div className="relative p-4 rounded-lg border border-white/10 backdrop-blur-md bg-gradient-to-br from-white/10 to-white/5 shadow-lg">
-          <div className="absolute top-0 right-0 w-16 h-16 bg-cyan-500/20 rounded-full filter blur-xl opacity-50 -mr-4 -mt-4"></div>
+        {/* Status Section */}
+        <div className="relative p-5 rounded-xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white shadow-sm hover:shadow-md transition-all duration-200">
+          <div className="absolute top-0 right-0 w-16 h-16 bg-cyan-100 rounded-full filter blur-xl opacity-50 -mr-4 -mt-4"></div>
           <div className="relative z-10">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-semibold text-white flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-cyan-400" />
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-cyan-600" />
                 Status kalibracija
               </h4>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="text-white/60 hover:text-white hover:bg-white/10"
+                className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
               >
                 {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </Button>
             </div>
             
-            <p className="text-sm text-white/80 mb-3">{statusInfo.message}</p>
+            <p className="text-sm text-gray-600 mb-4">{statusInfo.message}</p>
             
             {statusInfo.expiredInstruments.length > 0 && (
-              <div className="mb-2 p-2 rounded bg-red-500/20 border border-red-500/30">
-                <p className="text-xs font-medium text-red-400 mb-1">Istekli instrumenti:</p>
-                <p className="text-xs text-red-300">{statusInfo.expiredInstruments.join(', ')}</p>
+              <div className="mb-3 p-3 rounded-lg bg-red-50 border border-red-200">
+                <p className="text-xs font-semibold text-red-700 mb-1 flex items-center gap-1">
+                  <XCircle className="h-3 w-3" />
+                  Istekli instrumenti:
+                </p>
+                <p className="text-xs text-red-600">{statusInfo.expiredInstruments.join(', ')}</p>
               </div>
             )}
             
             {statusInfo.expiringSoonInstruments.length > 0 && (
-              <div className="p-2 rounded bg-yellow-500/20 border border-yellow-500/30">
-                <p className="text-xs font-medium text-yellow-400 mb-1">Uskoro ističu:</p>
-                <p className="text-xs text-yellow-300">{statusInfo.expiringSoonInstruments.join(', ')}</p>
+              <div className="p-3 rounded-lg bg-yellow-50 border border-yellow-200">
+                <p className="text-xs font-semibold text-yellow-700 mb-1 flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  Uskoro ističu:
+                </p>
+                <p className="text-xs text-yellow-600">{statusInfo.expiringSoonInstruments.join(', ')}</p>
               </div>
             )}
 
             {isExpanded && (
-              <div className="mt-4 space-y-2">
-                <h5 className="text-sm font-medium text-white/90">Detaljne kalibracije:</h5>
+              <div className="mt-5 space-y-3">
+                <h5 className="text-sm font-semibold text-gray-800">Detaljne kalibracije:</h5>
                 <div className="grid gap-2 max-h-60 overflow-y-auto">
                   {instruments.map((instrument, index) => (
-                    <div key={index} className="flex justify-between items-center text-xs p-2 rounded bg-white/5 border border-white/10">
-                      <span className="text-white/80">{instrument.name}</span>
+                    <div key={index} className="flex justify-between items-center text-xs p-3 rounded-lg bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+                      <span className="text-gray-700 font-medium">{instrument.name}</span>
                       <div className="text-right">
-                        <div className="text-white/60">
+                        <div className="text-gray-500">
                           {formatDate(instrument.od)} - {formatDate(instrument.do)}
                         </div>
                       </div>
@@ -276,8 +273,9 @@ export function PlanKalibracijeCard({ plan, onEdit, onDelete, onGeneratePDF }: P
           </div>
         </div>
 
-        <div className="flex justify-between items-center pt-4 border-t border-white/10">
-          <div className="text-xs text-white/60">
+        {/* Footer */}
+        <div className="flex justify-between items-center pt-4 border-t border-gray-100">
+          <div className="text-xs text-gray-500">
             Kreiran: {formatDate(plan.kreiran)}
           </div>
           <div className="flex gap-2">
@@ -285,7 +283,7 @@ export function PlanKalibracijeCard({ plan, onEdit, onDelete, onGeneratePDF }: P
               size="sm"
               variant="outline"
               onClick={() => onEdit(plan)}
-              className="bg-white/10 hover:bg-white/20 border-white/20 text-white hover:text-white"
+              className="bg-white hover:bg-gray-50 border-gray-200 text-gray-700 hover:text-gray-900 hover:border-gray-300 shadow-sm"
             >
               <Edit className="h-4 w-4" />
             </Button>
@@ -293,7 +291,7 @@ export function PlanKalibracijeCard({ plan, onEdit, onDelete, onGeneratePDF }: P
               size="sm"
               variant="outline"
               onClick={() => onGeneratePDF(plan.id)}
-              className="bg-blue-500/20 hover:bg-blue-500/30 border-blue-500/30 text-blue-400 hover:text-blue-300"
+              className="bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 hover:text-blue-800 shadow-sm"
             >
               <Download className="h-4 w-4" />
             </Button>
@@ -305,7 +303,7 @@ export function PlanKalibracijeCard({ plan, onEdit, onDelete, onGeneratePDF }: P
                   onDelete(plan.id);
                 }
               }}
-              className="bg-red-500/20 hover:bg-red-500/30 border-red-500/30 text-red-400 hover:text-red-300"
+              className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700 hover:text-red-800 shadow-sm"
             >
               <Trash className="h-4 w-4" />
             </Button>

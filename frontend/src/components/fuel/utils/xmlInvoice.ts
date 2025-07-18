@@ -33,7 +33,7 @@ export const generateXMLInvoice = (operation: FuelingOperation): string => {
       postalCode: string;
     }> = {
       'WIZZ AIR HUNGARY LTD': {
-        vatNumber: '26648525-2-44',
+        vatNumber: '26648525244',
         name: 'Wizz Air Hungary Ltd.',
         street: 'Lechner Ödön fasor 6',
         city: 'Budapest',
@@ -41,7 +41,7 @@ export const generateXMLInvoice = (operation: FuelingOperation): string => {
         postalCode: '1095'
       },
       'WIZZ AIR MALTA LTD': {
-        vatNumber: 'MT29298624',
+        vatNumber: 'MT16818421006',
         name: 'Wizz Air Malta Limited',
         street: 'Skyparks Business Centre, Level 2, Malta International Airport',
         city: 'Luqa',

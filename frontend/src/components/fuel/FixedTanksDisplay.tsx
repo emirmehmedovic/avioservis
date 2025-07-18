@@ -111,7 +111,7 @@ export default function FixedTanksDisplay({
   const [tankToDelete, setTankToDelete] = useState<FixedStorageTank | null>(null);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { authToken } = useAuth();
+  const { authToken, authUser } = useAuth();
 
   const loadTanks = async () => {
     try {
@@ -647,17 +647,19 @@ export default function FixedTanksDisplay({
                               <path d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleDeleteTank(tank)}
-                            className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                            title="Obriši tank trajno"
-                          >
-                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          </Button>
+                          {authUser?.role === 'ADMIN' && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleDeleteTank(tank)}
+                              className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                              title="Obriši tank trajno"
+                            >
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -691,7 +693,7 @@ export default function FixedTanksDisplay({
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-gray-800">Stanje goriva po tankovima</h3>
-                    <p className="text-gray-600 text-sm">Pregled raspodele ukupnog goriva</p>
+                    <p className="text-gray-600 text-sm">Pregled raspodjele ukupnog goriva</p>
                   </div>
                 </div>
                 

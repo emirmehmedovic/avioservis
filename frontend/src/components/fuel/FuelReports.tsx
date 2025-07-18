@@ -266,11 +266,40 @@ export default function FuelReports() {
   console.log('Stats being used for rendering (statsToUse):', JSON.stringify(statsToUse, null, 2));
 
   // Format data for Recharts - Airlines Pie Chart
-  const airlineChartData = (statsToUse.fuelByAirline || []).map((item, index) => ({
-    name: item.airlineName,
-    value: item.totalLiters,
-    fill: chartColors[index % chartColors.length]
-  }));
+  const airlineChartData = (() => {
+    const allAirlines = (statsToUse.fuelByAirline || []).map((item, index) => ({
+      name: item.airlineName,
+      value: item.totalLiters,
+      fill: chartColors[index % chartColors.length]
+    }));
+    
+    // If we have more than 10 airlines, show only top 8 and group the rest as "Ostale"
+    if (allAirlines.length > 10) {
+      const topAirlines = allAirlines.slice(0, 8);
+      const otherAirlines = allAirlines.slice(8);
+      const otherTotal = otherAirlines.reduce((sum, item) => sum + item.value, 0);
+      
+      return [
+        ...topAirlines,
+        {
+          name: `Ostale kompanije (${otherAirlines.length})`,
+          value: otherTotal,
+          fill: '#9CA3AF' // gray color for "others"
+        }
+      ];
+    }
+    
+    return allAirlines;
+  })();
+
+  // Determine if we should use horizontal legend based on number of airlines
+  const shouldUseHorizontalLegend = airlineChartData.length > 8;
+  
+  // Show only top 6 airlines in legend if we have more than 8
+  const legendData = airlineChartData.length > 8 ? airlineChartData.slice(0, 6) : airlineChartData;
+  
+  // Add "and X more" to legend if we're showing truncated data
+  const remainingCount = airlineChartData.length > 8 ? airlineChartData.length - 6 : 0;
 
   // Format data for Recharts - Destinations Bar Chart
   const destinationChartData = (statsToUse.fuelByDestination || []).map(item => ({
@@ -409,7 +438,6 @@ export default function FuelReports() {
             {[
               { id: 'overview', name: 'Opšti Pregled', icon: <ChartBarIcon className="h-4 w-4" />, color: '#4FC3C7' },
               { id: 'consumptionAnalysis', name: 'Analiza Potrošnje', icon: <ChartPieIcon className="h-4 w-4" />, color: '#e53e3e' },
-              { id: 'inventoryStatus', name: 'Stanje Zaliha', icon: <DocumentArrowDownIcon className="h-4 w-4" />, color: '#FBBF24' },
               { id: 'details', name: 'Detaljni Prikazi', icon: <DocumentArrowDownIcon className="h-4 w-4" />, color: '#8B5CF6' },
               { id: 'trendAnalysis', name: 'Trend Analiza', icon: <TrendingUp className="h-4 w-4" />, color: '#3B82F6' },
               { id: 'comparativeAnalysis', name: 'Komparativna Analiza', icon: <BarChart3 className="h-4 w-4" />, color: '#10B981' },
@@ -467,7 +495,7 @@ export default function FuelReports() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="p-5 rounded-xl shadow-md">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Potrošnja po Avio Kompaniji</h3>
-                <div className="h-72">
+                <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -476,17 +504,113 @@ export default function FuelReports() {
                         nameKey="name"
                         cx="50%"
                         cy="50%"
-                        outerRadius={80}
+                        outerRadius={70}
                         innerRadius={30}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        label={false}
                         {...animationProps}
                       >
                         {airlineChartData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.fill} />
                         ))}
                       </Pie>
-                      <RechartsTooltip formatter={(value) => [`${formatNumber(safeNumberValue(value))} L`, 'Potrošnja']} />
-                      <RechartsLegend />
+                      <RechartsTooltip 
+                        formatter={(value, name) => {
+                          if (typeof name === 'string' && name.includes('Ostale kompanije')) {
+                            const otherAirlines = (statsToUse.fuelByAirline || []).slice(8);
+                            const details = otherAirlines.map(airline => 
+                              `${airline.airlineName}: ${formatNumber(airline.totalLiters)} L`
+                            ).join('\n');
+                            return [
+                              <div key="tooltip">
+                                <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
+                                  Ostale kompanije ({otherAirlines.length}): {formatNumber(safeNumberValue(value))} L
+                                </div>
+                                <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                                  {details}
+                                </div>
+                              </div>,
+                              ''
+                            ];
+                          }
+                          
+                          // Show full name in tooltip if it was truncated in legend
+                          const fullName = typeof name === 'string' && name.length > 20 
+                            ? name 
+                            : name;
+                          
+                          return [`${formatNumber(safeNumberValue(value))} L`, fullName];
+                        }}
+                        labelStyle={{ fontWeight: 'bold' }}
+                        contentStyle={{
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                          maxWidth: '300px'
+                        }}
+                      />
+                      <RechartsLegend 
+                        layout={shouldUseHorizontalLegend ? "horizontal" : "vertical"}
+                        verticalAlign={shouldUseHorizontalLegend ? "bottom" : "middle"}
+                        align={shouldUseHorizontalLegend ? "center" : "right"}
+                        wrapperStyle={{
+                          fontSize: '12px',
+                          paddingLeft: shouldUseHorizontalLegend ? '0' : '20px',
+                          paddingTop: shouldUseHorizontalLegend ? '20px' : '0'
+                        }}
+                        formatter={(value, entry, index) => {
+                          const data = legendData[index];
+                          const percentage = ((data.value / airlineChartData.reduce((sum, item) => sum + item.value, 0)) * 100).toFixed(1);
+                          
+                          // Truncate long airline names in legend
+                          const displayName = typeof value === 'string' && value.length > 20 
+                            ? value.substring(0, 17) + '...' 
+                            : value;
+                          
+                          return [
+                            <span key="name" style={{ color: '#374151', fontWeight: '500' }}>
+                              {displayName}
+                            </span>,
+                            <span key="percentage" style={{ color: '#6b7280', marginLeft: '8px' }}>
+                              {percentage}%
+                            </span>
+                          ];
+                        }}
+                      />
+                      {remainingCount > 0 && (
+                        <div 
+                          style={{
+                            position: 'absolute',
+                            bottom: shouldUseHorizontalLegend ? '10px' : '50%',
+                            right: shouldUseHorizontalLegend ? '50%' : '10px',
+                            transform: shouldUseHorizontalLegend ? 'translateX(50%)' : 'translateY(-50%)',
+                            fontSize: '12px',
+                            color: '#6b7280',
+                            fontStyle: 'italic',
+                            cursor: 'help',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            border: '1px solid #e5e7eb',
+                            zIndex: 10,
+                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                            transition: 'all 0.2s ease-in-out'
+                          }}
+                          title={airlineChartData.slice(6).map(airline => 
+                            `${airline.name}: ${formatNumber(airline.value)} L`
+                          ).join('\n')}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 1)';
+                            e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+                            e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
+                          }}
+                        >
+                          i {remainingCount} više...
+                        </div>
+                      )}
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
@@ -596,68 +720,6 @@ export default function FuelReports() {
                       <RechartsLegend />
                     </PieChart>
                   </ResponsiveContainer>
-                </div>
-              </Card>
-            </div>
-          )}
-
-          {activeTab === 'inventoryStatus' && (
-            <div className="space-y-6">
-              {/* Tanker Metrics Table */}
-              <Card className="rounded-xl shadow-md overflow-hidden">
-                <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-                  <h3 className="text-lg font-medium leading-6 text-gray-900">Promet po Mobilnim Tankerima</h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanker</th>
-                        <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ukupni Ulaz (L)</th>
-                        <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ukupni Izlaz (L)</th>
-                        <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Balans (L)</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {(statsToUse.tankerMetrics || []).map((tanker) => (
-                        <tr key={tanker.tankerId}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{tanker.tankerName}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">{formatNumber(tanker.totalIntake)}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">{formatNumber(tanker.totalOutput)}</td>
-                          <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold text-right ${tanker.balance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{formatNumber(tanker.balance)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
-
-              {/* Fixed Tank Metrics Table */}
-              <Card className="rounded-xl shadow-md overflow-hidden">
-                <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-                  <h3 className="text-lg font-medium leading-6 text-gray-900">Promet po Fiksnim Rezervoarima</h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rezervoar</th>
-                        <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ukupni Ulaz (L)</th>
-                        <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ukupni Izlaz (L)</th>
-                        <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Balans (L)</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {(statsToUse.fixedTankMetrics || []).map((tank) => (
-                        <tr key={tank.fixedTankId}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{tank.fixedTankName}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">{formatNumber(tank.totalIntake)}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">{formatNumber(tank.totalOutput)}</td>
-                          <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold text-right ${tank.balance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{formatNumber(tank.balance)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
                 </div>
               </Card>
             </div>
