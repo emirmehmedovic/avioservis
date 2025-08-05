@@ -76,7 +76,7 @@ interface FuelStatistics {
 }
 
 export default function FuelReports() {
-  const [activeTab, setActiveTab] = useState('trendAnalysis'); // Promenio default sa overview na trendAnalysis
+  const [activeTab, setActiveTab] = useState('overview'); // TESTIRAM overview - ako crash-uje, to je uzrok
   const [dateRange, setDateRange] = useState({
     startDate: '',
     endDate: '',
@@ -145,14 +145,29 @@ export default function FuelReports() {
       setLoading(true);
       let url = `/api/fuel/reports/statistics?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`;
       
+      // DODANO DETALJNO LOGOVANJE ZA DEBUG
+      console.log('🔍 fetchStatistics started');
+      console.log('📅 Date range:', { startDate: dateRange.startDate, endDate: dateRange.endDate });
+      console.log('✈️ Selected airline:', selectedAirlineId);
+      console.log('🔑 Auth token exists:', !!localStorage.getItem('authToken'));
+      console.log('🌐 Full URL:', url);
+      
       if (selectedAirlineId !== 'all') {
         url += `&airlineId=${selectedAirlineId}`;
       }
       
       const data = await fetchWithAuth<FuelStatistics>(url);
+      console.log('✅ Statistics data received:', data);
       setStatistics(data);
     } catch (error) {
-      console.error('Error fetching statistics:', error);
+      console.error('❌ Error fetching statistics:', error);
+      console.error('🚨 Error details:', {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : 'No stack trace',
+        dateRange,
+        selectedAirlineId,
+        hasToken: !!localStorage.getItem('authToken')
+      });
       toast.error('Greška pri dohvaćanju statistike');
     } finally {
       setLoading(false);
@@ -445,8 +460,8 @@ export default function FuelReports() {
           
           <nav className="flex space-x-2 overflow-x-auto relative z-10 px-1" aria-label="Tabs">
             {            [
-              // PRIVREMENO ZAKOMENTRARISANO za debug
-              // { id: 'overview', name: 'Opšti Pregled', icon: <ChartBarIcon className="h-4 w-4" />, color: '#4FC3C7' },
+              // TESTIRAM SAMO OPŠTI PREGLED - ako ovaj radi, onda je problem u Analiza Potrošnje
+              { id: 'overview', name: 'Opšti Pregled', icon: <ChartBarIcon className="h-4 w-4" />, color: '#4FC3C7' },
               // { id: 'consumptionAnalysis', name: 'Analiza Potrošnje', icon: <ChartPieIcon className="h-4 w-4" />, color: '#e53e3e' },
               { id: 'details', name: 'Detaljni Prikazi', icon: <DocumentArrowDownIcon className="h-4 w-4" />, color: '#8B5CF6' },
               { id: 'trendAnalysis', name: 'Trend Analiza', icon: <TrendingUp className="h-4 w-4" />, color: '#3B82F6' },
@@ -501,8 +516,8 @@ export default function FuelReports() {
           </div>
 
           {/* Tab Content */}
-          {/* PRIVREMENO ZAKOMENTRARISANO za debug */}
-          {false && activeTab === 'overview' && (
+          {/* TESTIRAM SAMO OPŠTI PREGLED */}
+          {activeTab === 'overview' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="p-5 rounded-xl shadow-md">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Potrošnja po Avio Kompaniji</h3>
