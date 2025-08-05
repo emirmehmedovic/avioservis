@@ -29,8 +29,8 @@ const ComparativeAnalysisTab: React.FC = () => {
     error: null,
     filters: {
       comparisonType: 'monthly',
-      currentPeriod: FuelReportsTrendsApi.dates.createMonthlyComparisonPeriods().current,
-      previousPeriod: FuelReportsTrendsApi.dates.createMonthlyComparisonPeriods().previous,
+      currentPeriod: { startDate: '', endDate: '' },
+      previousPeriod: { startDate: '', endDate: '' },
       groupBy: 'total',
     },
     comparisonData: null,
@@ -40,6 +40,12 @@ const ComparativeAnalysisTab: React.FC = () => {
 
   // Load data based on current filters
   const loadData = useCallback(async () => {
+    // Don't load data if dates are not initialized yet
+    if (!state.filters.currentPeriod.startDate || !state.filters.currentPeriod.endDate ||
+        !state.filters.previousPeriod.startDate || !state.filters.previousPeriod.endDate) {
+      return;
+    }
+
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
@@ -97,6 +103,19 @@ const ComparativeAnalysisTab: React.FC = () => {
       }));
     }
   }, [state.filters]);
+
+  // Initialize periods after component mounts to avoid hydration mismatch
+  useEffect(() => {
+    const periods = FuelReportsTrendsApi.dates.createMonthlyComparisonPeriods();
+    setState(prev => ({
+      ...prev,
+      filters: {
+        ...prev.filters,
+        currentPeriod: periods.current,
+        previousPeriod: periods.previous,
+      },
+    }));
+  }, []);
 
   // Load data on mount and filter changes
   useEffect(() => {

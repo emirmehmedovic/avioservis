@@ -36,10 +36,8 @@ const TrendAnalysisTab: React.FC = () => {
     error: null,
     filters: {
       dateRange: {
-        startDate: FuelReportsTrendsApi.dates.formatDateForAPI(
-          FuelReportsTrendsApi.dates.getDateMonthsAgo(12)
-        ),
-        endDate: FuelReportsTrendsApi.dates.formatDateForAPI(new Date()),
+        startDate: '',
+        endDate: '',
       },
       trendType: 'monthly',
       metrics: ['quantity', 'revenue'],
@@ -58,6 +56,11 @@ const TrendAnalysisTab: React.FC = () => {
 
   // Load data based on current filters
   const loadData = useCallback(async () => {
+    // Don't load data if dates are not initialized yet
+    if (!state.filters.dateRange.startDate || !state.filters.dateRange.endDate) {
+      return;
+    }
+
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
@@ -105,8 +108,23 @@ const TrendAnalysisTab: React.FC = () => {
 
   // Initialize dates after component mounts to avoid hydration mismatch
   useEffect(() => {
-    setStartDate(FuelReportsTrendsApi.dates.getDateMonthsAgo(12));
-    setEndDate(new Date());
+    const initialStartDate = FuelReportsTrendsApi.dates.getDateMonthsAgo(12);
+    const initialEndDate = new Date();
+    
+    setStartDate(initialStartDate);
+    setEndDate(initialEndDate);
+    
+    // Also update the state filters
+    setState(prev => ({
+      ...prev,
+      filters: {
+        ...prev.filters,
+        dateRange: {
+          startDate: FuelReportsTrendsApi.dates.formatDateForAPI(initialStartDate),
+          endDate: FuelReportsTrendsApi.dates.formatDateForAPI(initialEndDate),
+        },
+      },
+    }));
   }, []);
 
   // Load data on mount and filter changes

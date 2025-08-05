@@ -68,8 +68,8 @@ export default function FuelingOperations() {
   const [selectedOperationForEdit, setSelectedOperationForEdit] = useState<ExtendedFuelingOperation | null>(null);
   
   // State for filters
-  const [startDate, setStartDate] = useState<string | null>(dayjs().startOf('month').format('YYYY-MM-DD'));
-  const [endDate, setEndDate] = useState<string | null>(dayjs().endOf('month').format('YYYY-MM-DD'));
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
   const [selectedAirline, setSelectedAirline] = useState<string>('');
   const [selectedDestination, setSelectedDestination] = useState<string>('');
   const [selectedTank, setSelectedTank] = useState<string>('');
@@ -183,6 +183,10 @@ export default function FuelingOperations() {
 
   // Initial data loading
   useEffect(() => {
+    // Initialize dates to avoid hydration mismatch
+    setStartDate(dayjs().startOf('month').format('YYYY-MM-DD'));
+    setEndDate(dayjs().endOf('month').format('YYYY-MM-DD'));
+    
     loadOperations();
     loadTanks();
     loadAirlines();
