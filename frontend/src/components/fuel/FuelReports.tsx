@@ -76,7 +76,7 @@ interface FuelStatistics {
 }
 
 export default function FuelReports() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('trendAnalysis'); // Promenio default sa overview na trendAnalysis
   const [dateRange, setDateRange] = useState({
     startDate: '',
     endDate: '',
@@ -444,9 +444,10 @@ export default function FuelReports() {
           <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent z-0"></div>
           
           <nav className="flex space-x-2 overflow-x-auto relative z-10 px-1" aria-label="Tabs">
-            {[
-              { id: 'overview', name: 'Opšti Pregled', icon: <ChartBarIcon className="h-4 w-4" />, color: '#4FC3C7' },
-              { id: 'consumptionAnalysis', name: 'Analiza Potrošnje', icon: <ChartPieIcon className="h-4 w-4" />, color: '#e53e3e' },
+            {            [
+              // PRIVREMENO ZAKOMENTRARISANO za debug
+              // { id: 'overview', name: 'Opšti Pregled', icon: <ChartBarIcon className="h-4 w-4" />, color: '#4FC3C7' },
+              // { id: 'consumptionAnalysis', name: 'Analiza Potrošnje', icon: <ChartPieIcon className="h-4 w-4" />, color: '#e53e3e' },
               { id: 'details', name: 'Detaljni Prikazi', icon: <DocumentArrowDownIcon className="h-4 w-4" />, color: '#8B5CF6' },
               { id: 'trendAnalysis', name: 'Trend Analiza', icon: <TrendingUp className="h-4 w-4" />, color: '#3B82F6' },
               { id: 'comparativeAnalysis', name: 'Komparativna Analiza', icon: <BarChart3 className="h-4 w-4" />, color: '#10B981' },
@@ -500,7 +501,8 @@ export default function FuelReports() {
           </div>
 
           {/* Tab Content */}
-          {activeTab === 'overview' && (
+          {/* PRIVREMENO ZAKOMENTRARISANO za debug */}
+          {false && activeTab === 'overview' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="p-5 rounded-xl shadow-md">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Potrošnja po Avio Kompaniji</h3>
@@ -679,7 +681,8 @@ export default function FuelReports() {
             </div>
           )}
 
-          {activeTab === 'consumptionAnalysis' && (
+          {/* PRIVREMENO ZAKOMENTRARISANO za debug */}
+          {false && activeTab === 'consumptionAnalysis' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="p-5 rounded-xl shadow-md">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Potrošnja po Tipu Saobraćaja</h3>
