@@ -74,7 +74,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
             type="date"
             name="startDate"
             id="startDate"
-            className="w-full bg-white/20 border-white/30 text-white text-sm placeholder:text-white/60 focus:border-white focus:ring-white rounded-md py-1"
+            className="w-full bg-white border-gray-300 text-gray-900 text-sm placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500 rounded-md py-1"
             value={startDate || ''}
             onChange={(e) => setStartDate(e.target.value)}
           />
@@ -86,7 +86,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
             type="date"
             name="endDate"
             id="endDate"
-            className="w-full bg-white/20 border-white/30 text-white text-sm placeholder:text-white/60 focus:border-white focus:ring-white rounded-md py-1"
+            className="w-full bg-white border-gray-300 text-gray-900 text-sm placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500 rounded-md py-1"
             value={endDate || ''}
             onChange={(e) => setEndDate(e.target.value)}
           />
@@ -98,13 +98,17 @@ const FilterSection: React.FC<FilterSectionProps> = ({
           <select
             id="selectedAirline"
             name="selectedAirline"
-            className="w-full bg-white/20 border-white/30 text-white text-sm placeholder:text-white/60 focus:border-white focus:ring-white rounded-md py-1"
+            className="w-full bg-white border-gray-300 text-gray-900 text-sm focus:border-blue-500 focus:ring-blue-500 rounded-md py-1"
+            style={{ 
+              backgroundColor: 'white',
+              color: '#111827'
+            }}
             value={selectedAirline}
             onChange={(e) => setSelectedAirline(e.target.value)}
           >
-            <option value="">Sve kompanije</option>
+            <option value="" style={{ backgroundColor: 'white', color: '#111827' }}>Sve kompanije</option>
             {airlines.map((airline) => (
-              <option key={airline.id} value={airline.id}>{airline.name}</option>
+              <option key={airline.id} value={airline.id} style={{ backgroundColor: 'white', color: '#111827' }}>{airline.name}</option>
             ))}
           </select>
         </div>
@@ -116,7 +120,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
             type="text"
             name="selectedDestination"
             id="selectedDestination"
-            className="w-full bg-white/20 border-white/30 text-white text-sm placeholder:text-white/60 focus:border-white focus:ring-white rounded-md py-1"
+            className="w-full bg-white border-gray-300 text-gray-900 text-sm placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500 rounded-md py-1"
             value={selectedDestination}
             onChange={(e) => setSelectedDestination(e.target.value)}
             placeholder="Unesite destinaciju"
@@ -129,13 +133,17 @@ const FilterSection: React.FC<FilterSectionProps> = ({
           <select
             id="selectedTank"
             name="selectedTank"
-            className="w-full bg-white/20 border-white/30 text-white text-sm placeholder:text-white/60 focus:border-white focus:ring-white rounded-md py-1"
+            className="w-full bg-white border-gray-300 text-gray-900 text-sm focus:border-blue-500 focus:ring-blue-500 rounded-md py-1"
+            style={{ 
+              backgroundColor: 'white',
+              color: '#111827'
+            }}
             value={selectedTank}
             onChange={(e) => setSelectedTank(e.target.value)}
           >
-            <option value="">Sve avio cisterne</option>
+            <option value="" style={{ backgroundColor: 'white', color: '#111827' }}>Sve avio cisterne</option>
             {tanks.map((tank) => (
-              <option key={tank.id} value={tank.id}>{tank.identifier} - {tank.name}</option>
+              <option key={tank.id} value={tank.id} style={{ backgroundColor: 'white', color: '#111827' }}>{tank.identifier} - {tank.name}</option>
             ))}
           </select>
         </div>
@@ -146,13 +154,17 @@ const FilterSection: React.FC<FilterSectionProps> = ({
           <select
             id="selectedTrafficType"
             name="selectedTrafficType"
-            className="w-full bg-white/20 border-white/30 text-white text-sm placeholder:text-white/60 focus:border-white focus:ring-white rounded-md py-1"
+            className="w-full bg-white border-gray-300 text-gray-900 text-sm focus:border-blue-500 focus:ring-blue-500 rounded-md py-1"
+            style={{ 
+              backgroundColor: 'white',
+              color: '#111827'
+            }}
             value={selectedTrafficType}
             onChange={(e) => setSelectedTrafficType(e.target.value)}
           >
-            <option value="">Svi tipovi</option>
-            <option value="Izvoz">Izvoz</option>
-            <option value="Unutarnji saobraćaj">Unutarnji saobraćaj</option>
+            <option value="" style={{ backgroundColor: 'white', color: '#111827' }}>Svi tipovi</option>
+            <option value="Izvoz" style={{ backgroundColor: 'white', color: '#111827' }}>Izvoz</option>
+            <option value="Unutarnji saobraćaj" style={{ backgroundColor: 'white', color: '#111827' }}>Unutarnji saobraćaj</option>
           </select>
         </div>
 
@@ -162,14 +174,18 @@ const FilterSection: React.FC<FilterSectionProps> = ({
           <select
             id="selectedCurrency"
             name="selectedCurrency"
-            className="w-full bg-white/20 border-white/30 text-white text-sm placeholder:text-white/60 focus:border-white focus:ring-white rounded-md py-1"
+            className="w-full bg-white border-gray-300 text-gray-900 text-sm focus:border-blue-500 focus:ring-blue-500 rounded-md py-1"
+            style={{ 
+              backgroundColor: 'white',
+              color: '#111827'
+            }}
             value={selectedCurrency}
             onChange={(e) => setSelectedCurrency(e.target.value)}
           >
-            <option value="">Sve valute</option>
-            <option value="BAM">BAM</option>
-            <option value="EUR">EUR</option>
-            <option value="USD">USD</option>
+            <option value="" style={{ backgroundColor: 'white', color: '#111827' }}>Sve valute</option>
+            <option value="BAM" style={{ backgroundColor: 'white', color: '#111827' }}>BAM</option>
+            <option value="EUR" style={{ backgroundColor: 'white', color: '#111827' }}>EUR</option>
+            <option value="USD" style={{ backgroundColor: 'white', color: '#111827' }}>USD</option>
           </select>
         </div>
 
@@ -180,7 +196,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
             type="text"
             name="deliveryVoucher"
             id="deliveryVoucher"
-            className="w-full bg-white/20 border-white/30 text-white text-sm placeholder:text-white/60 focus:border-white focus:ring-white rounded-md py-1"
+            className="w-full bg-white border-gray-300 text-gray-900 text-sm placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500 rounded-md py-1"
             value={inputValue}
             onChange={handleInputChange}
             placeholder="Unesite broj dostavnice"

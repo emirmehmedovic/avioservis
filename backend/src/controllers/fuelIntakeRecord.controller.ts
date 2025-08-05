@@ -867,8 +867,13 @@ export const getAllFuelIntakeRecords: RequestHandler<unknown, unknown, unknown, 
   try {
     console.log('Query parameters received:', req.query);
     
-    const { fuel_type, supplier_name, delivery_vehicle_plate, startDate, endDate, fuel_category, refinery_name, customs_declaration_number, currency, delivery_note_number } = req.query;
+    const { fuel_type, supplier_name, delivery_vehicle_plate, startDate, endDate, fuel_category, refinery_name, customs_declaration_number, currency, delivery_note_number, limit, sortBy, sortOrder } = req.query;
     const filters: any = {};
+    
+    // Parse limit parameter
+    const parsedLimit = limit ? parseInt(limit as string, 10) : undefined;
+    const orderBy = sortBy === 'intake_datetime' ? 'intake_datetime' : 'intake_datetime';
+    const order = sortOrder === 'asc' ? 'asc' : 'desc';
 
     if (fuel_type) filters.fuel_type = fuel_type as string;
     if (supplier_name) filters.supplier_name = supplier_name as string;
@@ -907,10 +912,10 @@ export const getAllFuelIntakeRecords: RequestHandler<unknown, unknown, unknown, 
     
     console.log('Constructed filters for Prisma:', filters);
 
-    const records = await prisma.fuelIntakeRecords.findMany({
+    const queryOptions: any = {
       where: filters,
       orderBy: {
-        intake_datetime: 'desc',
+        [orderBy]: order,
       },
       include: {
         documents: true,
@@ -925,7 +930,14 @@ export const getAllFuelIntakeRecords: RequestHandler<unknown, unknown, unknown, 
           }
         }
       }
-    });
+    };
+    
+    // Add limit if provided
+    if (parsedLimit && parsedLimit > 0) {
+      queryOptions.take = parsedLimit;
+    }
+    
+    const records = await prisma.fuelIntakeRecords.findMany(queryOptions);
     res.status(200).json(records);
     return;
   } catch (error: any) {

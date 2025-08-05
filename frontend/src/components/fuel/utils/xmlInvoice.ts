@@ -103,7 +103,7 @@ export const generateXMLInvoice = (operation: FuelingOperation): string => {
   const paymentDueDate = dayjs(invoiceDate).add(15, 'day').format('YYYY-MM-DDTHH:mm:ss');
 
   // Generate a unique invoice transmission ID
-  const locationCode = operation.destination?.substring(0, 3).toUpperCase() || 'TZL';
+  const locationCode = 'TZL';
   const invoiceTransmissionId = `${locationCode}-${operation.id}-${invoiceDate}`;
   
   // Validate and format flight data
@@ -162,7 +162,7 @@ export const generateXMLInvoice = (operation: FuelingOperation): string => {
           <ItemQuantityQty>${quantityKg}</ItemQuantityQty>
           <ItemQuantityUOM>KG</ItemQuantityUOM>
         </ItemQuantity>
-        <ItemDeliveryLocation>${destination}</ItemDeliveryLocation>
+        <ItemDeliveryLocation>TZL</ItemDeliveryLocation>
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="FNO">${flightNumber}</ItemDeliveryReferenceValue>
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="ARN">${aircraftRegistration}</ItemDeliveryReferenceValue>
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="DTN">${destination}</ItemDeliveryReferenceValue>
@@ -227,7 +227,7 @@ export const generateConsolidatedXMLInvoice = (operations: FuelingOperation[], f
   const invoiceDate = dayjs().format('YYYY-MM-DD');
   
   // Generate a unique invoice transmission ID
-  const locationCode = firstOperation.destination?.substring(0, 3).toUpperCase() || 'TZL';
+  const locationCode = 'TZL';
   const invoiceTransmissionId = `${locationCode}-CONS-${dayjs().format('YYYYMMDD')}-${firstOperation.airline?.id || 'UNKNOWN'}`;
   
   // Calculate totals
@@ -309,7 +309,7 @@ export const generateConsolidatedXMLInvoice = (operations: FuelingOperation[], f
           <ItemQuantityQty>${quantityKg.toFixed(6)}</ItemQuantityQty>
           <ItemQuantityUOM>KG</ItemQuantityUOM>
         </ItemQuantity>
-        <ItemDeliveryLocation>${destination}</ItemDeliveryLocation>
+        <ItemDeliveryLocation>TZL</ItemDeliveryLocation>
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="FNO">${flightNumber}</ItemDeliveryReferenceValue>
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="ARN">${aircraftRegistration}</ItemDeliveryReferenceValue>
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="DTN">${destination}</ItemDeliveryReferenceValue>

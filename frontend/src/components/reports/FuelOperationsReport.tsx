@@ -33,6 +33,7 @@ import dayjs from 'dayjs';
 import { notoSansRegularBase64 } from '@/lib/fonts';
 import { notoSansBoldBase64 } from '@/lib/notoSansBoldBase64';
 import { downloadDocument } from '@/lib/apiService';
+import * as XLSX from 'xlsx';
 
 // Import invoice generation utilities
 import { generatePDFInvoice } from '@/components/fuel/utils/helpers';
@@ -798,8 +799,8 @@ export default function FuelOperationsReport() {
       "Kol. (kg)",       // Količina (kg)
       "Cijena/kg",       // Cijena/kg
       "Val.",            // Valuta
+      "Ukupna cijena",   // Ukupna cijena
       "Gorivo",          // Tip Goriva
-      "Tank",            // Tank
       "Let",             // Let
       "Br.dost.",        // Broj dostavnice
       "MRN",             // MRN podaci
@@ -828,8 +829,8 @@ export default function FuelOperationsReport() {
         (op.quantity_kg || 0).toLocaleString('bs-BA', { minimumFractionDigits: 2 }),
         (op.price_per_kg || 0).toLocaleString('bs-BA', { minimumFractionDigits: 2 }),
         op.currency || 'BAM',
+        Number(op.total_amount || 0).toFixed(2),
         op.tank?.fuel_type || 'N/A', 
-        `${op.tank?.identifier || 'N/A'} ${op.tank?.name ? `(${op.tank.name})` : ''}`.trim(),
         op.flight_number || 'N/A',
         op.delivery_note_number || 'N/A',
         mrnDisplay,
@@ -1111,6 +1112,446 @@ export default function FuelOperationsReport() {
     addAirlineBreakdown(doc, 110, 40);
 
     doc.save('izvjestaj_operacija_goriva.pdf');
+  };
+
+  // Function to export data to Excel in the required format
+  const exportToExcelCustomFormat = () => {
+    try {
+      // Get current month and year for the title
+      const currentDate = new Date();
+      const monthNames = [
+        'JANUAR', 'FEBRUAR', 'MART', 'APRIL', 'MAJ', 'JUN',
+        'JULI', 'AVGUST', 'SEPTEMBAR', 'OKTOBAR', 'NOVEMBAR', 'DECEMBAR'
+      ];
+      const monthName = monthNames[currentDate.getMonth()];
+      const year = currentDate.getFullYear();
+
+      // Filter operations by date range if filters are applied
+      let filteredOperations = operations;
+      if (filterDateFrom || filterDateTo) {
+        filteredOperations = operations.filter(op => {
+          const opDate = new Date(op.dateTime);
+          const fromDate = filterDateFrom ? new Date(filterDateFrom) : null;
+          const toDate = filterDateTo ? new Date(filterDateTo) : null;
+          
+          if (fromDate && toDate) {
+            return opDate >= fromDate && opDate <= toDate;
+          } else if (fromDate) {
+            return opDate >= fromDate;
+          } else if (toDate) {
+            return opDate <= toDate;
+          }
+          return true;
+        });
+      }
+
+      // Sort operations by date
+      const sortedOperations = filteredOperations.sort((a, b) => 
+        new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()
+      );
+
+      // Define Wizz Air companies
+      const wizzAirCompanies = [
+        'WIZZ AIR HUNGARY LTD',
+        'WIZZ AIR MALTA LTD'
+      ];
+
+      // Prepare data for Excel
+      const excelData: any[][] = [];
+      let rowNumber = 1;
+
+      // Calculate period for header
+      let periodLabel = `${monthName} ${year}`;
+      if (filterDateFrom && filterDateTo) {
+        const fromDate = new Date(filterDateFrom);
+        const toDate = new Date(filterDateTo);
+        const fromFormatted = `${fromDate.getDate().toString().padStart(2, '0')}.${(fromDate.getMonth() + 1).toString().padStart(2, '0')}.${fromDate.getFullYear()}`;
+        const toFormatted = `${toDate.getDate().toString().padStart(2, '0')}.${(toDate.getMonth() + 1).toString().padStart(2, '0')}.${toDate.getFullYear()}`;
+        periodLabel = `${fromFormatted} - ${toFormatted}`;
+      } else if (filterDateFrom) {
+        const fromDate = new Date(filterDateFrom);
+        const fromFormatted = `${fromDate.getDate().toString().padStart(2, '0')}.${(fromDate.getMonth() + 1).toString().padStart(2, '0')}.${fromDate.getFullYear()}`;
+        periodLabel = `od ${fromFormatted}`;
+      } else if (filterDateTo) {
+        const toDate = new Date(filterDateTo);
+        const toFormatted = `${toDate.getDate().toString().padStart(2, '0')}.${(toDate.getMonth() + 1).toString().padStart(2, '0')}.${toDate.getFullYear()}`;
+        periodLabel = `do ${toFormatted}`;
+      }
+
+      // Add header rows
+      excelData.push([]); // Empty row
+      excelData.push(['UTROŠENA KOLIĆINA GORIVA JET A1 HIFA PETROL-a NA MEĐUNARODNOM AERODROMU TUZLA']);
+      excelData.push([periodLabel]);
+      excelData.push([]); // Empty row
+
+      // Add column headers
+      excelData.push([
+        'Redni broj',
+        'Broj dostavnice',
+        'Datum',
+        'WIZZ AIR',
+        '',
+        '',
+        '',
+        '',
+        'OSTALI',
+        '',
+        '',
+        '',
+        ''
+      ]);
+
+      // Add sub-column headers
+      excelData.push([
+        '',
+        '',
+        '',
+        'Litara',
+        'kg',
+        'Iznos fakture EUR',
+        'Iznos fakture $',
+        'Ekvivalent BAM',
+        'Litara',
+        'kg',
+        'Iznos faktura EUR',
+        'Iznos faktura $',
+        'Ekvivalent BAM'
+      ]);
+
+      // Add data rows
+      sortedOperations.forEach((op) => {
+        const isWizzAir = wizzAirCompanies.includes(op.airline?.name?.toUpperCase() || '');
+        const opDate = new Date(op.dateTime);
+        const formattedDate = `${opDate.getDate().toString().padStart(2, '0')}.${(opDate.getMonth() + 1).toString().padStart(2, '0')}.`;
+        
+        const row: any[] = [
+          rowNumber,
+          op.delivery_note_number || '',
+          formattedDate
+        ];
+
+        // Add WIZZ AIR data
+        if (isWizzAir) {
+          // Calculate BAM equivalent using proper exchange rates
+          const bamEquivalent = op.currency === 'BAM' ? Number(op.total_amount || 0) :
+            op.currency === 'EUR' ? Number(op.total_amount || 0) * 1.955830 :
+            op.currency === 'USD' && (op as any).usd_exchange_rate ? Number(op.total_amount || 0) * Number((op as any).usd_exchange_rate) :
+            0;
+
+          row.push(
+            Number(op.quantity_liters || 0).toFixed(2),
+            Number(op.quantity_kg || 0).toFixed(2),
+            op.currency === 'EUR' ? Number(op.total_amount || 0).toFixed(2) : '',
+            op.currency === 'USD' ? Number(op.total_amount || 0).toFixed(2) : '',
+            bamEquivalent.toFixed(2)
+          );
+        } else {
+          row.push('', '', '', '', ''); // Empty WIZZ AIR columns
+        }
+
+        // Add OSTALI data
+        if (!isWizzAir) {
+          // Calculate BAM equivalent using proper exchange rates
+          const bamEquivalent = op.currency === 'BAM' ? Number(op.total_amount || 0) :
+            op.currency === 'EUR' ? Number(op.total_amount || 0) * 1.955830 :
+            op.currency === 'USD' && (op as any).usd_exchange_rate ? Number(op.total_amount || 0) * Number((op as any).usd_exchange_rate) :
+            0;
+
+          row.push(
+            Number(op.quantity_liters || 0).toFixed(2),
+            Number(op.quantity_kg || 0).toFixed(2),
+            op.currency === 'EUR' ? Number(op.total_amount || 0).toFixed(2) : '',
+            op.currency === 'USD' ? Number(op.total_amount || 0).toFixed(2) : '',
+            bamEquivalent.toFixed(2)
+          );
+        } else {
+          row.push('', '', '', '', ''); // Empty OSTALI columns
+        }
+
+        excelData.push(row);
+        rowNumber++;
+      });
+
+      // Add totals row
+      const wizzAirTotalLiters = Number(sortedOperations
+        .filter(op => wizzAirCompanies.includes(op.airline?.name?.toUpperCase() || ''))
+        .reduce((sum, op) => sum + Number(op.quantity_liters || 0), 0));
+
+      const wizzAirTotalKg = Number(sortedOperations
+        .filter(op => wizzAirCompanies.includes(op.airline?.name?.toUpperCase() || ''))
+        .reduce((sum, op) => sum + Number(op.quantity_kg || 0), 0));
+
+      const wizzAirTotalEUR = Number(sortedOperations
+        .filter(op => wizzAirCompanies.includes(op.airline?.name?.toUpperCase() || '') && op.currency === 'EUR')
+        .reduce((sum, op) => sum + Number(op.total_amount || 0), 0));
+
+      const wizzAirTotalUSD = Number(sortedOperations
+        .filter(op => wizzAirCompanies.includes(op.airline?.name?.toUpperCase() || '') && op.currency === 'USD')
+        .reduce((sum, op) => sum + Number(op.total_amount || 0), 0));
+
+      const ostaliTotalLiters = Number(sortedOperations
+        .filter(op => !wizzAirCompanies.includes(op.airline?.name?.toUpperCase() || ''))
+        .reduce((sum, op) => sum + Number(op.quantity_liters || 0), 0));
+
+      const ostaliTotalKg = Number(sortedOperations
+        .filter(op => !wizzAirCompanies.includes(op.airline?.name?.toUpperCase() || ''))
+        .reduce((sum, op) => sum + Number(op.quantity_kg || 0), 0));
+
+      const ostaliTotalEUR = Number(sortedOperations
+        .filter(op => !wizzAirCompanies.includes(op.airline?.name?.toUpperCase() || '') && op.currency === 'EUR')
+        .reduce((sum, op) => sum + Number(op.total_amount || 0), 0));
+
+      const ostaliTotalUSD = Number(sortedOperations
+        .filter(op => !wizzAirCompanies.includes(op.airline?.name?.toUpperCase() || '') && op.currency === 'USD')
+        .reduce((sum, op) => sum + Number(op.total_amount || 0), 0));
+
+      // Calculate total BAM equivalents using proper exchange rates
+      const wizzAirTotalBAM = sortedOperations
+        .filter(op => wizzAirCompanies.includes(op.airline?.name?.toUpperCase() || ''))
+        .reduce((sum, op) => {
+          const bamEquivalent = op.currency === 'BAM' ? Number(op.total_amount || 0) :
+            op.currency === 'EUR' ? Number(op.total_amount || 0) * 1.955830 :
+            op.currency === 'USD' && (op as any).usd_exchange_rate ? Number(op.total_amount || 0) * Number((op as any).usd_exchange_rate) :
+            0;
+          return sum + bamEquivalent;
+        }, 0);
+
+      const ostaliTotalBAM = sortedOperations
+        .filter(op => !wizzAirCompanies.includes(op.airline?.name?.toUpperCase() || ''))
+        .reduce((sum, op) => {
+          const bamEquivalent = op.currency === 'BAM' ? Number(op.total_amount || 0) :
+            op.currency === 'EUR' ? Number(op.total_amount || 0) * 1.955830 :
+            op.currency === 'USD' && (op as any).usd_exchange_rate ? Number(op.total_amount || 0) * Number((op as any).usd_exchange_rate) :
+            0;
+          return sum + bamEquivalent;
+        }, 0);
+
+      // Calculate date range for total row
+      let totalLabel = `TOTAL ${monthName}`;
+      if (filterDateFrom && filterDateTo) {
+        const fromDate = new Date(filterDateFrom);
+        const toDate = new Date(filterDateTo);
+        const fromFormatted = `${fromDate.getDate().toString().padStart(2, '0')}.${(fromDate.getMonth() + 1).toString().padStart(2, '0')}.${fromDate.getFullYear()}`;
+        const toFormatted = `${toDate.getDate().toString().padStart(2, '0')}.${(toDate.getMonth() + 1).toString().padStart(2, '0')}.${toDate.getFullYear()}`;
+        totalLabel = `TOTAL ${fromFormatted} - ${toFormatted}`;
+      } else if (filterDateFrom) {
+        const fromDate = new Date(filterDateFrom);
+        const fromFormatted = `${fromDate.getDate().toString().padStart(2, '0')}.${(fromDate.getMonth() + 1).toString().padStart(2, '0')}.${fromDate.getFullYear()}`;
+        totalLabel = `TOTAL od ${fromFormatted}`;
+      } else if (filterDateTo) {
+        const toDate = new Date(filterDateTo);
+        const toFormatted = `${toDate.getDate().toString().padStart(2, '0')}.${(toDate.getMonth() + 1).toString().padStart(2, '0')}.${toDate.getFullYear()}`;
+        totalLabel = `TOTAL do ${toFormatted}`;
+      }
+
+      excelData.push([]); // Empty row
+      excelData.push([
+        totalLabel,
+        '',
+        '',
+        Number(wizzAirTotalLiters || 0).toFixed(2),
+        Number(wizzAirTotalKg || 0).toFixed(2),
+        Number(wizzAirTotalEUR || 0).toFixed(2),
+        Number(wizzAirTotalUSD || 0).toFixed(2),
+        Number(wizzAirTotalBAM || 0).toFixed(2),
+        Number(ostaliTotalLiters || 0).toFixed(2),
+        Number(ostaliTotalKg || 0).toFixed(2),
+        Number(ostaliTotalEUR || 0).toFixed(2),
+        Number(ostaliTotalUSD || 0).toFixed(2),
+        Number(ostaliTotalBAM || 0).toFixed(2)
+      ]);
+
+      // Create workbook and worksheet
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(excelData);
+
+      // Set column widths
+      const colWidths = [
+        { wch: 8 },   // Redni broj
+        { wch: 15 },  // Broj dostavnice
+        { wch: 10 },  // Datum
+        { wch: 12 },  // WIZZ AIR Litara
+        { wch: 12 },  // WIZZ AIR kg
+        { wch: 15 },  // WIZZ AIR EUR
+        { wch: 15 },  // WIZZ AIR USD
+        { wch: 15 },  // WIZZ AIR BAM
+        { wch: 12 },  // OSTALI Litara
+        { wch: 12 },  // OSTALI kg
+        { wch: 15 },  // OSTALI EUR
+        { wch: 15 },  // OSTALI USD
+        { wch: 15 }   // OSTALI BAM
+      ];
+      ws['!cols'] = colWidths;
+
+      // Add cell styling and merging
+      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+
+      // Style for title row (row 2)
+      if (ws['A2']) {
+        ws['A2'].s = {
+          font: { bold: true, sz: 14 },
+          alignment: { horizontal: 'center' },
+          fill: { fgColor: { rgb: 'E6F3FF' } }
+        };
+      }
+
+      // Style for period row (row 3)
+      if (ws['A3']) {
+        ws['A3'].s = {
+          font: { bold: true, sz: 12 },
+          alignment: { horizontal: 'center' },
+          fill: { fgColor: { rgb: 'E6F3FF' } }
+        };
+      }
+
+      // Style for main column headers (row 5 - WIZZ AIR and OSTALI)
+      const mainHeaderRow = 5;
+      if (ws[`D${mainHeaderRow}`]) {
+        ws[`D${mainHeaderRow}`].s = {
+          font: { bold: true, color: { rgb: 'FFFFFF' } },
+          alignment: { horizontal: 'center' },
+          fill: { fgColor: { rgb: '2563EB' } }, // Blue for WIZZ AIR
+          border: {
+            top: { style: 'thick', color: { rgb: '000000' } },
+            bottom: { style: 'thick', color: { rgb: '000000' } },
+            left: { style: 'thick', color: { rgb: '000000' } },
+            right: { style: 'thick', color: { rgb: '000000' } }
+          }
+        };
+      }
+
+      if (ws[`I${mainHeaderRow}`]) {
+        ws[`I${mainHeaderRow}`].s = {
+          font: { bold: true, color: { rgb: 'FFFFFF' } },
+          alignment: { horizontal: 'center' },
+          fill: { fgColor: { rgb: '059669' } }, // Green for OSTALI
+          border: {
+            top: { style: 'thick', color: { rgb: '000000' } },
+            bottom: { style: 'thick', color: { rgb: '000000' } },
+            left: { style: 'thick', color: { rgb: '000000' } },
+            right: { style: 'thick', color: { rgb: '000000' } }
+          }
+        };
+      }
+
+      // Style for sub-column headers (row 6)
+      const subHeaderRow = 6;
+      // WIZZ AIR sub-headers (columns D-H)
+      for (let col = 3; col <= 7; col++) { // D=3, E=4, F=5, G=6, H=7
+        const cellRef = XLSX.utils.encode_cell({ r: subHeaderRow - 1, c: col });
+        if (ws[cellRef]) {
+          ws[cellRef].s = {
+            font: { bold: true, color: { rgb: 'FFFFFF' } },
+            alignment: { horizontal: 'center' },
+            fill: { fgColor: { rgb: '3B82F6' } }, // Lighter blue
+            border: {
+              top: { style: 'thin', color: { rgb: '000000' } },
+              bottom: { style: 'thin', color: { rgb: '000000' } },
+              left: { style: 'thin', color: { rgb: '000000' } },
+              right: { style: 'thin', color: { rgb: '000000' } }
+            }
+          };
+        }
+      }
+
+      // OSTALI sub-headers (columns I-M)
+      for (let col = 8; col <= 12; col++) { // I=8, J=9, K=10, L=11, M=12
+        const cellRef = XLSX.utils.encode_cell({ r: subHeaderRow - 1, c: col });
+        if (ws[cellRef]) {
+          ws[cellRef].s = {
+            font: { bold: true, color: { rgb: 'FFFFFF' } },
+            alignment: { horizontal: 'center' },
+            fill: { fgColor: { rgb: '10B981' } }, // Lighter green
+            border: {
+              top: { style: 'thin', color: { rgb: '000000' } },
+              bottom: { style: 'thin', color: { rgb: '000000' } },
+              left: { style: 'thin', color: { rgb: '000000' } },
+              right: { style: 'thin', color: { rgb: '000000' } }
+            }
+          };
+        }
+      }
+
+      // Style data rows with alternating colors
+      const dataStartRow = 7;
+      const totalRowIndex = excelData.length - 1;
+      
+      for (let row = dataStartRow; row <= totalRowIndex; row++) {
+        const isEvenRow = (row - dataStartRow) % 2 === 0;
+        const isTotalRow = row === totalRowIndex;
+        
+        for (let col = 0; col <= 12; col++) {
+          const cellRef = XLSX.utils.encode_cell({ r: row - 1, c: col });
+          if (ws[cellRef]) {
+            if (isTotalRow) {
+              // Total row styling
+              ws[cellRef].s = {
+                font: { bold: true },
+                alignment: { horizontal: col <= 2 ? 'left' : 'right' },
+                fill: { fgColor: { rgb: 'FEF3C7' } }, // Yellow background
+                border: {
+                  top: { style: 'thick', color: { rgb: '000000' } },
+                  bottom: { style: 'thick', color: { rgb: '000000' } },
+                  left: { style: 'thin', color: { rgb: '000000' } },
+                  right: { style: 'thin', color: { rgb: '000000' } }
+                }
+              };
+            } else {
+              // Data row styling
+              let fillColor = { rgb: 'FFFFFF' }; // Default white
+              
+              if (col >= 3 && col <= 7) {
+                // WIZZ AIR columns
+                fillColor = { rgb: isEvenRow ? 'EBF4FF' : 'DBEAFE' }; // Light blue alternating
+              } else if (col >= 8 && col <= 12) {
+                // OSTALI columns
+                fillColor = { rgb: isEvenRow ? 'ECFDF5' : 'D1FAE5' }; // Light green alternating
+              } else {
+                // Basic info columns
+                fillColor = { rgb: isEvenRow ? 'F9FAFB' : 'FFFFFF' }; // Light gray alternating
+              }
+              
+              ws[cellRef].s = {
+                alignment: { horizontal: col <= 2 ? 'left' : 'right' },
+                fill: { fgColor: fillColor },
+                border: {
+                  top: { style: 'thin', color: { rgb: 'E5E7EB' } },
+                  bottom: { style: 'thin', color: { rgb: 'E5E7EB' } },
+                  left: { style: 'thin', color: { rgb: 'E5E7EB' } },
+                  right: { style: 'thin', color: { rgb: 'E5E7EB' } }
+                }
+              };
+            }
+          }
+        }
+      }
+
+      // Merge cells for main headers
+      ws['!merges'] = [
+        // Title row
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 12 } },
+        // Period row
+        { s: { r: 2, c: 0 }, e: { r: 2, c: 12 } },
+        // WIZZ AIR header
+        { s: { r: 4, c: 3 }, e: { r: 4, c: 7 } },
+        // OSTALI header
+        { s: { r: 4, c: 8 }, e: { r: 4, c: 12 } }
+      ];
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, 'Izvještaj');
+
+      // Generate filename
+      const filename = `Utrosena_kolicina_goriva_${monthName}_${year}.xlsx`;
+
+      // Save file
+      XLSX.writeFile(wb, filename);
+
+      toast.success('Excel izvještaj uspješno preuzet!');
+    } catch (error) {
+      console.error('Greška pri izvozu Excel izvještaja:', error);
+      toast.error('Greška pri izvozu Excel izvještaja');
+    }
   };
 
   if (loading) {
@@ -1493,8 +1934,8 @@ export default function FuelOperationsReport() {
                         <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '6%' }}>Kol. (kg)</th>
                         <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '6%' }}>Cijena/kg</th>
                         <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '5%' }}>Val.</th>
+                        <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '6%' }}>Ukupna cijena</th>
                         <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '6%' }}>Tip Goriva</th>
-                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '6%' }}>Cisterna</th>
                         <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '6%' }}>Br. Leta</th>
                         <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '7%' }}>Broj dostavnice</th>
                         <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '7%' }}>MRN podaci</th>
@@ -1526,6 +1967,7 @@ export default function FuelOperationsReport() {
                           <td className="px-3 py-2 text-[0.68rem] text-gray-700 dark:text-gray-300 font-medium text-right table-cell-wrap">{(op.quantity_kg || 0).toLocaleString('hr-HR')} kg</td>
                           <td className="px-3 py-2 text-[0.68rem] text-gray-700 dark:text-gray-300 font-medium text-right table-cell-wrap">{(op.price_per_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 })}</td>
                           <td className="px-3 py-2 text-[0.68rem] text-gray-700 dark:text-gray-300 font-medium text-center table-cell-wrap">{op.currency || 'BAM'}</td>
+                          <td className="px-3 py-2 text-[0.68rem] text-gray-700 dark:text-gray-300 font-medium text-right table-cell-wrap">{Number(op.total_amount || 0).toFixed(2)}</td>
                           <td className="px-3 py-2 text-[0.68rem] text-gray-700 dark:text-gray-300 table-cell-wrap">
                             {op.tank?.fuel_type ? (
                               <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium text-[0.65rem] ${op.tank.fuel_type === 'Jet A-1' ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100' : 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'}`}>
@@ -1535,11 +1977,6 @@ export default function FuelOperationsReport() {
                               <Badge variant="outline" className="text-[0.65rem] py-0 h-4">N/A</Badge>
                             )}
                           </td>
-                          <td className="px-3 py-2 text-[0.68rem] text-gray-700 dark:text-gray-300 table-cell-wrap">{op.tank ? (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium text-[0.65rem] bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100">
-                              {op.tank.identifier || 'N/A'}
-                            </span>
-                          ) : <Badge variant="outline" className="text-[0.65rem] py-0 h-4">N/A</Badge>}</td>
                           <td className="px-3 py-2 text-[0.68rem] text-gray-700 dark:text-gray-300 table-cell-wrap">{op.flight_number || <Badge variant="outline" className="text-[0.65rem] py-0 h-4">N/A</Badge>}</td>
                           <td className="px-3 py-2 text-[0.68rem] text-gray-700 dark:text-gray-300 table-cell-wrap">{op.delivery_note_number || <Badge variant="outline" className="text-[0.65rem] py-0 h-4">N/A</Badge>}</td>
                           <td className="px-3 py-2 text-[0.68rem] text-gray-700 dark:text-gray-300 table-cell-wrap">
@@ -1677,6 +2114,17 @@ export default function FuelOperationsReport() {
                     >
                       <FileText className="h-4 w-4 mr-1" />
                       Izvezi u PDF
+                    </Button>
+                    
+                    <Button 
+                      onClick={exportToExcelCustomFormat} 
+                      variant="outline"
+                      className="border-green-500 text-green-600 hover:bg-green-50 dark:border-green-400 dark:text-green-400 dark:hover:bg-green-900/20 whitespace-nowrap"
+                    >
+                      <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Excel Izvještaj
                     </Button>
                     
                     {/* Invoice generation buttons */}
@@ -1916,5 +2364,5 @@ export default function FuelOperationsReport() {
         )}
       </div>
     </div>
-  );
+      );
 }

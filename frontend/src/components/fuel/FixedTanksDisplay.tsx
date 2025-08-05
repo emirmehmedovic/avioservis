@@ -60,7 +60,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import NewFixedTankForm from './NewFixedTankForm';
-import { getFixedTanks, getFixedTankCustomsBreakdown } from '@/lib/apiService';
+import { getFixedTanks, getFixedTankCustomsBreakdown, getTotalFuelSummary } from '@/lib/apiService';
 import FixedTankDetailsModal from './FixedTankDetailsModal';
 import FixedToFixedTransferModal from './FixedToFixedTransferModal';
 
@@ -84,6 +84,17 @@ export default function FixedTanksDisplay({
   const [error, setError] = useState<string | null>(null);
   const [totalFuel, setTotalFuel] = useState<number>(0);
   const [totalFuelKg, setTotalFuelKg] = useState<number>(0);
+  
+  // Total fuel summary state (fixed + mobile tanks)
+  const [totalFuelSummary, setTotalFuelSummary] = useState<{
+    fixedTanksTotal: number;
+    mobileTanksTotal: number;
+    grandTotal: number;
+    fixedTanksTotalKg: number;
+    mobileTanksTotalKg: number;
+    grandTotalKg: number;
+  } | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [fuelTypeFilter, setFuelTypeFilter] = useState<string>('ALL');
@@ -112,6 +123,20 @@ export default function FixedTanksDisplay({
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const { authToken, authUser } = useAuth();
+
+  // Function to fetch total fuel summary (fixed + mobile tanks)
+  const fetchTotalFuelSummary = async () => {
+    try {
+      setSummaryLoading(true);
+      const summaryData = await getTotalFuelSummary();
+      setTotalFuelSummary(summaryData);
+    } catch (error) {
+      console.error('Error fetching total fuel summary:', error);
+      setTotalFuelSummary(null);
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
 
   const loadTanks = async () => {
     try {
@@ -193,6 +218,7 @@ export default function FixedTanksDisplay({
 
   useEffect(() => {
     loadTanks();
+    fetchTotalFuelSummary();
   }, []);
 
   useEffect(() => {
@@ -434,19 +460,66 @@ export default function FixedTanksDisplay({
         
         {/* Glass highlight effect - matching tab header */}
         <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent z-0"></div>
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-4 relative z-10">
-          <div>
-            <h2 className="text-2xl font-bold flex items-center">
-              <svg className="w-6 h-6 mr-2 text-[#E60026]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 10V7C20 5.34315 18.6569 4 17 4H7C5.34315 4 4 5.34315 4 7V10M20 10V19C20 20.1046 19.1046 21 18 21H6C4.89543 21 4 20.1046 4 19V10M20 10H4M8 14H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                <path d="M12 10V18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-              <span className="bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">Fiksni Tankovi Goriva</span>
-            </h2>
-            <p className="text-lg mt-1 ml-8 text-white/80">
-              Ukupno goriva: <strong className="text-white">{totalFuel.toLocaleString()} L</strong> <span className="mx-1">|</span> <strong className="text-white">{totalFuelKg.toLocaleString(undefined, { maximumFractionDigits: 2 })} kg</strong>
-            </p>
-          </div>
+        {/* Total Fuel Summary Block (Fixed + Mobile Tanks) - Full Width */}
+        <div className="mb-4 relative z-10">
+          {summaryLoading ? (
+            <div className="flex items-center justify-center text-white/60 py-4">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#F08080] mr-2"></div>
+              <span className="text-base">Učitavanje ukupnog stanja goriva...</span>
+            </div>
+          ) : totalFuelSummary ? (
+            <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-xl p-6 shadow-lg">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center justify-center">
+                <svg className="w-6 h-6 mr-3 text-[#E60026]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M9 19c-5 0-8-3-8-8s3-8 8-8 8 3 8 8-3 8-8 8z" stroke="currentColor" strokeWidth="2"/>
+                  <path d="M8 12l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M15 9h6v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M21 3l-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span className="bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">Sveukupno stanje goriva po ulaznim i izlaznim podacima</span>
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="backdrop-blur-md bg-[#F08080]/10 border border-white/10 p-4 rounded-lg shadow-lg relative overflow-hidden group hover:bg-[#F08080]/15 transition-all">
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-[#F08080] rounded-full filter blur-2xl opacity-5 -translate-y-1/2 translate-x-1/4 group-hover:opacity-10 transition-opacity"></div>
+                  <div className="text-sm font-medium text-gray-300 mb-1">Fiksni Tankovi</div>
+                  <div className="text-2xl font-bold text-white mb-1">
+                    {totalFuelSummary.fixedTanksTotal != null ? totalFuelSummary.fixedTanksTotal.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} L
+                  </div>
+                  <div className="text-sm font-medium text-gray-400">
+                    {totalFuelSummary.fixedTanksTotalKg != null ? totalFuelSummary.fixedTanksTotalKg.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} kg
+                  </div>
+                </div>
+                <div className="backdrop-blur-md bg-[#F08080]/10 border border-white/10 p-4 rounded-lg shadow-lg relative overflow-hidden group hover:bg-[#F08080]/15 transition-all">
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-[#F08080] rounded-full filter blur-2xl opacity-5 -translate-y-1/2 translate-x-1/4 group-hover:opacity-10 transition-opacity"></div>
+                  <div className="text-sm font-medium text-gray-300 mb-1">Mobilni Tankovi</div>
+                  <div className="text-2xl font-bold text-white mb-1">
+                    {totalFuelSummary.mobileTanksTotal != null ? totalFuelSummary.mobileTanksTotal.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} L
+                  </div>
+                  <div className="text-sm font-medium text-gray-400">
+                    {totalFuelSummary.mobileTanksTotalKg != null ? totalFuelSummary.mobileTanksTotalKg.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} kg
+                  </div>
+                </div>
+                <div className="backdrop-blur-md bg-[#F08080]/20 border border-white/10 p-4 rounded-lg shadow-lg relative overflow-hidden group hover:bg-[#F08080]/25 transition-all">
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-[#F08080] rounded-full filter blur-2xl opacity-10 -translate-y-1/2 translate-x-1/4 group-hover:opacity-15 transition-opacity"></div>
+                  <div className="text-sm font-medium text-gray-300 mb-1">Ukupno</div>
+                  <div className="text-2xl font-bold text-white mb-1">
+                    {totalFuelSummary.grandTotal != null ? totalFuelSummary.grandTotal.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} L
+                  </div>
+                  <div className="text-sm font-medium text-gray-400">
+                    {totalFuelSummary.grandTotalKg != null ? totalFuelSummary.grandTotalKg.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} kg
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-gray-500 text-center py-4 text-base">
+              Nije moguće učitati podatke o ukupnom stanju goriva.
+            </div>
+          )}
+        </div>
+        
+        {/* Action buttons */}
+        <div className="flex justify-center gap-3 mb-4 relative z-10">
           <div className="flex gap-2 flex-wrap">
             {showAddTankButton && (
               <Dialog open={isAddTankModalOpen} onOpenChange={setIsAddTankModalOpen}>
@@ -1007,6 +1080,71 @@ export default function FixedTanksDisplay({
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Operational Fuel Status */}
+        <div className="mt-6 relative z-10">
+          {summaryLoading ? (
+            <div className="flex items-center justify-center text-white/60 py-4">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#F08080] mr-2"></div>
+              <span className="text-sm">Računanje operativnog stanja...</span>
+            </div>
+          ) : totalFuelSummary ? (
+            <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-xl p-6 shadow-lg">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center justify-center">
+                <svg className="w-6 h-6 mr-3 text-[#E60026]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2L2 7v10c0 5.55 3.84 9.74 9 11 5.16-1.26 9-5.45 9-11V7l-10-5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="m9 12 2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span className="bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">Operativno stanje goriva</span>
+              </h3>
+              
+              <div className="backdrop-blur-md bg-[#F08080]/10 border border-white/10 p-6 rounded-xl shadow-lg relative overflow-hidden group hover:bg-[#F08080]/15 transition-all">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#F08080] rounded-full filter blur-3xl opacity-5 -translate-y-1/2 translate-x-1/4 group-hover:opacity-10 transition-opacity"></div>
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-[#F08080] rounded-full filter blur-2xl opacity-5 translate-y-1/2 -translate-x-1/4 group-hover:opacity-10 transition-opacity"></div>
+                
+                <div className="text-center relative z-10">
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-white/30 border border-white/40 rounded-full mb-4">
+                    <svg className="w-8 h-8 text-gray-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  
+                  <div className="text-sm font-medium text-gray-800 mb-2 uppercase tracking-wide">Dostupno za operacije</div>
+                  
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-gray-900 mb-1">
+                        {totalFuelSummary.grandTotal != null ? (totalFuelSummary.grandTotal - 6000).toLocaleString('bs-BA', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0'}
+                      </div>
+                      <div className="text-lg font-medium text-gray-700">Litara</div>
+                    </div>
+                    
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-gray-900 mb-1">
+                        {totalFuelSummary.grandTotalKg != null ? (totalFuelSummary.grandTotalKg - 4800).toLocaleString('bs-BA', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0'}
+                      </div>
+                      <div className="text-lg font-medium text-gray-700">Kilograma</div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 text-xs text-gray-700 bg-white/20 rounded-lg p-3 border border-white/30">
+                    <span className="text-gray-800 font-medium">Oduzeto:</span> 6.000L (3.000L cijevi + filteri + mrtve tačke) = <span className="text-gray-900 font-bold">Realno operativno stanje</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-4 backdrop-blur-md bg-white/20 border border-white/30 rounded-lg p-4">
+                <div className="text-xs text-gray-700 leading-relaxed">
+                  <strong className="text-gray-900">Napomena:</strong> Ovo je okvirno operativno stanje, kad se mjeri stanje goriva u fiksnim rezervoarima ne može se izmjeriti stanje goriva koje se nalazi u cijevima, što je okvirno nekih 3000L, gorivo u filterima kamiona što je 500L po filteru, te mrtve tačke u cisternama. Stvarno operativno stanje je približno ovome.
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-gray-500 text-center py-4 text-sm">
+              Nije moguće izračunati operativno stanje goriva.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
