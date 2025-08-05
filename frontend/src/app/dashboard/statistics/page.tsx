@@ -1,11 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Activity, BarChart3, TrendingUp } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
-import FuelReports from '@/components/fuel/FuelReports';
-import FuelProjections from '@/components/fuel/FuelProjections';
+
+// Dynamically import components with no SSR to prevent client-side errors
+const FuelReports = dynamic(() => import('@/components/fuel/FuelReports'), { ssr: false });
+const FuelProjections = dynamic(() => import('@/components/fuel/FuelProjections'), { ssr: false });
 
 export default function StatisticsPage() {
   const [activeTab, setActiveTab] = useState("reports");
