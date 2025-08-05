@@ -74,7 +74,7 @@ export default function FuelProjections() {
     setProjectionInputs(prevInputs => [
       ...prevInputs,
       {
-        id: Date.now().toString(), 
+        id: `${Date.now().toString()}-${Math.random().toString(36).substr(2, 9)}`, 
         airlineId: '',
         destination: '',
         operations: 0,
@@ -257,7 +257,7 @@ export default function FuelProjections() {
           const loadedInputs: ProjectionInputRow[] = fullPreset.presetData.map((item: FuelProjectionPresetData, index: number) => {
             const selectedAirline = airlines.find(a => a.id === parseInt(item.airlineId, 10));
             return {
-              id: `${Date.now().toString()}-${index}`,
+              id: `${Date.now().toString()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
               airlineId: item.airlineId,
               destination: item.destination,
               operations: item.operations,
@@ -546,7 +546,12 @@ export default function FuelProjections() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {projectionInputs.map((input, index) => (
+            {projectionInputs.map((input, index) => {
+              // Temporary debug to catch duplicate IDs
+              if (projectionInputs.filter(i => i.id === input.id).length > 1) {
+                console.warn('Duplicate ID found:', input.id, 'in projectionInputs');
+              }
+              return (
               <div key={input.id} className="p-4 border rounded-md space-y-3 bg-gray-50 dark:bg-gray-800/50 relative">
                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                     <div className="md:col-span-4">
@@ -602,7 +607,8 @@ export default function FuelProjections() {
                     </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
             <div className="flex justify-start pt-2">
               <Button onClick={handleAddRow} className="mb-4 mr-2" variant="outline" disabled={loadingAirlines || loadingPreset}>
                 <PlusCircle size={16} className="mr-2" /> Dodaj Red
