@@ -6,6 +6,7 @@ import dayjs from 'dayjs';
 import { fetchWithAuth } from '@/lib/apiService';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/Card';
+import SimpleFuelOverview from './SimpleFuelOverview';
 
 // Import trend analysis components
 import { 
@@ -76,7 +77,7 @@ interface FuelStatistics {
 }
 
 export default function FuelReports() {
-  const [activeTab, setActiveTab] = useState('overview'); // TESTIRAM overview - ako crash-uje, to je uzrok
+  const [activeTab, setActiveTab] = useState('pregled'); // Novi jednostavan pregled tab
   const [dateRange, setDateRange] = useState({
     startDate: '',
     endDate: '',
@@ -460,9 +461,8 @@ export default function FuelReports() {
           
           <nav className="flex space-x-2 overflow-x-auto relative z-10 px-1" aria-label="Tabs">
             {            [
-              // TESTIRAM SAMO OPŠTI PREGLED - ako ovaj radi, onda je problem u Analiza Potrošnje
-              { id: 'overview', name: 'Opšti Pregled', icon: <ChartBarIcon className="h-4 w-4" />, color: '#4FC3C7' },
-              // { id: 'consumptionAnalysis', name: 'Analiza Potrošnje', icon: <ChartPieIcon className="h-4 w-4" />, color: '#e53e3e' },
+              // NOVI JEDNOSTAVAN PREGLED TAB
+              { id: 'pregled', name: 'Pregled', icon: <ChartBarIcon className="h-4 w-4" />, color: '#4FC3C7' },
               { id: 'details', name: 'Detaljni Prikazi', icon: <DocumentArrowDownIcon className="h-4 w-4" />, color: '#8B5CF6' },
               { id: 'trendAnalysis', name: 'Trend Analiza', icon: <TrendingUp className="h-4 w-4" />, color: '#3B82F6' },
               { id: 'comparativeAnalysis', name: 'Komparativna Analiza', icon: <BarChart3 className="h-4 w-4" />, color: '#10B981' },
@@ -516,8 +516,13 @@ export default function FuelReports() {
           </div>
 
           {/* Tab Content */}
-          {/* TESTIRAM SAMO OPŠTI PREGLED */}
-          {activeTab === 'overview' && (
+          {/* NOVI PREGLED TAB - Koristi SimpleFuelOverview komponentu */}
+          {activeTab === 'pregled' && (
+            <SimpleFuelOverview statistics={statistics} loading={loading} />
+          )}
+
+          {/* STARI OVERVIEW SADRŽAJ OBRISANO - novi jednostavan pregled */}
+          {false && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="p-5 rounded-xl shadow-md">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Potrošnja po Avio Kompaniji</h3>
