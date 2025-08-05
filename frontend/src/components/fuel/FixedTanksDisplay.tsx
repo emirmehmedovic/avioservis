@@ -102,21 +102,7 @@ export default function FixedTanksDisplay({
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedTankForDetails, setSelectedTankForDetails] = useState<FixedStorageTank | null>(null);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
-  const [hiddenTankIds, setHiddenTankIds] = useState<Set<number>>(() => {
-    // Load hidden tank IDs from localStorage on component mount
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('hiddenTankIds');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          return new Set(parsed);
-        } catch (error) {
-          console.error('Error parsing hidden tank IDs from localStorage:', error);
-        }
-      }
-    }
-    return new Set();
-  });
+  const [hiddenTankIds, setHiddenTankIds] = useState<Set<number>>(new Set());
   const [tankToHide, setTankToHide] = useState<FixedStorageTank | null>(null);
   const [showHideConfirmation, setShowHideConfirmation] = useState(false);
   const [tankToDelete, setTankToDelete] = useState<FixedStorageTank | null>(null);
@@ -219,6 +205,19 @@ export default function FixedTanksDisplay({
   useEffect(() => {
     loadTanks();
     fetchTotalFuelSummary();
+    
+    // Load hidden tank IDs from localStorage after component mounts
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('hiddenTankIds');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setHiddenTankIds(new Set(parsed));
+        } catch (error) {
+          console.error('Error parsing hidden tank IDs from localStorage:', error);
+        }
+      }
+    }
   }, []);
 
   useEffect(() => {

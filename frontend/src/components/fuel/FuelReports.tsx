@@ -78,8 +78,8 @@ interface FuelStatistics {
 export default function FuelReports() {
   const [activeTab, setActiveTab] = useState('overview');
   const [dateRange, setDateRange] = useState({
-    startDate: dayjs().subtract(30, 'day').format('YYYY-MM-DD'),
-    endDate: dayjs().format('YYYY-MM-DD'),
+    startDate: '',
+    endDate: '',
   });
   const [selectedAirlineId, setSelectedAirlineId] = useState<string>('all');
   const [airlines, setAirlines] = useState<Airline[]>([]);
@@ -90,8 +90,8 @@ export default function FuelReports() {
   // Advanced filters state for trend analysis
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilterState>({
     dateRange: {
-      startDate: dayjs().subtract(3, 'month').format('YYYY-MM-DD'),
-      endDate: dayjs().format('YYYY-MM-DD'),
+      startDate: '',
+      endDate: '',
     },
     airlines: [],
     destinations: [],
@@ -160,6 +160,19 @@ export default function FuelReports() {
   }, [dateRange.startDate, dateRange.endDate, selectedAirlineId, setLoading, setStatistics]);
 
   useEffect(() => {
+    // Initialize dates after component mounts to avoid hydration mismatch
+    setDateRange({
+      startDate: dayjs().subtract(30, 'day').format('YYYY-MM-DD'),
+      endDate: dayjs().format('YYYY-MM-DD'),
+    });
+    setAdvancedFilters(prev => ({
+      ...prev,
+      dateRange: {
+        startDate: dayjs().subtract(3, 'month').format('YYYY-MM-DD'),
+        endDate: dayjs().format('YYYY-MM-DD'),
+      },
+    }));
+    
     fetchAirlines();
     fetchTanks();
   }, [fetchAirlines, fetchTanks]);

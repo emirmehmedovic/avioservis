@@ -53,10 +53,8 @@ const TrendAnalysisTab: React.FC = () => {
   });
 
   // Date picker states
-  const [startDate, setStartDate] = useState<Date | undefined>(
-    FuelReportsTrendsApi.dates.getDateMonthsAgo(12)
-  );
-  const [endDate, setEndDate] = useState<Date | undefined>(new Date());
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
 
   // Load data based on current filters
   const loadData = useCallback(async () => {
@@ -104,6 +102,12 @@ const TrendAnalysisTab: React.FC = () => {
       }));
     }
   }, [state.filters]);
+
+  // Initialize dates after component mounts to avoid hydration mismatch
+  useEffect(() => {
+    setStartDate(FuelReportsTrendsApi.dates.getDateMonthsAgo(12));
+    setEndDate(new Date());
+  }, []);
 
   // Load data on mount and filter changes
   useEffect(() => {
