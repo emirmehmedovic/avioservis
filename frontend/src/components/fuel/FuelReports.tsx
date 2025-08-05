@@ -258,12 +258,8 @@ export default function FuelReports() {
     ],
   };
 
-  // Add console.log here to inspect the data
-  console.log('Fetched API statistics:', JSON.stringify(statistics, null, 2));
-  console.log('Sample statistics:', JSON.stringify(sampleStatistics, null, 2));
-
+  // Use real data or fallback to sample data
   const statsToUse = statistics || sampleStatistics;
-  console.log('Stats being used for rendering (statsToUse):', JSON.stringify(statsToUse, null, 2));
 
   // Format data for Recharts - Airlines Pie Chart
   const airlineChartData = (() => {
