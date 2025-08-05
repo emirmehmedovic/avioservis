@@ -86,7 +86,7 @@ export default function SimpleFuelOverview({ statistics, loading }: SimpleFuelOv
   }));
 
   const dailyData = (statistics.fuelByDay || []).slice(-14).map(item => ({
-    name: new Date(item.date).toLocaleDateString('sr-RS', { 
+    name: new Date(item.date).toLocaleDateString('en-GB', { 
       month: 'short', 
       day: 'numeric' 
     }),
@@ -220,7 +220,7 @@ export default function SimpleFuelOverview({ statistics, loading }: SimpleFuelOv
       <Card className="lg:col-span-2 p-6 rounded-xl shadow-lg border-0 bg-white/80 backdrop-blur-sm">
         <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
           <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-          Dnevna Potrošnja Goriva (Poslednje 2 nedelje)
+          Dnevna Potrošnja Goriva (Posljednje dvije sedmice)
         </h3>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
