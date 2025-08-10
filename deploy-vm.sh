@@ -36,10 +36,13 @@ cd backend
 
 print_status "Cleaning backend cache..."
 rm -rf node_modules
-rm -f package-lock.json
+# Keep package-lock.json for consistent dependency versions
+
+print_status "Clearing npm cache..."
+npm cache clean --force
 
 print_status "Installing backend dependencies..."
-npm install
+npm ci
 
 print_status "Running Prisma migrations..."
 npx prisma migrate deploy
@@ -55,10 +58,13 @@ cd ../frontend
 print_status "Cleaning frontend cache..."
 rm -rf node_modules
 rm -rf .next
-rm -f package-lock.json
+# Keep package-lock.json for consistent dependency versions
+
+print_status "Clearing npm cache..."
+npm cache clean --force
 
 print_status "Installing frontend dependencies..."
-npm install
+npm ci
 
 print_status "Building frontend..."
 npm run build

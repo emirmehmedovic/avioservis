@@ -11,6 +11,7 @@ interface ExtendedFuelingOperation extends FuelingOperation {
 }
 
 import { formatDate, API_BASE_URL, generatePDFInvoice } from '../utils/helpers';
+import { generateEUFORPDFInvoice } from '../utils/helpers_eufor';
 import { generateXMLInvoice, downloadXML } from '../utils/xmlInvoice';
 import { generateDomesticPDFInvoice } from '../utils/domesticInvoice';
 import { downloadDocument } from '@/lib/apiService';
@@ -697,7 +698,7 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
             <p className="text-xs text-gray-500">Izaberite tip dokumenta koji želite generisati za ovu operaciju točenja</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             {/* Export PDF Invoice Card */}
             <button
               type="button"
@@ -921,6 +922,96 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
                 </span>
               </div>
             </button>
+          </div>
+
+          {/* Secondary/rarely used actions (EUFOR) */}
+          <div className="mb-6">
+            <details className="group bg-white border border-gray-200 rounded-lg shadow-sm">
+              <summary className="flex items-center justify-between px-4 py-3 cursor-pointer list-none">
+                <div className="flex items-center space-x-2">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">Opcije</span>
+                  <span className="text-sm text-gray-600">EUFOR fakture</span>
+                </div>
+                <svg className="w-4 h-4 text-gray-500 group-open:rotate-180 transition-transform" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                </svg>
+              </summary>
+              <div className="px-4 pb-4 pt-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* EUFOR PDF Invoice Card (de-emphasized) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const operationForInvoice = JSON.parse(JSON.stringify(updatedOperation));
+                      let mrnDataForPdf: { mrn: string; quantity_kg?: number; quantity?: number; density_at_intake?: number }[] = [];
+                      try {
+                        let rawMrnData: any[] = [];
+                        if (operationForInvoice.parsedMrnBreakdown && Array.isArray(operationForInvoice.parsedMrnBreakdown)) {
+                          rawMrnData = operationForInvoice.parsedMrnBreakdown;
+                        } else if (typeof operationForInvoice.mrnBreakdown === 'string') {
+                          rawMrnData = JSON.parse(operationForInvoice.mrnBreakdown);
+                        }
+                        if (Array.isArray(rawMrnData)) {
+                          mrnDataForPdf = rawMrnData.map(item => {
+                            let mrn = item.mrn || 'N/A';
+                            let quantity_kg = item.quantity_kg;
+                            let quantity = item.quantity;
+                            let density_at_intake = item.density_at_intake;
+                            if (typeof item === 'object' && !item.mrn && Object.keys(item).length === 1) {
+                              mrn = Object.keys(item)[0];
+                              const val = item[mrn];
+                              if (typeof val === 'number') {
+                                quantity = val;
+                              }
+                            }
+                            if (quantity_kg === undefined && quantity !== undefined && density_at_intake !== undefined) {
+                              quantity_kg = Number(quantity) * Number(density_at_intake);
+                            } else if (quantity_kg === undefined && quantity !== undefined) {
+                              quantity_kg = Number(quantity) * (operationForInvoice.specific_density || 0.8);
+                            }
+                            return {
+                              mrn,
+                              quantity_kg: quantity_kg !== undefined ? Number(quantity_kg) : undefined,
+                              quantity: quantity !== undefined ? Number(quantity) : undefined,
+                              density_at_intake: density_at_intake !== undefined ? Number(density_at_intake) : undefined
+                            };
+                          });
+                        }
+                      } catch (e) {
+                        console.error('Error processing MRN data for EUFOR PDF invoice:', e);
+                        mrnDataForPdf = operationForInvoice.parsedMrnBreakdown || [];
+                      }
+                      operationForInvoice.parsedMrnBreakdown = mrnDataForPdf;
+                      const operationWithDocuments = { ...operation, parsedMrnBreakdown: mrnDataForPdf } as any;
+                      generateEUFORPDFInvoice(operationWithDocuments);
+                    }}
+                    className="group relative bg-gray-50 border border-dashed border-gray-300 rounded-lg shadow-sm p-4 hover:border-gray-400 hover:shadow transition-all duration-200 text-left flex flex-col h-full opacity-80"
+                    title="EUFOR faktura (SOFA)"
+                  >
+                    <div className="flex items-center mb-2">
+                      <div className="w-10 h-10 rounded-full bg-yellow-50 flex items-center justify-center mr-3 group-hover:bg-yellow-100 transition-colors">
+                        <svg className="w-5 h-5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-gray-800 group-hover:text-gray-900 transition-colors">EUFOR Faktura</h4>
+                        <p className="text-xs text-gray-500">VAT-exempt (SOFA)</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-600 mb-2 flex-grow">Rjeđa opcija: EUFOR SOFA napomena i obračun po litru</p>
+                    <div className="flex justify-end">
+                      <span className="inline-flex items-center text-xs font-medium text-gray-600 group-hover:text-gray-700">
+                        Generiši
+                        <svg className="ml-1 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                      </span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </details>
           </div>
           
           <div className="flex justify-end">
