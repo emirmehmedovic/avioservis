@@ -1287,6 +1287,79 @@ export async function updateFuelingOperation(id: number, payload: Partial<Fuelin
   return fetchWithAuth<FuelingOperation>(`${API_BASE_URL}/api/fuel/fueling-operations/${id}`, options);
 }
 
+// --- XML Invoices API --- //
+export interface XmlInvoiceDispatch {
+  id: number;
+  fuelingOperationId: number;
+  airlineId: number;
+  status: 'PENDING' | 'SENT' | 'FAILED';
+  attempts: number;
+  lastError?: string | null;
+  xmlFileName: string;
+  xmlSha256: string;
+  remotePath?: string | null;
+  dispatchedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  fuelingOperation?: any;
+}
+
+export async function listXmlDispatches(params?: { startDate?: string; endDate?: string; airlineId?: number; status?: string }): Promise<XmlInvoiceDispatch[]> {
+  const query = new URLSearchParams();
+  if (params?.startDate) query.append('startDate', params.startDate);
+  if (params?.endDate) query.append('endDate', params.endDate);
+  if (params?.airlineId) query.append('airlineId', String(params.airlineId));
+  if (params?.status) query.append('status', params.status);
+  return fetchWithAuth(`/api/invoices/xml/dispatches?${query.toString()}`);
+}
+
+export async function manualDispatchDay(dateISO?: string): Promise<any> {
+  const query = new URLSearchParams();
+  if (dateISO) query.append('date', dateISO.substring(0, 10));
+  return fetchWithAuth(`/api/invoices/xml/dispatch/day?${query.toString()}`, { method: 'POST' });
+}
+
+export async function manualDispatchOperation(operationId: number, force: boolean = true): Promise<any> {
+  const query = new URLSearchParams();
+  if (force) query.append('force', 'true');
+  return fetchWithAuth(`/api/invoices/xml/dispatch/operation/${operationId}?${query.toString()}`, { method: 'POST' });
+}
+
+export async function prepareDispatchDay(dateISO?: string): Promise<any> {
+  const query = new URLSearchParams();
+  if (dateISO) query.append('date', dateISO.substring(0, 10));
+  return fetchWithAuth(`/api/invoices/xml/prepare/day?${query.toString()}`, { method: 'POST' });
+}
+
+export async function prepareDispatchRange(startISO: string, endISO: string): Promise<any> {
+  const query = new URLSearchParams();
+  if (startISO) query.append('start', startISO.substring(0, 10));
+  if (endISO) query.append('end', endISO.substring(0, 10));
+  return fetchWithAuth(`/api/invoices/xml/prepare/range?${query.toString()}`, { method: 'POST' });
+}
+
+export async function downloadXmlDispatchFile(dispatchId: number, desiredFilename?: string): Promise<void> {
+  const response = await fetchWithAuth<Response>(`/api/invoices/xml/dispatch/${dispatchId}/download`, {
+    method: 'GET',
+    returnRawResponse: true,
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Neuspješan download XML-a');
+  }
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = desiredFilename || `dispatch_${dispatchId}.xml`;
+  document.body.appendChild(link);
+  link.click();
+  setTimeout(() => {
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  }, 0);
+}
+
 // --- Reserve Fuel API --- //
 
 // Cache for Reserve Fuel by Tank

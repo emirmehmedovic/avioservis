@@ -896,7 +896,9 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
               type="button"
               onClick={() => {
                 const xmlContent = generateXMLInvoice(operation);
-                downloadXML(xmlContent, `Faktura-XML-${operation.id}.xml`);
+                const deliveryVoucherNumber = operation.delivery_note_number || operation.id.toString();
+                const invoiceNumber = `INV-${deliveryVoucherNumber}-${new Date().getFullYear()}`;
+                downloadXML(xmlContent, `Invoice-${invoiceNumber}.xml`);
               }}
               className="group relative bg-white border border-gray-200 rounded-lg shadow-sm p-4 hover:border-indigo-300 hover:shadow-md transition-all duration-200 text-left flex flex-col h-full"
               title="XML faktura za sistemsku integraciju"

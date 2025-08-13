@@ -182,15 +182,24 @@ export default function FuelingOperations() {
   }, []);
 
   // Initial data loading
+  const hasInitialized = React.useRef(false);
   useEffect(() => {
-    // Initialize dates to avoid hydration mismatch
-    setStartDate(dayjs().startOf('month').format('YYYY-MM-DD'));
-    setEndDate(dayjs().endOf('month').format('YYYY-MM-DD'));
-    
-    loadOperations();
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+    const today = dayjs().format('YYYY-MM-DD');
+    setStartDate(today);
+    setEndDate(today);
     loadTanks();
     loadAirlines();
-  }, [loadOperations, loadTanks, loadAirlines]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadTanks, loadAirlines]);
+
+  // Load operations when filters change
+  useEffect(() => {
+    if (hasInitialized.current) {
+      loadOperations();
+    }
+  }, [loadOperations]);
 
   // Fetch fuel price rules on component mount
   useEffect(() => {
@@ -875,7 +884,8 @@ export default function FuelingOperations() {
                       
                       try {
                         const xmlContent = generateConsolidatedXMLInvoice(operations, filterDescription);
-                        downloadXML(xmlContent, `Zbirna-Faktura-XML-${dayjs().format('YYYYMMDD')}.xml`);
+                        const invoiceNumber = `CONS-INV-${dayjs().format('YYYYMMDD')}-${new Date().getFullYear()}`;
+                        downloadXML(xmlContent, `Invoice-${invoiceNumber}.xml`);
                         toast.success('Zbirna XML faktura je uspješno generisana!');
                       } catch (error) {
                         console.error('Error generating consolidated XML invoice:', error);

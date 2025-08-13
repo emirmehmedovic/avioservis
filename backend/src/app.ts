@@ -45,6 +45,7 @@ import ostalaOpremaRoutes from './routes/ostalaOprema.routes'; // Rute za ostalu
 import densityReconciliationRoutes from './routes/densityReconciliation.routes'; // Rute za density reconciliation
 import mrnCleanupRoutes from './routes/mrnCleanup.routes'; // Rute za MRN cleanup
 import fuelReportsTrendsRoutes from './routes/fuelReportsTrends.routes'; // Rute za fuel reports trends
+import xmlInvoiceRoutes from './routes/xmlInvoice.routes';
 
 const app = express();
 
@@ -137,6 +138,7 @@ app.use('/api/ostala-oprema', ostalaOpremaRoutes); // Registracija ruta za ostal
 app.use('/api/density-reconciliation', sensitiveOperationsLimiter, densityReconciliationRoutes); // Registracija ruta za density reconciliation
 app.use('/api/mrn-cleanup', sensitiveOperationsLimiter, mrnCleanupRoutes); // Registracija ruta za MRN cleanup
 app.use('/api/fuel/reports', reportingLimiter, fuelReportsTrendsRoutes); // Registracija ruta za fuel reports trends
+app.use('/api/invoices/xml', xmlInvoiceRoutes);
 
 app.get('/', (req, res) => {
   res.send('Backend radi!');

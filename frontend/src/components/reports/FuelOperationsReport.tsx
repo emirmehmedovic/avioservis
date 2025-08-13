@@ -2252,7 +2252,8 @@ export default function FuelOperationsReport() {
                           // Convert operations to FuelingOperation type
                           const convertedOperations = operations.map(op => convertToFuelingOperation(op));
                           const xmlContent = generateConsolidatedXMLInvoice(convertedOperations, filterDescription);
-                          downloadXML(xmlContent, `Zbirna-Faktura-XML-${dayjs().format('YYYYMMDD')}.xml`);
+                          const invoiceNumber = `CONS-INV-${dayjs().format('YYYYMMDD')}-${new Date().getFullYear()}`;
+                          downloadXML(xmlContent, `Invoice-${invoiceNumber}.xml`);
                           toast.success('Zbirna XML faktura je uspješno generisana!');
                         } catch (error) {
                           console.error('Error generating consolidated XML invoice:', error);

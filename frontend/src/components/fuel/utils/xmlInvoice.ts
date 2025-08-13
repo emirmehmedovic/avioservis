@@ -7,6 +7,45 @@ const formatDecimal = (value: any): string => {
   return number.toFixed(6);
 };
 
+// Map human-readable destination names to IATA 3-letter codes
+const normalizeDestination = (value: string): string => {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // remove diacritics
+    .replace(/[^a-z]/g, ''); // remove non-letters (spaces, hyphens, etc.)
+};
+
+const DESTINATION_IATA_MAP: Record<string, string> = {
+  memmingen: 'FMM',
+  dortmund: 'DTM',
+  basel: 'MLH',
+  vienna: 'VIE',
+  berlin: 'BER',
+  frankfurthahn: 'HHN',
+  cologne: 'CGN',
+  malmo: 'MMX',
+  malmoe: 'MMX',
+  hamburg: 'HAM',
+  maastricht: 'MST',
+  parisbeauvais: 'BVA',
+};
+
+const mapDestinationToIata = (destination?: string): string => {
+  if (!destination) return 'TZL';
+  const trimmed = destination.trim();
+  const normalized = normalizeDestination(trimmed);
+  if (DESTINATION_IATA_MAP[normalized]) {
+    return DESTINATION_IATA_MAP[normalized];
+  }
+  // If already a 3-letter code, just uppercase it
+  if (/^[A-Za-z]{3}$/.test(trimmed)) {
+    return trimmed.toUpperCase();
+  }
+  // Fallback to original uppercased (keeps current behavior for non-mapped names)
+  return trimmed.toUpperCase();
+};
+
 /**
  * Generate an XML invoice for a single fueling operation in IATA format
  */
@@ -109,7 +148,7 @@ export const generateXMLInvoice = (operation: FuelingOperation): string => {
   // Validate and format flight data
   const flightNumber = operation.flight_number ? operation.flight_number.trim().toUpperCase() : 'N/A';
   const aircraftRegistration = operation.aircraft_registration ? operation.aircraft_registration.trim().toUpperCase() : 'N/A';
-  const destination = operation.destination ? operation.destination.trim().toUpperCase() : 'TZL';
+  const destination = mapDestinationToIata(operation.destination);
   
   // Format the XML content
   const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
@@ -298,7 +337,7 @@ export const generateConsolidatedXMLInvoice = (operations: FuelingOperation[], f
     // Validate and format flight data for each operation
     const flightNumber = operation.flight_number ? operation.flight_number.trim().toUpperCase() : 'N/A';
     const aircraftRegistration = operation.aircraft_registration ? operation.aircraft_registration.trim().toUpperCase() : 'N/A';
-    const destination = operation.destination ? operation.destination.trim().toUpperCase() : 'TZL';
+    const destination = mapDestinationToIata(operation.destination);
     
     return `
       <InvoiceLine>

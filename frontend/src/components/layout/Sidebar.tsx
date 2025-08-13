@@ -59,6 +59,7 @@ const baseNavItems = [
   { name: 'Carina', href: '/dashboard/customs', icon: ShieldCheck, roles: ['ADMIN', 'CARINA'] },
   { name: 'Aerodrom', href: '/dashboard/airport', icon: Plane, roles: ['ADMIN', 'AERODROM'] },
   { name: 'Konzistentnost goriva', href: '/dashboard/fuel-consistency', icon: ShieldAlert, roles: ['ADMIN', 'KONTROLA'] },
+  { name: 'XML fakture', href: '/dashboard/xml-invoices', icon: FileText, roles: ['ADMIN', 'KONTROLA'] },
   { name: 'Korisnici', href: '/dashboard/users', icon: Users, roles: ['ADMIN'] },
 ];
 

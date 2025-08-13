@@ -35,10 +35,11 @@ export const fetchOperations = async (
     const params = new URLSearchParams();
     
     if (startDate) {
-      params.append('startDate', dayjs(startDate).startOf('day').toISOString());
+      // Send plain YYYY-MM-DD so backend can normalize without TZ drift
+      params.append('startDate', startDate);
     }
     if (endDate) {
-      params.append('endDate', dayjs(endDate).endOf('day').toISOString());
+      params.append('endDate', endDate);
     }
     if (selectedAirline) {
       params.append('airlineId', selectedAirline);

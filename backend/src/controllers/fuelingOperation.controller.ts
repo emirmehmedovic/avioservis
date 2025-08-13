@@ -58,10 +58,18 @@ export const getAllFuelingOperations = async (req: Request, res: Response): Prom
     const whereClause: any = {};
 
     if (startDate) {
-      whereClause.dateTime = { ...whereClause.dateTime, gte: new Date(startDate as string) };
+      const start = new Date(startDate as string);
+      // Normalize to start of day regardless of provided time
+      const normalizedStart = new Date(start);
+      normalizedStart.setHours(0, 0, 0, 0);
+      whereClause.dateTime = { ...whereClause.dateTime, gte: normalizedStart };
     }
     if (endDate) {
-      whereClause.dateTime = { ...whereClause.dateTime, lte: new Date(endDate as string) };
+      const end = new Date(endDate as string);
+      // Normalize to end of day regardless of provided time
+      const normalizedEnd = new Date(end);
+      normalizedEnd.setHours(23, 59, 59, 999);
+      whereClause.dateTime = { ...whereClause.dateTime, lte: normalizedEnd };
     }
     
     // Handle airline filtering - support both single airlineId and multiple airlineIds

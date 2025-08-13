@@ -25,6 +25,7 @@ interface EditFormData {
   tip_saobracaja: string;
   notes: string;
   delivery_note_number: string;
+  usd_exchange_rate: string;
 }
 
 const EditOperationModal: React.FC<EditOperationModalProps> = ({
@@ -44,7 +45,8 @@ const EditOperationModal: React.FC<EditOperationModalProps> = ({
     price_per_kg: '',
     tip_saobracaja: '',
     notes: '',
-    delivery_note_number: ''
+    delivery_note_number: '',
+    usd_exchange_rate: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -62,7 +64,8 @@ const EditOperationModal: React.FC<EditOperationModalProps> = ({
         price_per_kg: operation.price_per_kg?.toString() || '',
         tip_saobracaja: operation.tip_saobracaja || '',
         notes: operation.notes || '',
-        delivery_note_number: operation.delivery_note_number || ''
+        delivery_note_number: operation.delivery_note_number || '',
+        usd_exchange_rate: (operation.usd_exchange_rate !== undefined && operation.usd_exchange_rate !== null) ? String(operation.usd_exchange_rate) : ''
       });
       setErrors({});
     }
@@ -110,6 +113,14 @@ const EditOperationModal: React.FC<EditOperationModalProps> = ({
 
     if (formData.price_per_kg && parseFloat(formData.price_per_kg) <= 0) {
       newErrors.price_per_kg = 'Cijena po kg mora biti veća od 0';
+    }
+
+    // Kurs validacija (nije obavezan, ali ako je unesen mora biti > 0)
+    if (formData.usd_exchange_rate) {
+      const val = parseFloat(formData.usd_exchange_rate);
+      if (isNaN(val) || val <= 0) {
+        newErrors.usd_exchange_rate = 'Kurs mora biti pozitivan broj';
+      }
     }
 
 
@@ -167,6 +178,12 @@ const EditOperationModal: React.FC<EditOperationModalProps> = ({
 
       if (formData.delivery_note_number !== (operation.delivery_note_number || '')) {
         updatePayload.delivery_note_number = formData.delivery_note_number;
+      }
+
+      // Kurs ažuriranje (ako se promijenio)
+      const originalRate = (operation.usd_exchange_rate !== undefined && operation.usd_exchange_rate !== null) ? String(operation.usd_exchange_rate) : '';
+      if (formData.usd_exchange_rate !== originalRate) {
+        updatePayload.usd_exchange_rate = formData.usd_exchange_rate === '' ? null : parseFloat(formData.usd_exchange_rate);
       }
 
       // Check if there are files to upload
@@ -369,6 +386,32 @@ const EditOperationModal: React.FC<EditOperationModalProps> = ({
                 <p className="text-red-500 text-sm mt-1">{errors.price_per_kg}</p>
               )}
             </div>
+
+            {/* Kurs za valute (USD/EUR) */}
+            {operation?.currency && operation.currency !== 'BAM' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Kurs ({operation.currency} → BAM)
+                </label>
+                <input
+                  type="number"
+                  name="usd_exchange_rate"
+                  value={formData.usd_exchange_rate}
+                  onChange={handleInputChange}
+                  step="0.00001"
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.usd_exchange_rate ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder={operation.currency === 'EUR' ? '1.95583 (preporučeno)' : 'npr. 1.80'}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Unesite kurs za dan transakcije. Ako ostavite prazno, koristi se postojeća vrijednost ({operation.usd_exchange_rate ?? (operation.currency === 'EUR' ? '1.95583' : 'n/a')}).
+                </p>
+                {errors.usd_exchange_rate && (
+                  <p className="text-red-500 text-sm mt-1">{errors.usd_exchange_rate}</p>
+                )}
+              </div>
+            )}
 
 
 

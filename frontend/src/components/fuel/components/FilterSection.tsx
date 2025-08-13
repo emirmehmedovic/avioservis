@@ -206,8 +206,10 @@ const FilterSection: React.FC<FilterSectionProps> = ({
         {/* Reset Filters Button */}
         <button 
           onClick={() => {
-            setStartDate(getFirstDayOfCurrentMonth());
-            setEndDate(getLastDayOfCurrentMonth());
+            // Default to today on reset for consistency with list view
+            const today = new Date().toISOString().split('T')[0];
+            setStartDate(today);
+            setEndDate(today);
             setSelectedAirline('');
             setSelectedDestination('');
             setSelectedTank('');

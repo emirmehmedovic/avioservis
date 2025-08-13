@@ -1,4 +1,5 @@
 import { initFuelSyncCronJobs } from './fuelSyncCronJob';
+import { initWizzXmlInvoiceCron } from './wizzXmlInvoiceCron';
 
 import { logger } from '../utils/logger';
 
@@ -10,6 +11,7 @@ export function initAllCronJobs(): void {
 
   // Inicijalizacija cron poslova za sinhronizaciju goriva
   initFuelSyncCronJobs();
+  // initWizzXmlInvoiceCron(); // Privremeno obustavljen do dobijanja FTP kredencijala
   
 
 
