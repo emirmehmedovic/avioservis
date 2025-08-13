@@ -98,3 +98,11 @@ echo ""
 echo "To check logs:"
 echo "  Backend:  sudo journalctl -u avioservis-backend -f"
 echo "  Frontend: sudo journalctl -u avioservis-frontend -f" 
+
+# Mjesečno pokreni ove komande:
+sudo journalctl --vacuum-time=30d
+pm2 flush
+sudo apt-get clean
+
+# Provjeri disk space redovno:
+df -h

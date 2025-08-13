@@ -48,13 +48,62 @@ const AddOperationForm: React.FC<AddOperationFormProps> = ({
   const [isPriceManuallySet, setIsPriceManuallySet] = useState<boolean>(false);
   const [priceRuleMessage, setPriceRuleMessage] = useState<string | null>(null);
   const [customError, setCustomError] = useState<string | null>(null);
+  const [usdRateError, setUsdRateError] = useState<string | null>(null);
+
+  // Define priority ranking for most frequently used airlines
+  const getAirlinePriority = (airlineName: string): number => {
+    const priorityList = [
+      'WIZZ AIR HUNGARY LTD',     // 1. najvažnija
+      'WIZZ AIR MALTA LTD',       // 2. najvažnija
+      'A JET AIRLINES',           // 3. najvažnija
+      'CORENDON AIRLINES',        // 4. najvažnija
+      'FREEBIRD',                 // 5. najvažnija
+      'PEGASUS AIRLINES',         // 6. najvažnija
+    ];
+    
+    const index = priorityList.findIndex(name => 
+      airlineName.toUpperCase().includes(name.toUpperCase()) || 
+      name.toUpperCase().includes(airlineName.toUpperCase())
+    );
+    
+    // Return priority: lower number = higher priority
+    // Airlines not in priority list get high numbers (lower priority)
+    return index === -1 ? 1000 + airlineName.localeCompare('') : index;
+  };
+
+  // Sort airlines by priority (most used first) then alphabetically
+  const sortedAirlines = [...airlines].sort((a, b) => {
+    const priorityA = getAirlinePriority(a.name);
+    const priorityB = getAirlinePriority(b.name);
+    
+    // If priorities are different, sort by priority
+    if (priorityA !== priorityB) {
+      return priorityA - priorityB;
+    }
+    
+    // If same priority (both not in list), sort alphabetically
+    return a.name.localeCompare(b.name);
+  });
+
+  // Separate priority airlines from others for visual grouping
+  const priorityAirlines = sortedAirlines.filter(airline => getAirlinePriority(airline.name) < 1000);
+  const otherAirlines = sortedAirlines.filter(airline => getAirlinePriority(airline.name) >= 1000);
 
   // useEffect for price suggestion
   useEffect(() => {
     if (formData.airlineId && formData.currency && !isPriceManuallySet && fuelPriceRules && fuelPriceRules.length > 0) {
-      const rule = fuelPriceRules.find(
+      // First try to find specific rule for this airline
+      let rule = fuelPriceRules.find(
         (r: FuelPriceRule) => r.airlineId === parseInt(formData.airlineId) && r.currency.toUpperCase() === formData.currency.toUpperCase()
       );
+      
+      // If no specific rule found, look for general rule (airlineId: null)
+      if (!rule) {
+        rule = fuelPriceRules.find(
+          (r: FuelPriceRule) => r.airlineId === null && r.currency.toUpperCase() === formData.currency.toUpperCase()
+        );
+      }
+      
       if (rule) {
         const priceFromRule = rule.price.toString(); // Assuming price is Decimal or number
         setSuggestedPrice(priceFromRule);
@@ -64,7 +113,8 @@ const AddOperationForm: React.FC<AddOperationFormProps> = ({
             value: priceFromRule,
           },
         } as React.ChangeEvent<HTMLInputElement>); 
-        setPriceRuleMessage(`Automatska cijena: ${priceFromRule} ${formData.currency} (prema pravilu).`);
+        const ruleType = rule.airlineId ? 'specifično pravilo' : 'opće pravilo';
+        setPriceRuleMessage(`Automatska cijena: ${priceFromRule} ${formData.currency} (prema ${ruleType}).`);
       } else {
         setSuggestedPrice(null);
         setPriceRuleMessage('Nema pravila za odabranu avio-kompaniju i valutu. Unesite cijenu ručno.');
@@ -156,11 +206,21 @@ const AddOperationForm: React.FC<AddOperationFormProps> = ({
                     name="aircraft_registration"
                     id="aircraft_registration"
                     value={formData.aircraft_registration}
+                    onKeyDown={(e) => {
+                      // Spreci unos razmaka
+                      if (e.key === ' ') {
+                        e.preventDefault();
+                      }
+                    }}
                     onChange={handleInputChange}
                     className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                    placeholder="npr. HA-LYG"
                     required
                   />
                 </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Upisujte samo registraciju aviona bez modela, te ne odvajate prostor prije i poslije crtice (npr. HA-LYG)
+                </p>
               </div>
 
               <div>
@@ -191,11 +251,32 @@ const AddOperationForm: React.FC<AddOperationFormProps> = ({
                     required
                   >
                     <option value="">Odaberite avio kompaniju</option>
-                    {airlines.map((airline) => (
-                      <option key={airline.id} value={airline.id}>
-                        {airline.name}
-                      </option>
-                    ))}
+                    
+                    {/* Priority Airlines - Most Frequently Used */}
+                    {priorityAirlines.length > 0 && (
+                      <>
+                        <optgroup label="Najčešće korišćene">
+                          {priorityAirlines.map((airline) => (
+                            <option key={airline.id} value={airline.id}>
+                              {airline.name}
+                            </option>
+                          ))}
+                        </optgroup>
+                      </>
+                    )}
+                    
+                    {/* Other Airlines - Alphabetically Sorted */}
+                    {otherAirlines.length > 0 && (
+                      <>
+                        <optgroup label="Ostale avio-kompanije">
+                          {otherAirlines.map((airline) => (
+                            <option key={airline.id} value={airline.id}>
+                              {airline.name}
+                            </option>
+                          ))}
+                        </optgroup>
+                      </>
+                    )}
                   </select>
                 </div>
               </div>
@@ -411,27 +492,54 @@ const AddOperationForm: React.FC<AddOperationFormProps> = ({
                       name="usd_exchange_rate"
                       id="usd_exchange_rate"
                       value={(formData as any).usd_exchange_rate || ''}
-                      onChange={handleInputChange}
+                      onChange={(e) => {
+                        let value = e.target.value;
+                        
+                        // Provjeri da li sadrži zarez umjesto tačke
+                        if (value.includes(',')) {
+                          setUsdRateError('Koristite tačku (.) umjesto zareza (,) za decimalne brojeve.');
+                          // Automatski zamijeni zarez sa tačkom
+                          value = value.replace(/,/g, '.');
+                        } else {
+                          setUsdRateError(null);
+                        }
+                        
+                        const numValue = parseFloat(value);
+                        
+                        // Provjeri da li je broj veći od 10
+                        if (value && !isNaN(numValue) && numValue > 10) {
+                          setUsdRateError('Kurs USD ne može biti veći od 10. Molimo provjerite unos.');
+                          return;
+                        }
+                        
+                        // Kreiraj event sa ispravljenom vrijednošću
+                        const correctedEvent = {
+                          target: {
+                            name: 'usd_exchange_rate',
+                            value: value
+                          }
+                        } as React.ChangeEvent<HTMLInputElement>;
+                        
+                        handleInputChange(correctedEvent);
+                      }}
                       placeholder="Unesite trenutni kurs"
+                      pattern="^\d*(\.\d{0,6})?$"
                       className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
                       required={formData.currency === 'USD'}
                     />
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">Unesite trenutni kurs konverzije USD u BAM</p>
+                  {usdRateError && (
+                    <div className="mt-2 p-2 text-sm text-red-800 rounded-lg bg-red-50 border border-red-200" role="alert">
+                      <span className="font-medium">Greška:</span> {usdRateError}
+                    </div>
+                  )}
+                  <p className="mt-1 text-xs text-gray-500">
+                    Unesite trenutni kurs konverzije USD u BAM. Koristite tačku za decimalne vrijednosti (npr. 1.6). 
+                    Maksimalna vrijednost je 10.
+                  </p>
                 </div>
               )}
               
-              {/* EUR Exchange Rate - Hidden but automatically set */}
-              {formData.currency === 'EUR' && (
-                <div>
-                  <input
-                    type="hidden"
-                    name="usd_exchange_rate"
-                    id="usd_exchange_rate"
-                    value="1.955830"
-                  />
-                </div>
-              )}
               {/* Price Rule Message Display */}
               {priceRuleMessage && (
                 <div className="mt-3 text-sm col-span-1 md:col-span-2"> 

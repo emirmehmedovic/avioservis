@@ -138,6 +138,7 @@ export default function NewFuelIntakeFormWizard() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [totalPriceError, setTotalPriceError] = useState<string | null>(null);
   
   const [availableTanks, setAvailableTanks] = useState<FixedStorageTank[]>([]);
   const [tanksLoading, setTanksLoading] = useState<boolean>(false);
@@ -1097,7 +1098,7 @@ export default function NewFuelIntakeFormWizard() {
                         min="0"
                         value={formData.quantity_liters_received || ''} 
                         onChange={handleInputChange}
-                        className={`mt-1 pl-9 ${formErrors.quantity_liters_received ? 'border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'}`}
+                        className={`mt-1 pl-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${formErrors.quantity_liters_received ? 'border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'}`}
                       />
                       <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 mt-1">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1122,7 +1123,7 @@ export default function NewFuelIntakeFormWizard() {
                         min="0"
                         value={formData.quantity_kg_received || ''} 
                         onChange={handleInputChange}
-                        className={`mt-1 pl-9 ${formErrors.quantity_kg_received ? 'border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'}`}
+                        className={`mt-1 pl-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${formErrors.quantity_kg_received ? 'border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'}`}
                       />
                       <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 mt-1">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1189,30 +1190,9 @@ export default function NewFuelIntakeFormWizard() {
                           id="price_per_kg" 
                           name="price_per_kg" 
                           type="text" 
-                          value={formData.price_per_kg || ''} 
-                          onChange={(e) => {
-                            // Validacija unosa (dozvoli samo brojeve i decimale s do 3 decimalna mjesta)
-                            const value = e.target.value;
-                            if (value === '' || /^\d*\.?\d{0,3}$/.test(value)) {
-                              handleInputChange({
-                                target: {
-                                  name: 'price_per_kg',
-                                  value
-                                }
-                              } as React.ChangeEvent<HTMLInputElement>);
-                              
-                              // Izračun ukupne cijene ako imamo količinu
-                              const pricePerKg = parseFloat(value);
-                              if (!isNaN(pricePerKg) && formData.quantity_kg_received) {
-                                const totalPrice = parseFloat((pricePerKg * formData.quantity_kg_received).toFixed(3));
-                                setFormData(prev => ({
-                                  ...prev,
-                                  total_price: totalPrice
-                                }));
-                              }
-                            }
-                          }}
-                          className="mt-1 pl-9 focus:ring-blue-500"
+                          value={formData.price_per_kg ? formData.price_per_kg.toFixed(3) : '0.000'} 
+                          readOnly
+                          className="mt-1 pl-9 focus:ring-blue-500 bg-gray-50 cursor-not-allowed"
                         />
                         <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 mt-1">
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1221,6 +1201,7 @@ export default function NewFuelIntakeFormWizard() {
                           </svg>
                         </div>
                       </div>
+                      <p className="text-xs text-gray-500 mt-1 italic">Automatski izračunato na osnovu ukupne cijene i kilograma</p>
                       {formErrors.price_per_kg && <p className="text-xs text-red-500 mt-1">{formErrors.price_per_kg}</p>}
                     </div>
                     
@@ -1254,8 +1235,18 @@ export default function NewFuelIntakeFormWizard() {
                           type="text"
                           value={formData.total_price || ''} 
                           onChange={(e) => {
-                            // Validacija unosa (dozvoli samo brojeve i decimale s do 3 decimalna mjesta)
-                            const value = e.target.value;
+                            let value = e.target.value;
+                            
+                            // Provjeri da li sadrži zarez umjesto tačke
+                            if (value.includes(',')) {
+                              setTotalPriceError('Koristite tačku (.) umjesto zareza (,) za decimalne brojeve.');
+                              // Automatski zamijeni zarez sa tačkom
+                              value = value.replace(/,/g, '.');
+                            } else {
+                              setTotalPriceError(null);
+                            }
+                            
+                            // Validacija unosa - jednostavniji pristup koji dozvoljava sve decimalne brojeve
                             if (value === '' || /^\d*\.?\d{0,3}$/.test(value)) {
                               handleInputChange({
                                 target: {
@@ -1285,7 +1276,12 @@ export default function NewFuelIntakeFormWizard() {
                           </svg>
                         </div>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1 italic">Automatski izračunato</p>
+                      {totalPriceError && (
+                        <div className="mt-2 p-2 text-sm text-red-800 rounded-lg bg-red-50 border border-red-200" role="alert">
+                          <span className="font-medium">Greška:</span> {totalPriceError}
+                        </div>
+                      )}
+                      <p className="text-xs text-gray-500 mt-1 italic">Automatski izračunato. Koristite tačku za decimalne vrijednosti (npr. 1250.75)</p>
                     </div>
                   </div>
                 </div>
@@ -1410,13 +1406,13 @@ export default function NewFuelIntakeFormWizard() {
                         name="customs_declaration_number" 
                         value={formData.customs_declaration_number || ''} 
                         onChange={(e) => handleInputChange(e)}
-                        className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 ${formErrors.customs_declaration_number ? 'border-red-500' : 'border-gray-300'}`}
+                        className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 pr-10 ${formErrors.customs_declaration_number ? 'border-red-500' : 'border-gray-300'}`}
                         placeholder="Unesite broj carinske prijave/MRN"
                       />
                       {formErrors.customs_declaration_number && (
                         <p className="mt-1 text-sm text-red-600">{formErrors.customs_declaration_number}</p>
                       )}
-                      <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 mt-1">
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400 mt-1">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                           <line x1="9" y1="9" x2="15" y2="9"/>

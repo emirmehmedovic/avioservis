@@ -39,7 +39,7 @@ import {
   deleteFuelingOperation,
   fetchFuelingOperation
 } from './services/fuelingOperationsService';
-import { getFuelPriceRules, clearMobileTankCustomsCache, clearFixedTankCustomsCache } from '@/lib/apiService'; // Added import for fetching rules and cache invalidation
+import { getCachedFuelPriceRules, clearMobileTankCustomsCache, clearFixedTankCustomsCache } from '@/lib/apiService'; // Added import for fetching rules and cache invalidation
 import { 
   formatDate, 
   generatePDFInvoice, 
@@ -201,20 +201,38 @@ export default function FuelingOperations() {
     }
   }, [loadOperations]);
 
-  // Fetch fuel price rules on component mount
+  // Fetch fuel price rules on component mount and when page becomes visible
+  const loadFuelPriceRules = useCallback(async () => {
+    try {
+      const rules = await getCachedFuelPriceRules();
+      setFuelPriceRules(rules || []);
+    } catch (error) {
+      console.error("Failed to fetch fuel price rules:", error);
+      toast.error("Greška pri učitavanju pravila o cijenama goriva.");
+      setFuelPriceRules([]); // Set to empty array on error
+    }
+  }, []);
+
   useEffect(() => {
-    const loadFuelPriceRules = async () => {
-      try {
-        const rules = await getFuelPriceRules();
-        setFuelPriceRules(rules || []);
-      } catch (error) {
-        console.error("Failed to fetch fuel price rules:", error);
-        toast.error("Greška pri učitavanju pravila o cijenama goriva.");
-        setFuelPriceRules([]); // Set to empty array on error
+    loadFuelPriceRules();
+  }, []); // Load on mount
+
+  // Reload fuel price rules when page becomes visible (user returns from other tabs/pages)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadFuelPriceRules();
       }
     };
-    loadFuelPriceRules();
-  }, []); // Empty dependency array ensures this runs once on mount
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', loadFuelPriceRules);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', loadFuelPriceRules);
+    };
+  }, [loadFuelPriceRules]);
 
   // Debug: Log operations data to check for delivery_note_number field
   useEffect(() => {

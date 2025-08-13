@@ -605,10 +605,10 @@ model FuelPriceRule {
   id        Int      @id @default(autoincrement())
   price     Decimal  @db.Decimal(12, 5)
   currency  String
-  airlineId Int
+  airlineId Int?     // nullable for general rules
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  airline   Airline  @relation(fields: [airlineId], references: [id])
+  airline   Airline? @relation(fields: [airlineId], references: [id])
 
   @@unique([airlineId, currency])
   @@index([airlineId])

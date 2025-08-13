@@ -163,7 +163,7 @@ export interface Airline {
 
 export interface FuelPriceRule {
   id: number;
-  airlineId: number;
+  airlineId: number | null; // null for general rules that apply to all airlines
   price: number; // Assuming price is a number
   currency: string; // e.g., "USD", "EUR", "BAM"
   createdAt: string; // ISO date-time string
@@ -172,7 +172,7 @@ export interface FuelPriceRule {
 }
 
 export interface CreateFuelPriceRulePayload {
-  airlineId: number;
+  airlineId: number | null; // null for general rules that apply to all airlines
   price: number;
   currency: string;
 }

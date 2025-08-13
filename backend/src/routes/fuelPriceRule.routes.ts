@@ -3,7 +3,8 @@ import {
   findFuelPriceRule, 
   createFuelPriceRule, 
   getAllFuelPriceRules,
-  updateFuelPriceRule
+  updateFuelPriceRule,
+  deleteFuelPriceRule
 } from '../controllers/fuelPriceRule.controller';
 import { authenticateToken, checkRole } from '../middleware/auth'; 
 
@@ -23,5 +24,8 @@ router.get('/', getAllFuelPriceRules as RequestHandler);
 
 // Nova ruta: PUT /api/fuel-price-rules/:id (za ažuriranje postojećeg pravila)
 router.put('/:id', checkRole(['ADMIN', 'KONTROLA']), updateFuelPriceRule as RequestHandler);
+
+// Nova ruta: DELETE /api/fuel-price-rules/:id (za brisanje postojećeg pravila)
+router.delete('/:id', checkRole(['ADMIN', 'KONTROLA']), deleteFuelPriceRule as RequestHandler);
 
 export default router;

@@ -20,7 +20,8 @@ export const findFuelPriceRule = async (req: Request, res: Response): Promise<Re
       return res.status(400).json({ message: 'Neispravan format Airline ID-a.' });
     }
 
-    const rule = await prisma.fuelPriceRule.findFirst({
+    // First try to find a specific rule for this airline
+    let rule = await prisma.fuelPriceRule.findFirst({
       where: {
         airlineId: parsedAirlineId,
         currency: (currency as string).toUpperCase(), 
@@ -29,6 +30,19 @@ export const findFuelPriceRule = async (req: Request, res: Response): Promise<Re
         createdAt: 'desc', 
       },
     });
+
+    // If no specific rule found, look for a general rule (airlineId: null)
+    if (!rule) {
+      rule = await prisma.fuelPriceRule.findFirst({
+        where: {
+          airlineId: null,
+          currency: (currency as string).toUpperCase(), 
+        },
+        orderBy: {
+          createdAt: 'desc', 
+        },
+      });
+    }
 
     if (!rule) {
       return res.status(404).json({ message: 'Pravilo o cijeni nije pronađeno za datu avio-kompaniju i valutu.' });
@@ -45,8 +59,9 @@ export const findFuelPriceRule = async (req: Request, res: Response): Promise<Re
 export const createFuelPriceRule = async (req: AuthRequest, res: Response): Promise<Response | void> => {
   const { airlineId, price, currency } = req.body;
 
-  if (typeof airlineId !== 'number' || airlineId <= 0) {
-    return res.status(400).json({ message: 'Airline ID je obavezan i mora biti validan broj.' });
+  // airlineId can be null for general rules, or a valid number for specific rules
+  if (airlineId !== null && (typeof airlineId !== 'number' || airlineId <= 0)) {
+    return res.status(400).json({ message: 'Airline ID mora biti validan broj ili null za opća pravila.' });
   }
   if (typeof price !== 'number' || price <= 0) {
     return res.status(400).json({ message: 'Cijena je obavezna i mora biti pozitivan broj.' });
@@ -56,28 +71,44 @@ export const createFuelPriceRule = async (req: AuthRequest, res: Response): Prom
   }
 
   try {
-    const airlineExists = await prisma.airline.findUnique({ where: { id: airlineId } });
-    if (!airlineExists) {
-      return res.status(404).json({ message: `Avio-kompanija s ID ${airlineId} nije pronađena.` });
+    // Check if airline exists only for specific rules (airlineId is not null)
+    if (airlineId !== null) {
+      const airlineExists = await prisma.airline.findUnique({ where: { id: airlineId } });
+      if (!airlineExists) {
+        return res.status(404).json({ message: `Avio-kompanija s ID ${airlineId} nije pronađena.` });
+      }
     }
 
     const createData: Prisma.FuelPriceRuleCreateInput = {
-      price: new Prisma.Decimal(price) as any, // Privremeno za testiranje runtime-a
+      price: new Prisma.Decimal(price) as any,
       currency: currency.toUpperCase(),
-      airline: {
-        connect: { id: airlineId },
-      },
     };
+
+    // Add airline relation only if airlineId is not null
+    if (airlineId !== null) {
+      createData.airline = {
+        connect: { id: airlineId },
+      };
+    }
 
     const newRule = await prisma.fuelPriceRule.create({
       data: createData,
+      include: {
+        airline: {
+          select: {
+            name: true,
+          }
+        }
+      }
     });
     return res.status(201).json(newRule);
   } catch (error) {
     console.error('Greška pri kreiranju pravila o cijeni goriva:', error);
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === 'P2002') { 
-        return res.status(409).json({ message: 'Pravilo o cijeni goriva za odabranu avio-kompaniju i valutu već postoji. Možete urediti postojeće pravilo.', details: error.meta });
+        const isGeneralRule = airlineId === null;
+        const ruleType = isGeneralRule ? 'opće pravilo' : 'pravilo za odabranu avio-kompaniju';
+        return res.status(409).json({ message: `${ruleType} o cijeni goriva za valutu ${currency.toUpperCase()} već postoji. Možete urediti postojeće pravilo.`, details: error.meta });
       }
     }
     const errorMessage = error instanceof Error ? error.message : 'Nepoznata greška.';
@@ -175,6 +206,58 @@ export const updateFuelPriceRule = async (req: AuthRequest, res: Response): Prom
     }
     const errorMessage = error instanceof Error ? error.message : 'Nepoznata greška.';
     return res.status(500).json({ message: 'Greška pri ažuriranju pravila o cijeni goriva', error: errorMessage });
+  }
+};
+
+export const deleteFuelPriceRule = async (req: AuthRequest, res: Response): Promise<Response | void> => {
+  const { id } = req.params;
+
+  if (!id) {
+    return res.status(400).json({ message: 'ID pravila je obavezan.' });
+  }
+
+  const ruleId = parseInt(id, 10);
+  if (isNaN(ruleId)) {
+    return res.status(400).json({ message: 'Neispravan format ID-a pravila.' });
+  }
+
+  try {
+    const existingRule = await prisma.fuelPriceRule.findUnique({
+      where: { id: ruleId },
+      include: {
+        airline: {
+          select: {
+            name: true,
+          }
+        }
+      }
+    });
+
+    if (!existingRule) {
+      return res.status(404).json({ message: `Pravilo o cijeni s ID ${ruleId} nije pronađeno.` });
+    }
+
+    await prisma.fuelPriceRule.delete({
+      where: { id: ruleId },
+    });
+
+    const ruleDescription = existingRule.airlineId 
+      ? `za ${existingRule.airline?.name || 'nepoznatu avio-kompaniju'}` 
+      : 'opće pravilo';
+
+    return res.status(200).json({ 
+      message: `Pravilo o cijeni goriva ${ruleDescription} (${existingRule.currency}) uspješno obrisano.`,
+      deletedRule: existingRule
+    });
+  } catch (error) {
+    console.error('Greška pri brisanju pravila o cijeni goriva:', error);
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2025') { // 'Record to delete does not exist.'
+         return res.status(404).json({ message: `Pravilo o cijeni s ID ${ruleId} nije pronađeno za brisanje.` });
+      }
+    }
+    const errorMessage = error instanceof Error ? error.message : 'Nepoznata greška.';
+    return res.status(500).json({ message: 'Greška pri brisanju pravila o cijeni goriva', error: errorMessage });
   }
 };
 

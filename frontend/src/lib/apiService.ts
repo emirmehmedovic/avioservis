@@ -1218,17 +1218,29 @@ export const clearFuelPriceRulesCache = () => {
 };
 
 export async function createFuelPriceRule(payload: CreateFuelPriceRulePayload): Promise<FuelPriceRule> {
-  return fetchWithAuth<FuelPriceRule>(`${API_BASE_URL}/api/fuel-price-rules`, {
+  const result = await fetchWithAuth<FuelPriceRule>(`${API_BASE_URL}/api/fuel-price-rules`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
+  clearFuelPriceRulesCache(); // Invalidate cache after creating
+  return result;
 }
 
 export async function updateFuelPriceRule(id: number, payload: UpdateFuelPriceRulePayload): Promise<FuelPriceRule> {
-  return fetchWithAuth<FuelPriceRule>(`${API_BASE_URL}/api/fuel-price-rules/${id}`, {
+  const result = await fetchWithAuth<FuelPriceRule>(`${API_BASE_URL}/api/fuel-price-rules/${id}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
   });
+  clearFuelPriceRulesCache(); // Invalidate cache after updating
+  return result;
+}
+
+export async function deleteFuelPriceRule(id: number): Promise<{ message: string; deletedRule: FuelPriceRule }> {
+  const result = await fetchWithAuth<{ message: string; deletedRule: FuelPriceRule }>(`${API_BASE_URL}/api/fuel-price-rules/${id}`, {
+    method: 'DELETE',
+  });
+  clearFuelPriceRulesCache(); // Invalidate cache after deleting
+  return result;
 }
 
 // --- Fueling Operations API --- //
@@ -1407,3 +1419,6 @@ export async function dispenseReserveFuel(
     body: JSON.stringify(payload)
   });
 }
+
+
+
