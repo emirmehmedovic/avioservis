@@ -187,8 +187,9 @@ export default function FuelingOperations() {
     if (hasInitialized.current) return;
     hasInitialized.current = true;
     const today = dayjs().format('YYYY-MM-DD');
-    setStartDate(today);
-    setEndDate(today);
+    const firstDayOfMonth = dayjs().startOf('month').format('YYYY-MM-DD');
+    setStartDate(firstDayOfMonth); // Prvi dan trenutnog mjeseca
+    setEndDate(today); // Danas
     loadTanks();
     loadAirlines();
     // eslint-disable-next-line react-hooks/exhaustive-deps

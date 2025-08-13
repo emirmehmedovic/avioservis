@@ -121,6 +121,26 @@ export default function FuelOperationsReport() {
   // Debounce timeout reference
   const destinationDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const [filterCurrency, setFilterCurrency] = useState<string>('__ALL__');
+  const [filterDeliveryVoucher, setFilterDeliveryVoucher] = useState<string>('');
+  const [debouncedDeliveryVoucher, setDebouncedDeliveryVoucher] = useState<string>('');
+  const deliveryVoucherDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Debounce effect for delivery voucher
+  useEffect(() => {
+    if (deliveryVoucherDebounceRef.current) {
+      clearTimeout(deliveryVoucherDebounceRef.current);
+    }
+    
+    deliveryVoucherDebounceRef.current = setTimeout(() => {
+      setDebouncedDeliveryVoucher(filterDeliveryVoucher);
+    }, 500);
+    
+    return () => {
+      if (deliveryVoucherDebounceRef.current) {
+        clearTimeout(deliveryVoucherDebounceRef.current);
+      }
+    };
+  }, [filterDeliveryVoucher]);
   
   // State for operation details modal
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -275,16 +295,14 @@ export default function FuelOperationsReport() {
       
       const queryParams = new URLSearchParams();
       if (filterDateFrom) {
-        // Start date should be set to the beginning of the day (00:00:00)
-        const startDate = new Date(filterDateFrom);
-        startDate.setHours(0, 0, 0, 0);
-        queryParams.append('startDate', startDate.toISOString());
+        // Send date in YYYY-MM-DD format to avoid timezone issues
+        const startDateString = filterDateFrom.toISOString().split('T')[0];
+        queryParams.append('startDate', startDateString);
       }
       if (filterDateTo) {
-        // End date should be set to the end of the day (23:59:59)
-        const endDate = new Date(filterDateTo);
-        endDate.setHours(23, 59, 59, 999);
-        queryParams.append('endDate', endDate.toISOString());
+        // Send date in YYYY-MM-DD format to avoid timezone issues
+        const endDateString = filterDateTo.toISOString().split('T')[0];
+        queryParams.append('endDate', endDateString);
       }
       if (filterTrafficType && filterTrafficType !== '__ALL__') {
         queryParams.append('tip_saobracaja', filterTrafficType);
@@ -312,6 +330,9 @@ export default function FuelOperationsReport() {
       }
       if (filterCurrency && filterCurrency !== '__ALL__') {
         queryParams.append('currency', filterCurrency);
+      }
+      if (debouncedDeliveryVoucher && debouncedDeliveryVoucher.trim() !== '') {
+        queryParams.append('deliveryVoucher', debouncedDeliveryVoucher.trim());
       }
 
       // Use the correct API endpoint for fueling operations
@@ -618,7 +639,7 @@ export default function FuelOperationsReport() {
     if (authUser && authToken) {
         fetchOperations();
     }
-  }, [authUser, authToken, filterDateFrom, filterDateTo, filterTrafficType, filterAirline, filterAirlines, filterDestination, filterDestinations, filterCurrency, error]);
+  }, [authUser, authToken, filterDateFrom, filterDateTo, filterTrafficType, filterAirline, filterAirlines, filterDestination, filterDestinations, filterCurrency, debouncedDeliveryVoucher, error]);
 
   const trafficTypeOptions = useMemo(() => {
     // Safely extract traffic types, handling potential undefined values
@@ -728,6 +749,11 @@ export default function FuelOperationsReport() {
       rightColumnFilters.push(`Valuta: ${filterCurrency}`);
     } else {
       rightColumnFilters.push(`Valuta: Sve valute`);
+    }
+    
+    // Prikaz broja dostavnice
+    if (debouncedDeliveryVoucher && debouncedDeliveryVoucher.trim() !== '') {
+      rightColumnFilters.push(`Broj dostavnice: ${debouncedDeliveryVoucher}`);
     }
 
     // Prikaz filtera u dvije kolone
@@ -1643,7 +1669,9 @@ export default function FuelOperationsReport() {
             </div>
             
             <div className="p-5 bg-white dark:bg-gray-800">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="space-y-6">
+                {/* Prvi red - 4 filtera */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="space-y-2">
                   <label htmlFor="airlines" className="text-sm font-medium text-gray-700 dark:text-gray-300">Avio Kompanije</label>
                   {filterAirlines.length > 1 && (
@@ -1853,6 +1881,21 @@ export default function FuelOperationsReport() {
                 </div>
 
                 <div className="space-y-2">
+                  <label htmlFor="deliveryVoucher" className="text-sm font-medium text-gray-700 dark:text-gray-300">Broj dostavnice</label>
+                  <input
+                    type="text"
+                    id="deliveryVoucher"
+                    placeholder="Broj dostavnice"
+                    value={filterDeliveryVoucher}
+                    onChange={(e) => setFilterDeliveryVoucher(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-500 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Upišite ili puni broj dostavnice ili zadnja 3 broja
+                  </p>
+                </div>
+
+                <div className="space-y-2">
                   <label htmlFor="currency" className="text-sm font-medium text-gray-700 dark:text-gray-300">Valuta</label>
                   <Select value={filterCurrency} onValueChange={setFilterCurrency}>
                     <SelectTrigger id="currency">
@@ -1867,6 +1910,10 @@ export default function FuelOperationsReport() {
                     </SelectContent>
                   </Select>
                 </div>
+                </div>
+                
+                {/* Drugi red - 4 filtera */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 
                 <div className="flex items-end">
                   <Button 
@@ -1887,13 +1934,21 @@ export default function FuelOperationsReport() {
                       setFilterDestination('__ALL__'); // Reset to all destinations
                       setFilterDestinations([]); // Reset multi-destination filter
                       setFilterCurrency('__ALL__');
+                      setFilterDeliveryVoucher(''); // Reset delivery voucher filter
+                      setDebouncedDeliveryVoucher(''); // Reset debounced delivery voucher
                     }} 
                     variant="outline"
-                    className="w-full border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700/50"
+                    className="w-full bg-gradient-to-r from-red-50 to-pink-50 border-red-200 text-red-700 hover:from-red-100 hover:to-pink-100 hover:border-red-300 hover:text-red-800 transition-all duration-200 shadow-sm hover:shadow-md dark:from-red-900/20 dark:to-pink-900/20 dark:border-red-700 dark:text-red-400 dark:hover:from-red-800/30 dark:hover:to-pink-800/30 dark:hover:border-red-600 dark:hover:text-red-300"
                   >
                     <ArrowPathIcon className="h-4 w-4 mr-2" />
                     Resetuj filtere
                   </Button>
+                </div>
+                
+                {/* Placeholder za buduće filtere */}
+                <div className="space-y-2"></div>
+                <div className="space-y-2"></div>
+                <div className="space-y-2"></div>
                 </div>
               </div>
             </div>
@@ -2148,6 +2203,7 @@ export default function FuelOperationsReport() {
                         }
                         if (filterTrafficType && filterTrafficType !== '__ALL__') filterDesc.push(`Tip saobraćaja: ${filterTrafficType}`);
                         if (filterCurrency && filterCurrency !== '__ALL__') filterDesc.push(`Valuta: ${filterCurrency}`);
+                        if (debouncedDeliveryVoucher && debouncedDeliveryVoucher.trim() !== '') filterDesc.push(`Broj dostavnice: ${debouncedDeliveryVoucher}`);
                         
                         const filterDescription = filterDesc.length > 0 
                           ? filterDesc.join(', ') 
@@ -2196,6 +2252,7 @@ export default function FuelOperationsReport() {
                         }
                         if (filterTrafficType && filterTrafficType !== '__ALL__') filterDesc.push(`Tip saobraćaja: ${filterTrafficType}`);
                         if (filterCurrency && filterCurrency !== '__ALL__') filterDesc.push(`Valuta: ${filterCurrency}`);
+                        if (debouncedDeliveryVoucher && debouncedDeliveryVoucher.trim() !== '') filterDesc.push(`Broj dostavnice: ${debouncedDeliveryVoucher}`);
                         
                         const filterDescription = filterDesc.length > 0 
                           ? filterDesc.join(', ') 
@@ -2243,6 +2300,7 @@ export default function FuelOperationsReport() {
                         }
                         if (filterTrafficType && filterTrafficType !== '__ALL__') filterDesc.push(`Tip saobraćaja: ${filterTrafficType}`);
                         if (filterCurrency && filterCurrency !== '__ALL__') filterDesc.push(`Valuta: ${filterCurrency}`);
+                        if (debouncedDeliveryVoucher && debouncedDeliveryVoucher.trim() !== '') filterDesc.push(`Broj dostavnice: ${debouncedDeliveryVoucher}`);
                         
                         const filterDescription = filterDesc.length > 0 
                           ? filterDesc.join(', ') 

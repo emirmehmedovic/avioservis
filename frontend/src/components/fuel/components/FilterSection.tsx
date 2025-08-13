@@ -206,9 +206,10 @@ const FilterSection: React.FC<FilterSectionProps> = ({
         {/* Reset Filters Button */}
         <button 
           onClick={() => {
-            // Default to today on reset for consistency with list view
+            // Default to current month (first day to today) on reset for consistency with list view
             const today = new Date().toISOString().split('T')[0];
-            setStartDate(today);
+            const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+            setStartDate(firstDayOfMonth);
             setEndDate(today);
             setSelectedAirline('');
             setSelectedDestination('');
@@ -227,18 +228,6 @@ const FilterSection: React.FC<FilterSectionProps> = ({
   );
 };
 
-// Helper function to get the first day of the current month in YYYY-MM-DD format
-const getFirstDayOfCurrentMonth = () => {
-  const date = new Date();
-  const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
-  return firstDay.toISOString().split('T')[0];
-};
 
-// Helper function to get the last day of the current month in YYYY-MM-DD format
-const getLastDayOfCurrentMonth = () => {
-  const date = new Date();
-  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-  return lastDay.toISOString().split('T')[0];
-};
 
 export default FilterSection;
