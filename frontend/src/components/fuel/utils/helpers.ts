@@ -409,7 +409,7 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
         const quantityFormatted = typeof quantity === 'number' ? Math.round(quantity).toString() : quantity;
         
         doc.text(`MRN: ${mrnNumber} - ${quantityFormatted} kg`, 14, mrnY); // Changed L to kg
-        mrnY += 6; // Razmak između MRN redova
+        mrnY += 4; // Smanjen razmak između MRN redova sa 6 na 4
         
         // Ograniči broj prikazanih MRN-ova da ne bi izašli iz prostora
         if (index >= 3) {
@@ -417,6 +417,35 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
           return; // Prekini petlju nakon 4 MRN-a
         }
       });
+      
+      // Add customs declaration text after MRN data
+      const customsY = mrnY + 4; // Smanjen prostor između MRN i customs teksta sa 8 na 4
+      doc.setFontSize(7); // Povećan font sa 6 na 7
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      
+      // English text
+      const englishLine1 = 'Simplified customs declaration under authorization No.';
+      const authNumber = '03/7-FOI-18-3-Up/I-55/25';
+      const englishLine2 = ' dated 08 August 2025.';
+      
+      // Split the English text into two lines
+      doc.text(englishLine1, 14, customsY);
+      doc.setFont('helvetica', 'bold');
+      doc.text(authNumber, 14, customsY + 4); // Povećan prored sa 3 na 4
+      doc.setFont('helvetica', 'normal');
+      doc.text(englishLine2, 14 + doc.getTextWidth(authNumber), customsY + 4);
+      
+      // Bosnian text (povećan font)
+      doc.setFontSize(6); // Povećan font sa 5 na 6
+      const bosnianLine1 = 'Pojednostavljena carinska deklaracija po odobrenju broj:';
+      const bosnianLine2 = ' od 08.08.2025. godine';
+      
+      doc.text(bosnianLine1, 14, customsY + 9); // Prilagođen prored
+      doc.setFont('helvetica', 'bold');
+      doc.text(authNumber, 14, customsY + 13); // Prilagođen prored
+      doc.setFont('helvetica', 'normal');
+      doc.text(bosnianLine2, 14 + doc.getTextWidth(authNumber), customsY + 13);
     }
     
     // Ukupan iznos i detalji

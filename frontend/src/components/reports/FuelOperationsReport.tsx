@@ -30,6 +30,18 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import toast from 'react-hot-toast';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+import isBetween from 'dayjs/plugin/isBetween';
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
+
+// Konfiguriši dayjs za rad s vremenskim zonama i dodatne metode
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.extend(isBetween);
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isSameOrBefore);
 import { notoSansRegularBase64 } from '@/lib/fonts';
 import { notoSansBoldBase64 } from '@/lib/notoSansBoldBase64';
 import { downloadDocument } from '@/lib/apiService';
@@ -52,13 +64,8 @@ const FONT_NAME = 'NotoSans';
 const formatDate = (dateString: string | null) => {
   if (!dateString) return 'N/A';
   try {
-    return new Date(dateString).toLocaleString('hr-HR', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    // Koristi dayjs za formatiranje s lokalnom vremenskom zonom
+    return dayjs(dateString).tz('Europe/Sarajevo').format('DD.MM.YYYY. HH:mm');
   } catch (error) {
     console.error("Error formatting date:", error);
     return 'Invalid Date';
@@ -295,13 +302,13 @@ export default function FuelOperationsReport() {
       
       const queryParams = new URLSearchParams();
       if (filterDateFrom) {
-        // Send date in YYYY-MM-DD format to avoid timezone issues
-        const startDateString = filterDateFrom.toISOString().split('T')[0];
+        // Koristi dayjs za formatiranje datuma u lokalnoj vremenskoj zoni
+        const startDateString = dayjs(filterDateFrom).tz('Europe/Sarajevo').format('YYYY-MM-DD');
         queryParams.append('startDate', startDateString);
       }
       if (filterDateTo) {
-        // Send date in YYYY-MM-DD format to avoid timezone issues
-        const endDateString = filterDateTo.toISOString().split('T')[0];
+        // Koristi dayjs za formatiranje datuma u lokalnoj vremenskoj zoni
+        const endDateString = dayjs(filterDateTo).tz('Europe/Sarajevo').format('YYYY-MM-DD');
         queryParams.append('endDate', endDateString);
       }
       if (filterTrafficType && filterTrafficType !== '__ALL__') {
@@ -1156,16 +1163,20 @@ export default function FuelOperationsReport() {
       let filteredOperations = operations;
       if (filterDateFrom || filterDateTo) {
         filteredOperations = operations.filter(op => {
-          const opDate = new Date(op.dateTime);
-          const fromDate = filterDateFrom ? new Date(filterDateFrom) : null;
-          const toDate = filterDateTo ? new Date(filterDateTo) : null;
+          // Konvertuj operation date u lokalno vrijeme (Sarajevo)
+          const opDate = dayjs(op.dateTime).tz('Europe/Sarajevo');
+          
+          // Kreiraj početni i završni datum s lokalnom vremenskom zonom
+          const fromDate = filterDateFrom ? dayjs(filterDateFrom).tz('Europe/Sarajevo').startOf('day') : null;
+          const toDate = filterDateTo ? dayjs(filterDateTo).tz('Europe/Sarajevo').endOf('day') : null;
           
           if (fromDate && toDate) {
-            return opDate >= fromDate && opDate <= toDate;
+            // Provjeri da li je operation datum između početnog i završnog datuma (uključujući granične datume)
+            return (opDate.isSameOrAfter(fromDate) && opDate.isSameOrBefore(toDate));
           } else if (fromDate) {
-            return opDate >= fromDate;
+            return opDate.isSameOrAfter(fromDate);
           } else if (toDate) {
-            return opDate <= toDate;
+            return opDate.isSameOrBefore(toDate);
           }
           return true;
         });
@@ -1189,18 +1200,14 @@ export default function FuelOperationsReport() {
       // Calculate period for header
       let periodLabel = `${monthName} ${year}`;
       if (filterDateFrom && filterDateTo) {
-        const fromDate = new Date(filterDateFrom);
-        const toDate = new Date(filterDateTo);
-        const fromFormatted = `${fromDate.getDate().toString().padStart(2, '0')}.${(fromDate.getMonth() + 1).toString().padStart(2, '0')}.${fromDate.getFullYear()}`;
-        const toFormatted = `${toDate.getDate().toString().padStart(2, '0')}.${(toDate.getMonth() + 1).toString().padStart(2, '0')}.${toDate.getFullYear()}`;
+        const fromFormatted = dayjs(filterDateFrom).tz('Europe/Sarajevo').format('DD.MM.YYYY');
+        const toFormatted = dayjs(filterDateTo).tz('Europe/Sarajevo').format('DD.MM.YYYY');
         periodLabel = `${fromFormatted} - ${toFormatted}`;
       } else if (filterDateFrom) {
-        const fromDate = new Date(filterDateFrom);
-        const fromFormatted = `${fromDate.getDate().toString().padStart(2, '0')}.${(fromDate.getMonth() + 1).toString().padStart(2, '0')}.${fromDate.getFullYear()}`;
+        const fromFormatted = dayjs(filterDateFrom).tz('Europe/Sarajevo').format('DD.MM.YYYY');
         periodLabel = `od ${fromFormatted}`;
       } else if (filterDateTo) {
-        const toDate = new Date(filterDateTo);
-        const toFormatted = `${toDate.getDate().toString().padStart(2, '0')}.${(toDate.getMonth() + 1).toString().padStart(2, '0')}.${toDate.getFullYear()}`;
+        const toFormatted = dayjs(filterDateTo).tz('Europe/Sarajevo').format('DD.MM.YYYY');
         periodLabel = `do ${toFormatted}`;
       }
 
@@ -1247,8 +1254,8 @@ export default function FuelOperationsReport() {
       // Add data rows
       sortedOperations.forEach((op) => {
         const isWizzAir = wizzAirCompanies.includes(op.airline?.name?.toUpperCase() || '');
-        const opDate = new Date(op.dateTime);
-        const formattedDate = `${opDate.getDate().toString().padStart(2, '0')}.${(opDate.getMonth() + 1).toString().padStart(2, '0')}.`;
+        const opDate = dayjs(op.dateTime).tz('Europe/Sarajevo');
+        const formattedDate = opDate.format('DD.MM.');
         
         const row: any[] = [
           rowNumber,
@@ -1355,18 +1362,14 @@ export default function FuelOperationsReport() {
       // Calculate date range for total row
       let totalLabel = `TOTAL ${monthName}`;
       if (filterDateFrom && filterDateTo) {
-        const fromDate = new Date(filterDateFrom);
-        const toDate = new Date(filterDateTo);
-        const fromFormatted = `${fromDate.getDate().toString().padStart(2, '0')}.${(fromDate.getMonth() + 1).toString().padStart(2, '0')}.${fromDate.getFullYear()}`;
-        const toFormatted = `${toDate.getDate().toString().padStart(2, '0')}.${(toDate.getMonth() + 1).toString().padStart(2, '0')}.${toDate.getFullYear()}`;
+        const fromFormatted = dayjs(filterDateFrom).tz('Europe/Sarajevo').format('DD.MM.YYYY');
+        const toFormatted = dayjs(filterDateTo).tz('Europe/Sarajevo').format('DD.MM.YYYY');
         totalLabel = `TOTAL ${fromFormatted} - ${toFormatted}`;
       } else if (filterDateFrom) {
-        const fromDate = new Date(filterDateFrom);
-        const fromFormatted = `${fromDate.getDate().toString().padStart(2, '0')}.${(fromDate.getMonth() + 1).toString().padStart(2, '0')}.${fromDate.getFullYear()}`;
+        const fromFormatted = dayjs(filterDateFrom).tz('Europe/Sarajevo').format('DD.MM.YYYY');
         totalLabel = `TOTAL od ${fromFormatted}`;
       } else if (filterDateTo) {
-        const toDate = new Date(filterDateTo);
-        const toFormatted = `${toDate.getDate().toString().padStart(2, '0')}.${(toDate.getMonth() + 1).toString().padStart(2, '0')}.${toDate.getFullYear()}`;
+        const toFormatted = dayjs(filterDateTo).tz('Europe/Sarajevo').format('DD.MM.YYYY');
         totalLabel = `TOTAL do ${toFormatted}`;
       }
 
