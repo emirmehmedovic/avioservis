@@ -155,7 +155,7 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
     } as any;
     const pageWidth = doc.internal.pageSize.getWidth();
     
-    const topPadding = -9; // Attempt to shift header up
+    const topPadding = -3; // Povećana negativna margina za header
     // Dodaj header sa slikom umjesto teksta
     const headerHeight = 40; // Visina headera u mm
     
@@ -298,7 +298,7 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
     
     const tableData = [
       [
-        `Gorivo JET A-1 (${operation.aircraft_registration})`,
+        'Kerozin (JET A1) gorivo za mlazne motore',
         `${operation.tank?.fuel_type || 'JET A-1'}`,
         `${(operation.quantity_liters || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 })}`,
         `${(operation.quantity_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 })}`,
@@ -446,6 +446,12 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
       doc.text(authNumber, 14, customsY + 13); // Prilagođen prored
       doc.setFont('helvetica', 'normal');
       doc.text(bosnianLine2, 14 + doc.getTextWidth(authNumber), customsY + 13);
+      
+      // Dodaj tarifni broj ispod customs declaration
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      doc.text('Tarifni broj: 2710 19 21 00', 14, customsY + 19);
     }
     
     // Ukupan iznos i detalji
@@ -526,7 +532,7 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
     }
     
     // Dodaj informacije o plaćanju - pozicionirane nakon sekcije za ukupan iznos
-    const paymentInfoY = summaryBoxY + 55;
+    const paymentInfoY = summaryBoxY + 50; // Smanjen razmak sa 55 na 50
     doc.setFontSize(6); // Smanji font sa 8 na 6
     doc.setFont('helvetica', 'normal'); // Nije bold
     doc.setTextColor(0, 0, 0);
@@ -549,7 +555,7 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
     doc.setTextColor(0, 0, 0); // Reset text color
 
     // Dodaj bankovne podatke - pozicionirane nakon VAT note
-    const bankInfoY = yPosAfterVatNote + 5; // Pomjeri bankovne podatke malo ka dole
+    const bankInfoY = yPosAfterVatNote + 2; // Smanjen razmak sa 5 na 2
     doc.setFontSize(9);
     
     doc.setFont('helvetica', 'bold');
