@@ -447,11 +447,14 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
       doc.setFont('helvetica', 'normal');
       doc.text(bosnianLine2, 14 + doc.getTextWidth(authNumber), customsY + 13);
       
+      // Dinamički izračunaj poziciju za tarifni broj na osnovu broja MRN-ova
+      const tariffY = customsY + 17 + (mrnDataToDisplay.length > 1 ? (mrnDataToDisplay.length - 1) * 3 : 0);
+      
       // Dodaj tarifni broj ispod customs declaration
       doc.setFontSize(7);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(0, 0, 0);
-      doc.text('Tarifni broj: 2710 19 21 00', 14, customsY + 19);
+      doc.text('Tarifni broj: 2710 19 21 00', 14, tariffY);
     }
     
     // Ukupan iznos i detalji
@@ -510,9 +513,9 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
       doc.setFontSize(8);
       doc.setTextColor(0, 0, 0);
       doc.text(`Equivalent in BAM: ${bamEquivalent.toLocaleString('hr-HR', { minimumFractionDigits: 2 })} BAM`, 
-        pageWidth / 2 + 5, summaryBoxY + 35);
+        pageWidth / 2 + 5, summaryBoxY + 32);
       doc.text(`(Exchange rate: 1 ${operation.currency} = ${exchangeRate.toLocaleString('hr-HR', { minimumFractionDigits: 5 })} BAM)`, 
-        pageWidth / 2 + 5, summaryBoxY + 40);
+        pageWidth / 2 + 5, summaryBoxY + 37);
       
       // Dodaj pečat ispod exchange rate informacije
       try {
@@ -523,7 +526,7 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
         const pecatWidth = 75; // Povećaj širinu pečata sa 40 na 60mm
         const pecatHeight = 40; // Smanji visinu pečata sa 60 na 40mm
         const pecatX = pageWidth - pecatWidth - 14; // Poravnato desno
-        const pecatY = summaryBoxY + 45; // Pozicioniranje ispod exchange rate teksta
+        const pecatY = summaryBoxY + 42; // Pozicioniranje ispod exchange rate teksta
         
         doc.addImage(pecatImageBase64, 'PNG', pecatX, pecatY, pecatWidth, pecatHeight);
       } catch (error) {
@@ -532,7 +535,7 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
     }
     
     // Dodaj informacije o plaćanju - pozicionirane nakon sekcije za ukupan iznos
-    const paymentInfoY = summaryBoxY + 50; // Smanjen razmak sa 55 na 50
+    const paymentInfoY = summaryBoxY + 55; // Smanjen razmak sa 65 na 55
     doc.setFontSize(6); // Smanji font sa 8 na 6
     doc.setFont('helvetica', 'normal'); // Nije bold
     doc.setTextColor(0, 0, 0);
@@ -555,7 +558,7 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
     doc.setTextColor(0, 0, 0); // Reset text color
 
     // Dodaj bankovne podatke - pozicionirane nakon VAT note
-    const bankInfoY = yPosAfterVatNote + 2; // Smanjen razmak sa 5 na 2
+    const bankInfoY = summaryBoxY + 85; // Povećan razmak sa 75 na 85 da se izbjegne preklapanje
     doc.setFontSize(9);
     
     doc.setFont('helvetica', 'bold');
