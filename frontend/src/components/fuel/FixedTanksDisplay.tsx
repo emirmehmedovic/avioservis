@@ -78,7 +78,7 @@ export default function FixedTanksDisplay({
   showDetailsButton = true,
 }: FixedTanksDisplayProps) {
   const [tanks, setTanks] = useState<FixedStorageTank[]>([]);
-  const [tanksCustomsData, setTanksCustomsData] = useState<{ [tankId: string]: { avgDensity: number; totalKg: number } }>({});
+  const [tanksCustomsData, setTanksCustomsData] = useState<{ [tankId: string]: { avgDensity: number; totalKg: number; totalLiters: number } }>({});
   const [filteredTanks, setFilteredTanks] = useState<FixedStorageTank[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -133,7 +133,7 @@ export default function FixedTanksDisplay({
       setError(null);
 
       // Fetch customs data sequentially and collect it
-      const newTanksCustomsData: { [tankId: string]: { avgDensity: number; totalKg: number } } = {};
+      const newTanksCustomsData: { [tankId: string]: { avgDensity: number; totalKg: number; totalLiters: number } } = {};
       for (const tank of tanksData) {
         try {
           // fetchTankCustomsData will now return data instead of setting state directly
@@ -142,7 +142,7 @@ export default function FixedTanksDisplay({
         } catch (err) {
           console.error(`Failed to fetch customs data for tank ${tank.id}`, err);
           // Provide default/fallback data if a single tank's customs data fails
-          newTanksCustomsData[tank.id] = { avgDensity: 0.8, totalKg: 0 };
+          newTanksCustomsData[tank.id] = { avgDensity: 0.8, totalKg: 0, totalLiters: 0 };
         }
       }
       setTanksCustomsData(newTanksCustomsData); // Set state once with all collected data
@@ -158,7 +158,7 @@ export default function FixedTanksDisplay({
   };
 
   // Modified fetchTankCustomsData to return data instead of setting state
-  const fetchTankCustomsData = async (tankId: number): Promise<{ avgDensity: number; totalKg: number }> => {
+  const fetchTankCustomsData = async (tankId: number): Promise<{ avgDensity: number; totalKg: number; totalLiters: number }> => {
     try {
       const response = await getFixedTankCustomsBreakdown(tankId);
 
@@ -189,16 +189,16 @@ export default function FixedTanksDisplay({
           });
 
           const avgDensity = totalLiters > 0 ? totalWeightedDensity / totalLiters : 0.8;
-          return { avgDensity, totalKg: totalKgCalc };
+          return { avgDensity, totalKg: totalKgCalc, totalLiters: totalLiters };
         }
       }
       // If no MRN data or response is not as expected, return default
-      return { avgDensity: 0.8, totalKg: 0 };
+      return { avgDensity: 0.8, totalKg: 0, totalLiters: 0 };
     } catch (error) {
       console.error(`Greška pri dohvaćanju customs podataka za tank ${tankId}:`, error);
       // U slučaju greške, vrati default vrijednosti
       throw error; // Re-throw error to be caught by loadTanks, or return default:
-      // return { avgDensity: 0.8, totalKg: 0 }; 
+      // return { avgDensity: 0.8, totalKg: 0, totalLiters: 0 }; 
     }
   };
 
@@ -223,21 +223,49 @@ export default function FixedTanksDisplay({
   useEffect(() => {
     // Calculate total fuel from real tanks (excluding EXCESS FUEL tank with ID 4 and hidden tanks)
     const realTanks = tanks.filter(tank => tank.id !== 4 && !hiddenTankIds.has(tank.id));
-    const currentTotal = realTanks.reduce((sum, tank) => sum + tank.current_quantity_liters, 0);
-    setTotalFuel(currentTotal);
     
-    // Izračunaj ukupnu masu goriva u kilogramima iz tanksCustomsData
-    if (realTanks.length > 0) {
-      let totalKg = 0;
-      realTanks.forEach(tank => {
-        const customsData = tanksCustomsData[tank.id] || { totalKg: 0, avgDensity: 0.8 };
-        // Ako imamo izračunate totalKg iz MRN podataka, koristi to, inače izračunaj iz litara i gustoće
-        totalKg += customsData.totalKg > 0 ? 
-          customsData.totalKg : 
-          tank.current_quantity_liters * customsData.avgDensity;
+    // Izračunaj ukupno stanje koristeći MRN podatke ako su dostupni, inače koristi tank stanje
+    let currentTotal = 0;
+    let totalKg = 0;
+    
+    console.log('Debug - tanksCustomsData:', tanksCustomsData);
+    console.log('Debug - realTanks:', realTanks);
+    
+    realTanks.forEach(tank => {
+      const customsData = tanksCustomsData[tank.id] || { totalKg: 0, totalLiters: 0, avgDensity: 0.8 };
+      
+      console.log(`Debug - Tank ${tank.id} (${tank.tank_name}):`, {
+        tankCurrentLiters: tank.current_quantity_liters,
+        customsData: customsData,
+        customsTotalLiters: customsData.totalLiters,
+        customsTotalKg: customsData.totalKg
       });
-      setTotalFuelKg(totalKg);
-    }
+      
+      // Za litere: koristi MRN podatke ako su dostupni, inače tank stanje
+      const tankLiters = customsData.totalLiters > 0 ? 
+        customsData.totalLiters : 
+        tank.current_quantity_liters;
+      currentTotal += tankLiters;
+      
+      // Za kilograme: koristi MRN podatke ako su dostupni, inače izračunaj iz litara i gustoće
+      const tankKg = customsData.totalKg > 0 ? 
+        customsData.totalKg : 
+        tankLiters * customsData.avgDensity;
+      totalKg += tankKg;
+      
+      console.log(`Debug - Tank ${tank.id} final values:`, {
+        tankLiters: tankLiters,
+        tankKg: tankKg
+      });
+    });
+    
+    console.log('Debug - Final totals:', {
+      currentTotal: currentTotal,
+      totalKg: totalKg
+    });
+    
+    setTotalFuel(currentTotal);
+    setTotalFuelKg(totalKg);
   }, [tanks, tanksCustomsData, hiddenTankIds]);
 
   useEffect(() => {
@@ -267,10 +295,13 @@ export default function FixedTanksDisplay({
 
   // Calculate total fuel from real tanks (excluding EXCESS FUEL tank with ID 4 and hidden tanks)
   const realTanks = tanks.filter(tank => tank.id !== 4 && !hiddenTankIds.has(tank.id));
-  const totalRealTankFuel = realTanks.reduce((sum, tank) => sum + tank.current_quantity_liters, 0);
+  const totalRealTankFuel = realTanks.reduce((sum, tank) => {
+    const customsData = tanksCustomsData[tank.id] || { totalLiters: 0, avgDensity: 0.8 };
+    return sum + (customsData.totalLiters > 0 ? customsData.totalLiters : tank.current_quantity_liters);
+  }, 0);
   const totalRealTankFuelKg = realTanks.reduce((sum, tank) => {
-    const customsData = tanksCustomsData[tank.id] || { avgDensity: 0.8, totalKg: 0 };
-    return sum + (customsData.totalKg > 0 ? customsData.totalKg : tank.current_quantity_liters * customsData.avgDensity);
+    const customsData = tanksCustomsData[tank.id] || { avgDensity: 0.8, totalKg: 0, totalLiters: 0 };
+    return sum + (customsData.totalKg > 0 ? customsData.totalKg : (customsData.totalLiters > 0 ? customsData.totalLiters : tank.current_quantity_liters) * customsData.avgDensity);
   }, 0);
 
   // Create three tanks with equal distribution
