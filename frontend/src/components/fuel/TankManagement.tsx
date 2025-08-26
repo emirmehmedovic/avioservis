@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { PlusIcon, ArrowUpCircleIcon, PencilIcon, TrashIcon, EyeIcon, ExclamationCircleIcon, TruckIcon, BeakerIcon, MapPinIcon, PhotoIcon, ClockIcon, DocumentTextIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import TankRefillForm from './TankRefillForm';
@@ -267,8 +267,8 @@ export default function TankManagement() {
   // Add specific date range filters for more precise filtering
   const [startDateFilter, setStartDateFilter] = useState<string>(getFirstDayOfMonth());
   const [endDateFilter, setEndDateFilter] = useState<string>(getLastDayOfMonth());
-  const [tankFilter, setTankFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [tankFilter, setTankFilter] = useState<string>('all');
   const [loadingTransactions, setLoadingTransactions] = useState(false);
 
   // Fuel summary state
@@ -339,7 +339,7 @@ export default function TankManagement() {
   // Fetch all transactions when tanks are loaded
   useEffect(() => {
     if (tanks.length > 0) {
-      fetchAllTankTransactions();
+      fetchAllTransactions();
     }
   }, [tanks]);
   
@@ -527,80 +527,106 @@ export default function TankManagement() {
     await fetchTanks();
   };
   
-  const fetchAllTankTransactions = async () => {
+  const fetchAllTransactions = useCallback(async () => {
     setLoadingTransactions(true);
     try {
-      const tanksData = await Promise.all(tanks.map(tank => 
-        fetchWithAuth<MobileTankTransaction[]>(`/api/fuel/tanks/${tank.id}/transactions`)
-          .then(data => data.map(transaction => ({
+      const allTankTransactions: MobileTankTransaction[] = [];
+      
+      console.log('Fetching transactions for', tanks.length, 'tanks');
+      
+      // Dohvati transakcije za sve tankove
+      for (const tank of tanks) {
+        try {
+          console.log(`Fetching transactions for tank ${tank.id} (${tank.name})`);
+          const data = await fetchWithAuth<MobileTankTransaction[]>(`/api/fuel/tanks/${tank.id}/transactions`);
+          console.log(`Tank ${tank.id} has ${data.length} transactions:`, data);
+          
+          // Dodaj tank informacije u svaku transakciju
+          const transactionsWithTankInfo = data.map(transaction => ({
             ...transaction,
             tankName: tank.name,
             tankIdentifier: tank.identifier
-          })))
-          .catch(error => {
-            console.error(`Error fetching transactions for tank ${tank.id}: ${error}`);
-            return [];
-          })
-      ));
+          }));
+          allTankTransactions.push(...transactionsWithTankInfo);
+        } catch (error) {
+          console.error(`Error fetching transactions for tank ${tank.id}:`, error);
+        }
+      }
       
-      const combinedTransactions = tanksData.flat();
-      setAllTransactions(combinedTransactions);
-      setTransactions(combinedTransactions);
-      applyFilters();
+      console.log('Total transactions fetched:', allTankTransactions.length);
+      console.log('Transaction types found:', [...new Set(allTankTransactions.map(t => t.type))]);
+      
+      // Sortiraj po datumu (najnovije prvo)
+      allTankTransactions.sort((a, b) => new Date(b.transaction_datetime).getTime() - new Date(a.transaction_datetime).getTime());
+      
+      setAllTransactions(allTankTransactions);
+      setFilteredTransactions(allTankTransactions);
     } catch (error) {
-      console.error('Error fetching all tank transactions:', error);
-      toast.error('Greška pri učitavanju historije transakcija');
-      setAllTransactions([]);
-      setTransactions([]);
-      setFilteredTransactions([]);
+      console.error('Error fetching all transactions:', error);
+      toast.error('Greška pri učitavanju svih transakcija');
     } finally {
       setLoadingTransactions(false);
     }
-  };
+  }, [tanks]);
   
   const fetchTankTransactions = async (tankId: number) => {
     setLoadingTransactions(true);
     try {
+      console.log('Fetching transactions for tank ID:', tankId);
       const data = await fetchWithAuth<MobileTankTransaction[]>(`/api/fuel/tanks/${tankId}/transactions`);
+      console.log('Received transactions data:', data);
       setTransactions(data);
-      applyFilters();
     } catch (error) {
       console.error('Error fetching tank transactions:', error);
       toast.error('Greška pri učitavanju historije transakcija');
       setTransactions([]);
-      setFilteredTransactions([]);
     } finally {
       setLoadingTransactions(false);
     }
   };
   
-  const applyFilters = (data: MobileTankTransaction[] = transactions) => {
-    let filtered = [...data];
+  const applyFilters = () => {
+    console.log('applyFilters called with:', {
+      startDateFilter,
+      endDateFilter,
+      typeFilter,
+      tankFilter,
+      allTransactionsCount: allTransactions.length
+    });
     
-    // Apply date range filter (YYYY-MM-DD to YYYY-MM-DD)
+    let filtered = [...allTransactions];
+    console.log('Initial filtered count:', filtered.length);
+    
+    // Filter by date range
     if (startDateFilter && endDateFilter) {
       const startDate = new Date(startDateFilter);
-      startDate.setHours(0, 0, 0, 0); // Start of day
-      
       const endDate = new Date(endDateFilter);
-      endDate.setHours(23, 59, 59, 999); // End of day
+      endDate.setHours(23, 59, 59, 999); // Set to end of day
       
       filtered = filtered.filter(transaction => {
         const transactionDate = new Date(transaction.transaction_datetime);
         return transactionDate >= startDate && transactionDate <= endDate;
       });
+      console.log('After date filter:', filtered.length);
     }
     
-    // Apply transaction type filter
+    // Filter by transaction type
     if (typeFilter !== 'all') {
-      filtered = filtered.filter(transaction => transaction.type === typeFilter);
+      console.log('Filtering by type:', typeFilter);
+      filtered = filtered.filter(transaction => {
+        console.log('Transaction type:', transaction.type, 'matches filter:', transaction.type === typeFilter);
+        return transaction.type === typeFilter;
+      });
+      console.log('After type filter:', filtered.length);
     }
     
-    // Apply tank filter
+    // Filter by tank
     if (tankFilter !== 'all') {
       filtered = filtered.filter(transaction => transaction.tankIdentifier === tankFilter);
+      console.log('After tank filter:', filtered.length);
     }
     
+    console.log('Final filtered count:', filtered.length);
     setFilteredTransactions(filtered);
   };
   
@@ -716,6 +742,33 @@ export default function TankManagement() {
     } catch (error) {
       console.error('Error deleting tank:', error);
       toast.error('Greška pri brisanju tankera');
+    }
+  };
+
+  const handleDeleteTransfer = async (transferId: number, transferType: string) => {
+    if (!confirm(`Jeste li sigurni da želite obrisati ovaj ${transferType}? Gorivo će biti vraćeno u fiksni tank.`)) return;
+    
+    try {
+      if (transferType === 'fixed_tank_transfer') {
+        await fetchWithAuth<{ message: string }>(`/api/fuel-transfers-to-tanker/${transferId}`, {
+          method: 'DELETE',
+        });
+        
+        toast.success('Transfer uspješno obrisan i gorivo vraćeno u fiksni tank');
+        
+        // Osvježi transakcije ako je history modal otvoren
+        if (currentTank && showHistoryModal) {
+          await fetchTankTransactions(currentTank.id);
+        }
+        
+        // Osvježi sve transakcije u glavnoj tablici
+        await fetchAllTransactions();
+      } else {
+        toast.error('Brisanje ovog tipa transakcije nije podržano');
+      }
+    } catch (error: any) {
+      console.error('Error deleting transfer:', error);
+      toast.error(error.message || 'Greška pri brisanju transfera');
     }
   };
 
@@ -1326,11 +1379,116 @@ export default function TankManagement() {
               </button>
             </div>
           </div>
-          {/* Ovdje je bila tablica transakcija - privremeno uklonjena zbog TypeScript grešaka. */}
-          {/* Tablica transakcija će biti implementirana u budućoj verziji */}
-          <div className="text-center py-8">
-            <p className="text-gray-500">Pregled transakcija trenutno nije dostupan.</p>
-          </div>
+          {/* Tablica transakcija */}
+          {loadingTransactions ? (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#F08080]"></div>
+              <p className="ml-2 text-gray-600">Učitavanje transakcija...</p>
+            </div>
+          ) : filteredTransactions.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <DocumentTextIcon className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900">Nema transakcija</h3>
+              <p className="mt-1 text-sm text-gray-500">Za odabrani period nema zabilježenih transakcija.</p>
+              <p className="mt-2 text-xs text-gray-400">
+                Debug: allTransactions={allTransactions.length}, filtered={filteredTransactions.length}, 
+                typeFilter="{typeFilter}", tankFilter="{tankFilter}"
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+              <table className="min-w-full divide-y divide-gray-300">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Datum i vrijeme</th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Cisterna</th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Tip transakcije</th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Količina (L)</th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Izvor/Destinacija</th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Napomena</th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Akcije</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {filteredTransactions.map((transaction, index) => {
+                    // Determine transaction type display and badge color
+                    let typeDisplay = '';
+                    let badgeColor = '';
+                    let sourceDestDisplay = '';
+                    
+                    switch(transaction.type) {
+                      case 'supplier_refill':
+                        typeDisplay = 'Dopuna od dobavljača';
+                        badgeColor = 'bg-green-100 text-green-800';
+                        sourceDestDisplay = transaction.supplier_name || 'N/A';
+                        break;
+                      case 'fixed_tank_transfer':
+                        typeDisplay = 'Transfer iz fiksnog tanka';
+                        badgeColor = 'bg-blue-100 text-blue-800';
+                        sourceDestDisplay = transaction.source_name || 'N/A';
+                        break;
+                      case 'aircraft_fueling':
+                        typeDisplay = 'Točenje aviona';
+                        badgeColor = 'bg-orange-100 text-orange-800';
+                        sourceDestDisplay = transaction.destination_name || 'N/A';
+                        break;
+                      case 'adjustment':
+                        typeDisplay = 'Korekcija količine';
+                        badgeColor = 'bg-gray-100 text-gray-800';
+                        sourceDestDisplay = 'Sistemska korekcija';
+                        break;
+                      default:
+                        typeDisplay = transaction.type;
+                        badgeColor = 'bg-gray-100 text-gray-800';
+                        sourceDestDisplay = 'N/A';
+                    }
+                    
+                    return (
+                      <tr key={`${transaction.id}-${index}`}>
+                        <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                          {format(new Date(transaction.transaction_datetime), 'dd.MM.yyyy HH:mm')}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {transaction.tankName || transaction.tankIdentifier || 'N/A'}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeColor}`}>
+                            {typeDisplay}
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {transaction.quantity_liters.toLocaleString('hr-HR', { minimumFractionDigits: 2 })} L
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {sourceDestDisplay}
+                          {transaction.invoice_number && (
+                            <div className="text-xs text-gray-400 mt-1">
+                              Faktura: {transaction.invoice_number}
+                            </div>
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {transaction.notes || '-'}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {transaction.type === 'fixed_tank_transfer' && (
+                            <button
+                              onClick={() => handleDeleteTransfer(transaction.id, transaction.type)}
+                              className="text-red-600 hover:text-red-900 text-xs font-medium underline"
+                            >
+                              Obriši transfer
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
       
@@ -1344,6 +1502,158 @@ export default function TankManagement() {
           fetchTanks={fetchTanks}
           fetchTankCustomsData={fetchTankCustomsData}
         />
+      )}
+
+      {/* Transaction History Modal */}
+      {showHistoryModal && currentTank && (
+        <div className="fixed z-10 inset-0 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+            <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full sm:p-6">
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+                    Historija Transakcija - {currentTank.name} ({currentTank.identifier})
+                  </h3>
+                  <button
+                    onClick={() => setShowHistoryModal(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <span className="sr-only">Zatvori</span>
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                <div className="max-h-96 overflow-y-auto">
+                  {loadingTransactions ? (
+                    <div className="flex justify-center items-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#F08080]"></div>
+                      <p className="ml-2 text-gray-600">Učitavanje transakcija...</p>
+                    </div>
+                  ) : transactions.length === 0 ? (
+                    <div className="text-center py-8">
+                      <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                        <DocumentTextIcon className="w-8 h-8 text-gray-400" />
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900">Nema transakcija</h3>
+                      <p className="mt-1 text-sm text-gray-500">Za ovu cisternu još uvijek nema zabilježenih transakcija.</p>
+                      <p className="mt-1 text-xs text-gray-400">Debug: transactions.length = {transactions.length}</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex justify-between items-center mb-4">
+                        <h4 className="text-lg font-medium text-gray-900">Transakcije</h4>
+                        <span className="text-sm text-gray-500">{transactions.length} {transactions.length === 1 ? 'transakcija' : 'transakcija'}</span>
+                      </div>
+                      
+                      <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+                        <table className="min-w-full divide-y divide-gray-300">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Datum i vrijeme</th>
+                              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Tip transakcije</th>
+                              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Količina (L)</th>
+                              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Izvor/Destinacija</th>
+                              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Napomena</th>
+                              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Akcije</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200 bg-white">
+                            {transactions.map((transaction, index) => {
+                              console.log(`Rendering transaction ${index}:`, transaction);
+                              
+                              // Determine transaction type display and badge color
+                              let typeDisplay = '';
+                              let badgeColor = '';
+                              let sourceDestDisplay = '';
+                              
+                              switch(transaction.type) {
+                                case 'supplier_refill':
+                                  typeDisplay = 'Dopuna od dobavljača';
+                                  badgeColor = 'bg-green-100 text-green-800';
+                                  sourceDestDisplay = transaction.supplier_name || 'N/A';
+                                  break;
+                                case 'fixed_tank_transfer':
+                                  typeDisplay = 'Transfer iz fiksnog tanka';
+                                  badgeColor = 'bg-blue-100 text-blue-800';
+                                  sourceDestDisplay = transaction.source_name || 'N/A';
+                                  break;
+                                case 'aircraft_fueling':
+                                  typeDisplay = 'Točenje aviona';
+                                  badgeColor = 'bg-orange-100 text-orange-800';
+                                  sourceDestDisplay = transaction.destination_name || 'N/A';
+                                  break;
+                                case 'adjustment':
+                                  typeDisplay = 'Korekcija količine';
+                                  badgeColor = 'bg-gray-100 text-gray-800';
+                                  sourceDestDisplay = 'Sistemska korekcija';
+                                  break;
+                                default:
+                                  typeDisplay = transaction.type;
+                                  badgeColor = 'bg-gray-100 text-gray-800';
+                                  sourceDestDisplay = 'N/A';
+                              }
+                              
+                              return (
+                                <tr key={transaction.id}>
+                                  <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                                    {format(new Date(transaction.transaction_datetime), 'dd.MM.yyyy HH:mm')}
+                                  </td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeColor}`}>
+                                      {typeDisplay}
+                                    </span>
+                                  </td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                    {transaction.quantity_liters.toLocaleString('hr-HR', { minimumFractionDigits: 2 })} L
+                                  </td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                    {sourceDestDisplay}
+                                    {transaction.invoice_number && (
+                                      <div className="text-xs text-gray-400 mt-1">
+                                        Faktura: {transaction.invoice_number}
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                    {transaction.notes || '-'}
+                                  </td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                    {transaction.type === 'fixed_tank_transfer' && (
+                                      <button
+                                        onClick={() => handleDeleteTransfer(transaction.id, transaction.type)}
+                                        className="text-red-600 hover:text-red-900 text-xs font-medium underline"
+                                      >
+                                        Obriši transfer
+                                      </button>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                  onClick={() => setShowHistoryModal(false)}
+                >
+                  Zatvori
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
       </div>
     </>

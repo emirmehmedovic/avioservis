@@ -149,6 +149,30 @@ export default function TankManagement() {
     }
   };
 
+  const handleDeleteTransfer = async (transferId: number, transferType: string) => {
+    if (!confirm(`Jeste li sigurni da želite obrisati ovaj ${transferType}? Gorivo će biti vraćeno u fiksni tank.`)) return;
+    
+    try {
+      if (transferType === 'fixed_tank_transfer') {
+        await fetchWithAuth<{ message: string }>(`/api/fuel/transfers/fixed-to-mobile/${transferId}`, {
+          method: 'DELETE',
+        });
+        
+        toast.success('Transfer uspješno obrisan i gorivo vraćeno u fiksni tank');
+        
+        // Osvježi transakcije ako je history modal otvoren
+        if (currentTank && showHistoryModal) {
+          await fetchTankTransactions(currentTank.id);
+        }
+      } else {
+        toast.error('Brisanje ovog tipa transakcije nije podržano');
+      }
+    } catch (error: any) {
+      console.error('Error deleting transfer:', error);
+      toast.error(error.message || 'Greška pri brisanju transfera');
+    }
+  };
+
   const openEditModal = (tank: FuelTank) => {
     setCurrentTank(tank);
     setFormData({
@@ -176,7 +200,9 @@ export default function TankManagement() {
   const fetchTankTransactions = async (tankId: number) => {
     setLoadingTransactions(true);
     try {
+      console.log('Fetching transactions for tank ID:', tankId);
       const data = await fetchWithAuth<MobileTankTransaction[]>(`/api/fuel/tanks/${tankId}/transactions`);
+      console.log('Received transactions data:', data);
       setTransactions(data);
     } catch (error) {
       console.error('Error fetching tank transactions:', error);
@@ -978,6 +1004,7 @@ export default function TankManagement() {
                     </div>
                     <h3 className="text-lg font-medium text-gray-900">Nema transakcija</h3>
                     <p className="mt-1 text-sm text-gray-500">Za ovu cisternu još uvijek nema zabilježenih transakcija.</p>
+                    <p className="mt-1 text-xs text-gray-400">Debug: transactions.length = {transactions.length}</p>
                   </div>
                 ) : (
                   <div>
@@ -995,10 +1022,13 @@ export default function TankManagement() {
                             <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Količina (L)</th>
                             <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Izvor/Destinacija</th>
                             <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Napomena</th>
+                            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Akcije</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 bg-white">
-                          {transactions.map((transaction) => {
+                          {transactions.map((transaction, index) => {
+                            console.log(`Rendering transaction ${index}:`, transaction);
+                            
                             // Determine transaction type display and badge color
                             let typeDisplay = '';
                             let badgeColor = '';
@@ -1054,6 +1084,16 @@ export default function TankManagement() {
                                 </td>
                                 <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                   {transaction.notes || '-'}
+                                </td>
+                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                  {transaction.type === 'fixed_tank_transfer' && (
+                                    <button
+                                      onClick={() => handleDeleteTransfer(transaction.id, transaction.type)}
+                                      className="text-red-600 hover:text-red-900 text-xs font-medium underline"
+                                    >
+                                      Obriši transfer
+                                    </button>
+                                  )}
                                 </td>
                               </tr>
                             );

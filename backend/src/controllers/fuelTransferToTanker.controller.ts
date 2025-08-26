@@ -722,3 +722,267 @@ export const createFuelTransferToTanker = async (req: AuthRequest, res: Response
     res.status(400).json({ message: e.message || 'An unexpected error occurred during the fuel transfer.' });
   }
 };
+
+// DELETE /api/fuel/transfers/fixed-to-mobile/:id - Brisanje transfera iz fiksnog u mobilni tank
+export const deleteFuelTransferToTanker = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  const { id } = req.params;
+  const parsedId = parseInt(id, 10);
+
+  if (isNaN(parsedId)) {
+    res.status(400).json({ message: 'Neispravan ID transfera.' });
+    return;
+  }
+
+  try {
+    // Dohvati transfer zapis iz FixedTankTransfers tabele
+    const transferToDelete = await prisma.fixedTankTransfers.findUnique({
+      where: { id: parsedId },
+      include: {
+        affectedFixedTank: {
+          select: {
+            id: true,
+            tank_name: true,
+            tank_identifier: true,
+            current_quantity_liters: true,
+            current_quantity_kg: true,
+          }
+        }
+      }
+    });
+
+    if (!transferToDelete) {
+      res.status(404).json({ message: 'Transfer nije pronađen.' });
+      return;
+    }
+
+    // Provjeri da li je ovo TANKER_TRANSFER_OUT tip
+    if (transferToDelete.activity_type !== 'TANKER_TRANSFER_OUT') {
+      res.status(400).json({ message: 'Ova transakcija nije transfer iz fiksnog tanka.' });
+      return;
+    }
+
+    // Izvuci ID mobilnog tanka iz notes polja
+    const notesMatch = transferToDelete.notes?.match(/Transfer to mobile tanker ID: (\d+)/);
+    if (!notesMatch) {
+      res.status(400).json({ message: 'Neispravan format zapisa transfera.' });
+      return;
+    }
+    const targetMobileTankId = parseInt(notesMatch[1], 10);
+
+    // Dohvati mobilni tank
+    const targetMobileTank = await prisma.fuelTank.findUnique({
+      where: { id: targetMobileTankId },
+      select: {
+        id: true,
+        name: true,
+        identifier: true,
+        current_liters: true,
+        current_kg: true,
+      }
+    });
+
+    if (!targetMobileTank) {
+      res.status(404).json({ message: 'Mobilni tank nije pronađen.' });
+      return;
+    }
+
+    // Provjeri dovoljnost goriva u mobilnom tanku
+    if (Number(targetMobileTank.current_liters) < Number(transferToDelete.quantity_liters_transferred)) {
+      res.status(400).json({ 
+        message: `Nedovoljno goriva u mobilnom tanku. Trenutno: ${targetMobileTank.current_liters}L, potrebno: ${transferToDelete.quantity_liters_transferred}L` 
+      });
+      return;
+    }
+
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      // 1. Vrati gorivo u fiksni tank
+      const sourceTank = await tx.fixedStorageTanks.findUnique({ 
+        where: { id: transferToDelete.affected_fixed_tank_id } 
+      });
+      
+      if (!sourceTank) {
+        throw new Error(`Fiksni tank ID ${transferToDelete.affected_fixed_tank_id} nije pronađen.`);
+      }
+      
+      const newSourceLiters = sourceTank.current_quantity_liters + Number(transferToDelete.quantity_liters_transferred);
+      const newSourceKg = sourceTank.current_quantity_kg + Number(transferToDelete.quantity_kg_transferred);
+      
+      await tx.fixedStorageTanks.update({
+        where: { id: transferToDelete.affected_fixed_tank_id },
+        data: {
+          current_quantity_liters: newSourceLiters,
+          current_quantity_kg: newSourceKg,
+        }
+      });
+
+      // 2. Oduzmi gorivo iz mobilnog tanka
+      const newTargetLiters = Number(targetMobileTank.current_liters) - Number(transferToDelete.quantity_liters_transferred);
+      const newTargetKg = Number(targetMobileTank.current_kg) - Number(transferToDelete.quantity_kg_transferred);
+      
+      await tx.fuelTank.update({
+        where: { id: targetMobileTankId },
+        data: {
+          current_liters: newTargetLiters,
+          current_kg: newTargetKg,
+        }
+      });
+
+      // 3. REVERS MRN LOGIKE - Vrati MRN zapise u fiksni tank
+      // Dohvati sve MRN zapise iz mobilnog tanka koji su povezani s ovim transferom
+      const mobileTankMrnRecords = await tx.mobileTankCustoms.findMany({
+        where: {
+          mobile_tank_id: targetMobileTankId,
+          remaining_quantity_liters: { gt: 0 }
+        },
+        orderBy: { date_added: 'asc' }
+      });
+
+      let remainingLitersToReverse = Number(transferToDelete.quantity_liters_transferred);
+      let remainingKgToReverse = Number(transferToDelete.quantity_kg_transferred);
+
+      // Ako postoje MRN zapisi u mobilnom tanku, vrati ih u fiksni tank
+      if (mobileTankMrnRecords.length > 0) {
+        for (const mrnRecord of mobileTankMrnRecords) {
+          if (remainingLitersToReverse <= 0) break;
+
+          const mrnLiters = Number(mrnRecord.remaining_quantity_liters);
+          const mrnKg = Number(mrnRecord.remaining_quantity_kg);
+          
+          // Izračunaj koliko litara i kg treba vratiti iz ovog MRN zapisa
+          const litersToReverse = Math.min(remainingLitersToReverse, mrnLiters);
+          const kgToReverse = (litersToReverse / mrnLiters) * mrnKg;
+
+          // Oduzmi iz mobilnog tanka
+          await tx.mobileTankCustoms.update({
+            where: { id: mrnRecord.id },
+            data: {
+              remaining_quantity_liters: mrnLiters - litersToReverse,
+              remaining_quantity_kg: mrnKg - kgToReverse,
+            }
+          });
+
+          // Dodaj u fiksni tank - pronađi odgovarajući MRN zapis ili kreiraj novi
+          const fixedTankMrnRecord = await tx.tankFuelByCustoms.findFirst({
+            where: {
+              fixed_tank_id: transferToDelete.affected_fixed_tank_id,
+              customs_declaration_number: mrnRecord.customs_declaration_number,
+              remaining_quantity_kg: { gt: 0 }
+            }
+          });
+
+          if (fixedTankMrnRecord) {
+            // Ažuriraj postojeći MRN zapis u fiksnom tanku
+            await tx.tankFuelByCustoms.update({
+              where: { id: fixedTankMrnRecord.id },
+              data: {
+                remaining_quantity_liters: {
+                  increment: litersToReverse
+                },
+                remaining_quantity_kg: {
+                  increment: kgToReverse
+                }
+              }
+            });
+          } else {
+            // Kreiraj novi MRN zapis u fiksnom tanku
+            await tx.tankFuelByCustoms.create({
+              data: {
+                fixed_tank_id: transferToDelete.affected_fixed_tank_id,
+                fuel_intake_record_id: 1, // Default vrijednost za revers
+                customs_declaration_number: mrnRecord.customs_declaration_number,
+                quantity_liters: litersToReverse,
+                remaining_quantity_liters: litersToReverse,
+                quantity_kg: kgToReverse,
+                remaining_quantity_kg: kgToReverse,
+                density_at_intake: mrnRecord.density_at_intake,
+                date_added: new Date()
+              }
+            });
+          }
+
+          remainingLitersToReverse -= litersToReverse;
+          remainingKgToReverse -= kgToReverse;
+        }
+      }
+
+      // 4. Ako je ostalo goriva za revers (nema MRN zapisa), dodaj kao "orphaned" gorivo
+      if (remainingLitersToReverse > 0) {
+        // Kreiraj "orphaned" MRN zapis u fiksnom tanku
+        await tx.tankFuelByCustoms.create({
+          data: {
+            fixed_tank_id: transferToDelete.affected_fixed_tank_id,
+            fuel_intake_record_id: 1, // Default vrijednost za revers
+            customs_declaration_number: `REVERSED_${Date.now()}`,
+            quantity_liters: remainingLitersToReverse,
+            remaining_quantity_liters: remainingLitersToReverse,
+            quantity_kg: remainingKgToReverse,
+            remaining_quantity_kg: remainingKgToReverse,
+            density_at_intake: 0.8, // Default gustoća
+            date_added: new Date()
+          }
+        });
+      }
+
+      // 5. Obriši transfer zapis iz FixedTankTransfers tabele
+      await tx.fixedTankTransfers.delete({
+        where: { id: parsedId }
+      });
+    });
+
+    // Logiraj aktivnost
+    if (req.user) {
+      try {
+        const metadata = {
+          transferId: transferToDelete.id,
+          sourceFixedTankId: transferToDelete.affected_fixed_tank_id,
+          targetMobileTankId: targetMobileTankId,
+          quantityLiters: transferToDelete.quantity_liters_transferred,
+          quantityKg: transferToDelete.quantity_kg_transferred,
+          transferDatetime: transferToDelete.transfer_datetime,
+          notes: transferToDelete.notes
+        };
+
+        const description = `Korisnik ${req.user.username} je obrisao transfer goriva iz fiksnog tanka ${transferToDelete.affectedFixedTank?.tank_name || transferToDelete.affectedFixedTank?.tank_identifier} u mobilni tank ${targetMobileTank.name || targetMobileTank.identifier}`;
+
+        await prisma.activity.create({
+          data: {
+            userId: req.user.id,
+            username: req.user.username,
+            actionType: 'DELETE_FUEL_TRANSFER_TO_TANKER',
+            resourceType: 'FUEL_TRANSFER',
+            resourceId: transferToDelete.id,
+            description,
+            metadata: JSON.stringify(metadata),
+            timestamp: new Date()
+          }
+        });
+      } catch (activityError) {
+        logger.error('Greška pri logiranju aktivnosti brisanja transfera:', activityError);
+      }
+    }
+
+    res.status(200).json({ 
+      message: 'Transfer goriva uspješno obrisan i gorivo vraćeno u fiksni tank.',
+      deletedTransfer: {
+        id: transferToDelete.id,
+        quantityLiters: transferToDelete.quantity_liters_transferred,
+        quantityKg: transferToDelete.quantity_kg_transferred,
+        sourceTank: transferToDelete.affectedFixedTank?.tank_name || transferToDelete.affectedFixedTank?.tank_identifier,
+        targetTank: targetMobileTank.name || targetMobileTank.identifier
+      }
+    });
+
+  } catch (error: any) {
+    logger.error('Greška pri brisanju transfera goriva:', error);
+    
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2025') {
+        res.status(404).json({ message: 'Transfer nije pronađen za brisanje.' });
+      } else {
+        res.status(400).json({ message: 'Greška u bazi podataka prilikom brisanja transfera.' });
+      }
+    } else {
+      res.status(400).json({ message: error.message || 'Greška prilikom brisanja transfera.' });
+    }
+  }
+};

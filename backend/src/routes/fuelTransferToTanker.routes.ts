@@ -1,7 +1,7 @@
 import { Router } from 'express';
 // import { createUploader } from '../utils/file.utils'; // Not needed if no file upload for this route
 import { createFuelTransferToTankerRules } from '../validators/fuelTransferToTanker.validators';
-import { createFuelTransferToTanker } from '../controllers/fuelTransferToTanker.controller';
+import { createFuelTransferToTanker, deleteFuelTransferToTanker } from '../controllers/fuelTransferToTanker.controller';
 import { validate } from '../validators/validate';
 import { authenticateToken, checkRole } from '../middleware/auth';
 
@@ -18,6 +18,13 @@ router.post('/',
   createFuelTransferToTanker
 );
 
-// Ovdje se mogu dodati i druge rute (GET, GET by ID, DELETE, itd.) kasnije
+// DELETE ruta za brisanje transfera iz fiksnog u mobilni tank
+router.delete('/:id',
+  authenticateToken,
+  checkRole(['ADMIN', 'KONTROLA', 'FUEL_OPERATOR']),
+  deleteFuelTransferToTanker
+);
+
+// Ovdje se mogu dodati i druge rute (GET, GET by ID, itd.) kasnije
 
 export default router;
