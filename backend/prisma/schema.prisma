@@ -747,6 +747,13 @@ enum XmlDispatchStatus {
   FAILED
 }
 
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  EXPIRED
+}
+
 model XmlInvoiceDispatch {
   id                 Int               @id @default(autoincrement())
   fuelingOperationId Int               @unique
@@ -758,6 +765,9 @@ model XmlInvoiceDispatch {
   xmlSha256          String
   remotePath         String?
   dispatchedAt       DateTime?
+  paymentStatus      PaymentStatus     @default(PENDING)
+  paymentReceivedAt  DateTime?
+  paymentNote        String?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 

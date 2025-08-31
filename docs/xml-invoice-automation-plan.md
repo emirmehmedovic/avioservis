@@ -1,7 +1,7 @@
 ## Automatizacija: generisanje i slanje XML faktura (Wizz Air)
 
 ### Cilj
-- Automatski svaki dan u 23:00 lokalno generisati IATA XML fakture za odabrane avio-kompanije i poslati ih na FTP.
+- Automatski svaki dan u 23:55 lokalno generisati IATA XML fakture za odabrane avio-kompanije i poslati ih na SFTP.
 - Manualno slanje po potrebi ako automatika ne uspije.
 - Evidencija i frontend prikaz poslanih/pokušanih faktura.
 
@@ -57,7 +57,7 @@
 
 5) Cron posao (node-cron)
    - Novi fajl `backend/src/cron/wizzXmlInvoiceCron.ts`:
-     - raspored: `0 23 * * *` (23:00 lokalno). Koristiti `process.env.TZ` (`Europe/Sarajevo`).
+     - raspored: `55 23 * * *` (23:55 lokalno). Koristiti `process.env.TZ` (`Europe/Sarajevo`).
      - poziva `dispatchDay(todayLocal)`.
      - logira sa `logger` i piše u `SystemLog` na greške.
    - U `backend/src/cron/index.ts` dodati inicijalizaciju ovog posla.
@@ -100,14 +100,14 @@
 
 ### .env varijable (MVP)
 ```
-FTP_PROTOCOL=ftp            # ftp | sftp
-FTP_HOST=example.com
-FTP_PORT=21                 # 21 (FTP) | 22 (SFTP)
-FTP_USER=...
-FTP_PASSWORD=...
-FTP_SECURE=false            # true za FTPS; za SFTP se ignoriše
-FTP_BASE_DIR=/invoices      # root folder na serveru
-FTP_TIMEOUT_MS=30000
+# SFTP Configuration for XML Invoice Dispatch
+SFTP_HOST=192.226.203.73
+SFTP_PORT=7722
+SFTP_USERNAME=x-FSs-HIFA
+SFTP_PASSWORD=EG3#K|:Zn@?R
+SFTP_PROTOCOL=sftp
+SFTP_BASE_DIR=/              # root folder na serveru
+SFTP_TIMEOUT_MS=30000
 
 TZ=Europe/Sarajevo
 
@@ -144,12 +144,12 @@ XML_INVOICE_AIRLINE_IDS=1,2
 ~~2) Backend servisi: `xmlInvoiceBuilder.ts`, `ftpClient.ts`, `xmlInvoiceDispatch.service.ts`.~~ ✅ Završeno (builder identičan frontend formatu; bez promjena layouta/podataka).
 ~~3) Cron: `wizzXmlInvoiceCron.ts` i inicijalizacija u `cron/index.ts` (23:00).~~ ✅ Završeno.
 ~~4) API: rute i kontroler `/api/invoices/xml` sa 3 endpointa (list, dispatch day, dispatch one).~~ ✅ Završeno.
-5) Frontend: sidebar link, stranica listinga, akcije za manualni dispatch.
-6) .env: dodati FTP varijable i `TZ`.
+~~5) Frontend: sidebar link, stranica listinga, akcije za manualni dispatch.~~ ✅ Završeno (dodan sidebar link, stranica sa tabelom, akcije za manualni dispatch, test SFTP dugme).
+~~6) .env: dodati FTP varijable i `TZ`.~~ ✅ Završeno (dodani SFTP kredencijali u .env, cron omogućen za 23:55).
 7) Logika retry-a u cronu (catch-up `FAILED` posljednja 3 dana).
 
 ### Kriteriji prihvata (Acceptance)
-- U 23:00 lokalno se automatski generišu XML-ovi za WIZZ operacije tog dana i uspješno se uploaduju na FTP; zapisi u `XmlInvoiceDispatch` imaju status `SENT`.
+- U 23:55 lokalno se automatski generišu XML-ovi za WIZZ operacije tog dana i uspješno se uploaduju na SFTP; zapisi u `XmlInvoiceDispatch` imaju status `SENT`.
 - Frontend prikazuje listu sa tačnim statusima; manualni „Pošalji ponovo“ radi i ažurira status.
 - Nema duplog slanja za istu operaciju bez `force`.
 - U `.env` se nalaze svi potrebni FTP parametri; bez njih endpointi vraćaju jasnu grešku.

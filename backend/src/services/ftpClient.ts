@@ -1,5 +1,8 @@
-import ftp, { AccessOptions } from 'basic-ftp';
-import path from 'path';
+import * as ftp from 'basic-ftp';
+import Client from 'ssh2-sftp-client';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import { PassThrough } from 'stream';
 
 export interface FtpConfig {
@@ -14,68 +17,166 @@ export interface FtpConfig {
 }
 
 export class FtpClientService {
-  private client: ftp.Client;
+  private ftpClient: ftp.Client | null = null;
+  private sftpClient: Client | null = null;
   private baseDir: string;
+  private isSftp: boolean;
 
   constructor(private config: FtpConfig) {
-    this.client = new ftp.Client(config.timeoutMs || 30000);
-    this.client.ftp.verbose = false;
+    this.isSftp = config.protocol === 'sftp';
     this.baseDir = config.baseDir || '/';
+    
+    console.log('FtpClientService constructor - protocol:', config.protocol, 'isSftp:', this.isSftp);
+    
+    if (!this.isSftp) {
+      console.log('Creating FTP client...');
+      this.ftpClient = new ftp.Client(config.timeoutMs || 30000);
+      this.ftpClient.ftp.verbose = false;
+    } else {
+      console.log('Creating SFTP client...');
+      this.sftpClient = new Client();
+    }
   }
 
   async connect(): Promise<void> {
-    const accessOptions: AccessOptions = {
-      host: this.config.host,
-      port: this.config.port || 21,
-      user: this.config.user,
-      password: this.config.password,
-      secure: this.config.secure || false,
-    };
-    await this.client.access(accessOptions);
-    if (this.baseDir && this.baseDir !== '/') {
-      await this.ensureDir(this.baseDir);
-      await this.client.cd(this.baseDir);
+    if (this.isSftp) {
+      if (!this.sftpClient) throw new Error('SFTP client not initialized');
+      
+      const connectConfig = {
+        host: this.config.host,
+        port: this.config.port || 22,
+        username: this.config.user,
+        password: this.config.password,
+        readyTimeout: 30000,
+        tryKeyboard: true,
+
+        hostHash: 'sha1',
+        hostVerifier: () => true,
+        algorithms: {
+          serverHostKey: ['ssh-rsa', 'ssh-dss'] as any,
+          kex: [
+            'diffie-hellman-group1-sha1',
+            'diffie-hellman-group14-sha1',
+            'diffie-hellman-group-exchange-sha1'
+          ] as any,
+          cipher: [
+            'aes128-cbc',
+            'aes192-cbc',
+            'aes256-cbc',
+            '3des-cbc'
+          ] as any,
+          hmac: [
+            'hmac-sha1',
+            'hmac-md5'
+          ] as any
+        }
+      };
+      
+      console.log('SFTP connecting to:', this.config.host, 'port:', this.config.port, 'user:', this.config.user);
+      await this.sftpClient.connect(connectConfig);
+      console.log('SFTP connection established successfully');
+    } else {
+      if (!this.ftpClient) throw new Error('FTP client not initialized');
+      
+      const accessOptions: ftp.AccessOptions = {
+        host: this.config.host,
+        port: this.config.port || 21,
+        user: this.config.user,
+        password: this.config.password,
+        secure: this.config.secure || false,
+      };
+      await this.ftpClient.access(accessOptions);
+      if (this.baseDir && this.baseDir !== '/') {
+        await this.ensureDir(this.baseDir);
+        await this.ftpClient.cd(this.baseDir);
+      }
     }
   }
 
   async close(): Promise<void> {
-    this.client.close();
+    if (this.isSftp) {
+      if (this.sftpClient) {
+        await this.sftpClient.end();
+        this.sftpClient = null;
+      }
+    } else {
+      if (this.ftpClient) {
+        this.ftpClient.close();
+      }
+    }
   }
 
   async ensureDir(remoteDir: string): Promise<void> {
-    const segments = remoteDir.split('/').filter(Boolean);
-    let current = '';
-    for (const segment of segments) {
-      current = path.posix.join(current, segment);
+    if (this.isSftp) {
+      if (!this.sftpClient) throw new Error('SFTP client not connected');
+      
       try {
-        await this.client.cd(current);
-      } catch {
-        await this.client.send(`MKD ${current}`);
-        await this.client.cd(current);
+        await this.sftpClient.mkdir(remoteDir, true);
+      } catch (error) {
+        // Directory might already exist, check if it's accessible
+        try {
+          await this.sftpClient.stat(remoteDir);
+        } catch (statError) {
+          throw new Error(`Failed to create or access directory ${remoteDir}: ${error}`);
+        }
+      }
+    } else {
+      if (!this.ftpClient) throw new Error('FTP client not initialized');
+      
+      const segments = remoteDir.split('/').filter(Boolean);
+      let current = '';
+      for (const segment of segments) {
+        current = path.posix.join(current, segment);
+        try {
+          await this.ftpClient.cd(current);
+        } catch {
+          await this.ftpClient.send(`MKD ${current}`);
+          await this.ftpClient.cd(current);
+        }
       }
     }
   }
 
   async uploadBuffer(buffer: Buffer, remotePath: string): Promise<void> {
-    const dir = path.posix.dirname(remotePath);
-    await this.ensureDir(dir);
-    const stream = new PassThrough();
-    stream.end(buffer);
-    await this.client.uploadFrom(stream, remotePath);
+    if (this.isSftp) {
+      if (!this.sftpClient) throw new Error('SFTP client not connected');
+      
+      try {
+        // Ensure directory exists
+        const remoteDir = path.posix.dirname(remotePath);
+        if (remoteDir && remoteDir !== '.' && remoteDir !== '/') {
+          await this.ensureDir(remoteDir);
+        }
+        
+        // Upload buffer directly
+        await this.sftpClient.put(buffer, remotePath);
+        console.log('SFTP upload completed:', remotePath);
+      } catch (error) {
+        console.error('SFTP upload error:', error);
+        throw error;
+      }
+    } else {
+      if (!this.ftpClient) throw new Error('FTP client not initialized');
+      
+      const dir = path.posix.dirname(remotePath);
+      await this.ensureDir(dir);
+      const stream = new PassThrough();
+      stream.end(buffer);
+      await this.ftpClient.uploadFrom(stream, remotePath);
+    }
   }
 }
 
 export function buildFtpConfigFromEnv(): FtpConfig {
   return {
-    protocol: (process.env.FTP_PROTOCOL as any) || 'ftp',
-    host: process.env.FTP_HOST || '',
-    port: process.env.FTP_PORT ? parseInt(process.env.FTP_PORT, 10) : undefined,
-    user: process.env.FTP_USER || '',
-    password: process.env.FTP_PASSWORD || '',
-    secure: process.env.FTP_SECURE === 'true',
-    baseDir: process.env.FTP_BASE_DIR || '/invoices',
-    timeoutMs: process.env.FTP_TIMEOUT_MS ? parseInt(process.env.FTP_TIMEOUT_MS, 10) : 30000,
+    protocol: (process.env.SFTP_PROTOCOL as any) || 'sftp',
+    host: process.env.SFTP_HOST || '',
+    port: process.env.SFTP_PORT ? parseInt(process.env.SFTP_PORT, 10) : undefined,
+    user: process.env.SFTP_USERNAME || '',
+    password: process.env.SFTP_PASSWORD || '',
+    secure: process.env.SFTP_PROTOCOL === 'sftp' || false,
+    baseDir: process.env.SFTP_BASE_DIR || '/',
+    timeoutMs: process.env.SFTP_TIMEOUT_MS ? parseInt(process.env.SFTP_TIMEOUT_MS, 10) : 30000,
   };
 }
-
 

@@ -1311,17 +1311,21 @@ export interface XmlInvoiceDispatch {
   xmlSha256: string;
   remotePath?: string | null;
   dispatchedAt?: string | null;
+  paymentStatus: 'PENDING' | 'PAID' | 'OVERDUE' | 'EXPIRED';
+  paymentReceivedAt?: string | null;
+  paymentNote?: string | null;
   createdAt: string;
   updatedAt: string;
   fuelingOperation?: any;
 }
 
-export async function listXmlDispatches(params?: { startDate?: string; endDate?: string; airlineId?: number; status?: string }): Promise<XmlInvoiceDispatch[]> {
+export async function listXmlDispatches(params?: { startDate?: string; endDate?: string; airlineId?: number; status?: string; paymentStatus?: string }): Promise<XmlInvoiceDispatch[]> {
   const query = new URLSearchParams();
   if (params?.startDate) query.append('startDate', params.startDate);
   if (params?.endDate) query.append('endDate', params.endDate);
   if (params?.airlineId) query.append('airlineId', String(params.airlineId));
   if (params?.status) query.append('status', params.status);
+  if (params?.paymentStatus) query.append('paymentStatus', params.paymentStatus);
   return fetchWithAuth(`/api/invoices/xml/dispatches?${query.toString()}`);
 }
 
@@ -1370,6 +1374,26 @@ export async function downloadXmlDispatchFile(dispatchId: number, desiredFilenam
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
   }, 0);
+}
+
+export async function testSftpConnection(): Promise<{ success: boolean; message: string; config?: any }> {
+  return await fetchWithAuth<{ success: boolean; message: string; config?: any }>('/api/invoices/xml/test-sftp', {
+    method: 'POST',
+  });
+}
+
+export async function updatePaymentStatus(dispatchId: number, paymentStatus: string, paymentNote?: string): Promise<{ success: boolean; message: string; dispatch: XmlInvoiceDispatch }> {
+  return await fetchWithAuth<{ success: boolean; message: string; dispatch: XmlInvoiceDispatch }>(`/api/invoices/xml/dispatch/${dispatchId}/payment-status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ paymentStatus, paymentNote }),
+  });
+}
+
+export async function runPaymentStatusUpdate(): Promise<{ success: boolean; message: string; counts: any[] }> {
+  return await fetchWithAuth<{ success: boolean; message: string; counts: any[] }>('/api/invoices/xml/run-payment-status-update', {
+    method: 'POST',
+  });
 }
 
 // --- Reserve Fuel API --- //

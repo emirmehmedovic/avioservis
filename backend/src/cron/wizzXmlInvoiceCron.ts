@@ -7,7 +7,7 @@ let job: { stop: () => void } | null = null;
 
 export function initWizzXmlInvoiceCron(): void {
   if (job) job.stop();
-  const cronExpr = '0 23 * * *';
+  const cronExpr = '55 23 * * *';
   const tz = process.env.TZ || 'Europe/Sarajevo';
 
   logger.info(`Zakazivanje Wizz XML invoice crona: ${cronExpr} TZ=${tz}`);
