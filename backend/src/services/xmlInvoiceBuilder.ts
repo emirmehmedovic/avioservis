@@ -65,6 +65,14 @@ export const generateXMLInvoiceBackend = (operation: FuelingOperationForXml): st
 
   const invoiceDate = dayjs(operation.dateTime).format('YYYY-MM-DD');
 
+  // Generate current date/time for invoice creation and tax point (Issue Date)
+  const currentDateTime = new Date();
+  const invoiceCreationDateTime = dayjs(currentDateTime).format('YYYY-MM-DDTHH:mm:ss');
+  const taxPointDateTime = dayjs(currentDateTime).format('YYYY-MM-DDTHH:mm:ss');
+  
+  // Service date should use the actual operation date/time (Service Date)
+  const serviceDateTime = dayjs(operation.dateTime).format('YYYY-MM-DDTHH:mm:ss');
+
   const getCustomerDetails = (airline: any) => {
     if (!airline) return null;
     const wizzAirEntities: Record<string, { vatNumber: string; name: string; street: string; city: string; countryCode: string; postalCode: string; }> = {
@@ -131,9 +139,8 @@ export const generateXMLInvoiceBackend = (operation: FuelingOperationForXml): st
 
   const customerDetails = getCustomerDetails(operation.airline);
 
-  const invoiceDateTime = dayjs(operation.dateTime).format('YYYY-MM-DDTHH:mm:ss');
-  const taxPointDate = dayjs(operation.dateTime).format('YYYY-MM-DDTHH:mm:ss');
-  const paymentDueDate = dayjs(invoiceDate).add(15, 'day').format('YYYY-MM-DDTHH:mm:ss');
+  // Payment due date based on current date (Issue Date) + 15 days
+  const paymentDueDate = dayjs(currentDateTime).add(15, 'day').format('YYYY-MM-DDTHH:mm:ss');
 
   const locationCode = 'TZL';
   const invoiceTransmissionId = `${locationCode}-${operation.id}-${invoiceDate}`;
@@ -146,7 +153,7 @@ export const generateXMLInvoiceBackend = (operation: FuelingOperationForXml): st
 <InvoiceTransmission xmlns="http://WizzAir.DI.Loaders.Fuel.IATA3.FuelInvoice_IATA3_v1_0">
   <InvoiceTransmissionHeader>
     <InvoiceTransmissionId>${invoiceTransmissionId}</InvoiceTransmissionId>
-    <InvoiceCreationDate>${invoiceDateTime}</InvoiceCreationDate>
+    <InvoiceCreationDate>${invoiceCreationDateTime}</InvoiceCreationDate>
     <Version>IATA:FuelInvoiceV3.2.1</Version>
   </InvoiceTransmissionHeader>
   <Invoice>
@@ -163,7 +170,7 @@ export const generateXMLInvoiceBackend = (operation: FuelingOperationForXml): st
       <InvoicePaymentTermsNetDueDays>15</InvoicePaymentTermsNetDueDays>
       <InvoicePaymentTermsDescription>Payment due 15 days from invoice issue date</InvoicePaymentTermsDescription>
       <TaxInvoiceNumber>INV-${operation.delivery_note_number || operation.id}-${new Date().getFullYear()}</TaxInvoiceNumber>
-      <TaxPointDate>${taxPointDate}</TaxPointDate>
+      <TaxPointDate>${taxPointDateTime}</TaxPointDate>
       <InvoiceCurrencyCode>${operation.currency || 'BAM'}</InvoiceCurrencyCode>
       <InvoiceTotalAmount>${totalAmount}</InvoiceTotalAmount>
       <InvoiceIDDetails InvoiceIDType="II">
@@ -196,7 +203,7 @@ export const generateXMLInvoiceBackend = (operation: FuelingOperationForXml): st
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="FNO">${flightNumber}</ItemDeliveryReferenceValue>
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="ARN">${aircraftRegistration}</ItemDeliveryReferenceValue>
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="DTN">${destination}</ItemDeliveryReferenceValue>
-        <ItemReferenceLocalDate ItemReferenceDateTypes="DTA">${invoiceDateTime}</ItemReferenceLocalDate>
+        <ItemReferenceLocalDate ItemReferenceDateTypes="DTA">${serviceDateTime}</ItemReferenceLocalDate>
         <ItemInvoiceAmount>${totalAmount}</ItemInvoiceAmount>
         <SubItem>
           <SubItemProduct>

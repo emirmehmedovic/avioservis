@@ -5,6 +5,7 @@ import fs from 'fs';
 import dayjs from 'dayjs';
 import { FtpClientService, buildFtpConfigFromEnv } from './ftpClient';
 import { generateXMLInvoiceBackend } from './xmlInvoiceBuilder';
+import { generatePDFInvoiceBuffer, buildPDFInvoiceFileName, FuelingOperationForPDF } from './pdfInvoiceGenerator';
 
 const prisma = new PrismaClient();
 
@@ -98,16 +99,23 @@ export async function dispatchOneOperation(opId: number, force = false) {
   // Build XML identical to frontend
   const xml = generateXMLInvoiceBackend(op as any);
   const sha = computeSha256(xml);
-  const fileName = buildInvoiceFileName(op);
-  const localPath = getLocalArchivePath(new Date(op.dateTime), fileName);
+  const xmlFileName = buildInvoiceFileName(op);
+  const xmlLocalPath = getLocalArchivePath(new Date(op.dateTime), xmlFileName);
+
+  // Generate PDF invoice
+  const pdfBuffer = await generatePDFInvoiceBuffer(op as unknown as FuelingOperationForPDF);
+  const pdfFileName = buildPDFInvoiceFileName(op as unknown as FuelingOperationForPDF);
+  const pdfLocalPath = getLocalArchivePath(new Date(op.dateTime), pdfFileName);
 
   // Ensure local dir
-  fs.mkdirSync(path.dirname(localPath), { recursive: true });
-  fs.writeFileSync(localPath, xml, 'utf-8');
+  fs.mkdirSync(path.dirname(xmlLocalPath), { recursive: true });
+  fs.writeFileSync(xmlLocalPath, xml, 'utf-8');
+  fs.writeFileSync(pdfLocalPath, pdfBuffer);
 
   // FTP upload or graceful fail if credentials missing
   const ftpConfig = buildFtpConfigFromEnv();
-  const remotePath = getRemotePath(new Date(op.dateTime), fileName, ftpConfig.baseDir || '/invoices');
+  const xmlRemotePath = getRemotePath(new Date(op.dateTime), xmlFileName, ftpConfig.baseDir || '/invoices');
+  const pdfRemotePath = getRemotePath(new Date(op.dateTime), pdfFileName, ftpConfig.baseDir || '/invoices');
   const credsAvailable = Boolean(ftpConfig.host && ftpConfig.user && ftpConfig.password);
   const client = credsAvailable ? new FtpClientService(ftpConfig) : null;
 
@@ -119,9 +127,9 @@ export async function dispatchOneOperation(opId: number, force = false) {
         airlineId: op.airlineId,
         status: XmlDispatchStatus.PENDING,
         attempts: 0,
-        xmlFileName: fileName,
+        xmlFileName: xmlFileName,
         xmlSha256: sha,
-        remotePath: remotePath,
+        remotePath: xmlRemotePath,
       },
     });
   }
@@ -135,14 +143,20 @@ export async function dispatchOneOperation(opId: number, force = false) {
           attempts: { increment: 1 } as any,
           lastError: 'FTP credentials are missing in environment',
           xmlSha256: sha,
-          xmlFileName: fileName,
-          remotePath,
+          xmlFileName: xmlFileName,
+          remotePath: xmlRemotePath,
         },
       });
       return { skipped: false, success: false, error: 'FTP credentials missing', dispatch: updated };
     }
     await client!.connect();
-    await client!.uploadBuffer(Buffer.from(xml, 'utf-8'), remotePath);
+    
+    // Upload XML file
+    await client!.uploadBuffer(Buffer.from(xml, 'utf-8'), xmlRemotePath);
+    
+    // Upload PDF file
+    await client!.uploadBuffer(pdfBuffer, pdfRemotePath);
+    
     await client!.close();
 
     const updated = await prisma.xmlInvoiceDispatch.update({
@@ -153,8 +167,8 @@ export async function dispatchOneOperation(opId: number, force = false) {
         dispatchedAt: new Date(),
         lastError: null,
         xmlSha256: sha,
-        xmlFileName: fileName,
-        remotePath,
+        xmlFileName: xmlFileName,
+        remotePath: xmlRemotePath,
       },
     });
     return { skipped: false, success: true, dispatch: updated };
@@ -167,8 +181,8 @@ export async function dispatchOneOperation(opId: number, force = false) {
         attempts: { increment: 1 } as any,
         lastError: err?.message || String(err),
         xmlSha256: sha,
-        xmlFileName: fileName,
-        remotePath,
+        xmlFileName: xmlFileName,
+        remotePath: xmlRemotePath,
       },
     });
     return { skipped: false, success: false, error: err?.message, dispatch: updated };
@@ -211,9 +225,9 @@ export async function prepareOneOperation(opId: number) {
     throw new Error('Operation airline is not in target list');
   }
   const existing = await prisma.xmlInvoiceDispatch.findUnique({ where: { fuelingOperationId: opId } });
-  const fileName = buildInvoiceFileName(op);
+  const xmlFileName = buildInvoiceFileName(op);
   const ftpConfig = buildFtpConfigFromEnv();
-  const remotePath = getRemotePath(new Date(op.dateTime), fileName, ftpConfig.baseDir || '/invoices');
+  const xmlRemotePath = getRemotePath(new Date(op.dateTime), xmlFileName, ftpConfig.baseDir || '/invoices');
   const xml = generateXMLInvoiceBackend(op as any);
   const sha = computeSha256(xml);
   if (existing) {
@@ -226,9 +240,9 @@ export async function prepareOneOperation(opId: number) {
       status: XmlDispatchStatus.PENDING,
       attempts: 0,
       lastError: null,
-      xmlFileName: fileName,
+      xmlFileName: xmlFileName,
       xmlSha256: sha,
-      remotePath,
+      remotePath: xmlRemotePath,
     },
   });
   return record;
