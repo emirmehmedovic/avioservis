@@ -65,13 +65,14 @@ export const generateXMLInvoiceBackend = (operation: FuelingOperationForXml): st
 
   const invoiceDate = dayjs(operation.dateTime).format('YYYY-MM-DD');
 
-  // Generate current date/time for invoice creation and tax point (Issue Date)
-  const currentDateTime = new Date();
-  const invoiceCreationDateTime = dayjs(currentDateTime).format('YYYY-MM-DDTHH:mm:ss');
-  const taxPointDateTime = dayjs(currentDateTime).format('YYYY-MM-DDTHH:mm:ss');
+  // Use operation dateTime for all invoice dates to ensure consistency
+  // InvoiceCreationDate and TaxPointDate must NOT be later than InvoiceIssueDate
+  const operationDateTime = dayjs(operation.dateTime);
+  const invoiceCreationDateTime = operationDateTime.format('YYYY-MM-DDTHH:mm:ss');
+  const taxPointDateTime = operationDateTime.format('YYYY-MM-DDTHH:mm:ss');
   
   // Service date should use the actual operation date/time (Service Date)
-  const serviceDateTime = dayjs(operation.dateTime).format('YYYY-MM-DDTHH:mm:ss');
+  const serviceDateTime = operationDateTime.format('YYYY-MM-DDTHH:mm:ss');
 
   const getCustomerDetails = (airline: any) => {
     if (!airline) return null;
@@ -139,8 +140,8 @@ export const generateXMLInvoiceBackend = (operation: FuelingOperationForXml): st
 
   const customerDetails = getCustomerDetails(operation.airline);
 
-  // Payment due date based on current date (Issue Date) + 15 days
-  const paymentDueDate = dayjs(currentDateTime).add(15, 'day').format('YYYY-MM-DDTHH:mm:ss');
+  // Payment due date based on operation date (Issue Date) + 15 days
+  const paymentDueDate = operationDateTime.add(15, 'day').format('YYYY-MM-DDTHH:mm:ss');
 
   const locationCode = 'TZL';
   const invoiceTransmissionId = `${locationCode}-${operation.id}-${invoiceDate}`;

@@ -195,7 +195,7 @@ export async function generatePDFInvoiceBuffer(operation: FuelingOperationForPDF
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0);
     doc.text(`Invoice No.: ${invoiceNumber}`, 14, 77 + topPadding);
-    doc.text(`Issue Date: ${formatDate(new Date().toISOString())}`, 14, 83 + topPadding);
+    doc.text(`Issue Date: ${formatDate(operation.dateTime instanceof Date ? operation.dateTime.toISOString() : operation.dateTime)}`, 14, 83 + topPadding);
     doc.text(`Service Date: ${formatDate(operation.dateTime instanceof Date ? operation.dateTime.toISOString() : operation.dateTime)}`, 14, 89 + topPadding);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);

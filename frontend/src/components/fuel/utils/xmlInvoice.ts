@@ -262,8 +262,9 @@ export const generateConsolidatedXMLInvoice = (operations: FuelingOperation[], f
   // Format the dates
   const startDate = dayjs(firstOperation.dateTime).format('YYYY-MM-DD');
   const endDate = dayjs(lastOperation.dateTime).format('YYYY-MM-DD');
-  const invoiceDateTime = dayjs().format('YYYY-MM-DDTHH:mm:ss');
-  const invoiceDate = dayjs().format('YYYY-MM-DD');
+  // Use firstOperation dateTime for invoice creation to ensure consistency
+  const invoiceDateTime = dayjs(firstOperation.dateTime).format('YYYY-MM-DDTHH:mm:ss');
+  const invoiceDate = dayjs(firstOperation.dateTime).format('YYYY-MM-DD');
   
   // Generate a unique invoice transmission ID
   const locationCode = 'TZL';
