@@ -20,8 +20,10 @@ import {
   prepareEmailInvoicesForRange,
   EmailInvoiceStats
 } from '@/lib/emailInvoiceApiService';
+import withAuth from '@/components/auth/withAuth';
+import { UserRole } from '@/types';
 
-export default function EmailInvoicesAdminPage() {
+function EmailInvoicesAdminPage() {
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<EmailInvoiceStats | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>(dayjs().format('YYYY-MM-DD'));
@@ -438,3 +440,4 @@ export default function EmailInvoicesAdminPage() {
     </div>
   );
 }
+export default withAuth(EmailInvoicesAdminPage, [UserRole.ADMIN]);

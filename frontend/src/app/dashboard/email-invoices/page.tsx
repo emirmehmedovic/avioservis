@@ -14,8 +14,10 @@ import {
   EmailInvoiceDispatch,
   EmailPreview
 } from '@/lib/emailInvoiceApiService';
+import withAuth from '@/components/auth/withAuth';
+import { UserRole } from '@/types';
 
-export default function EmailInvoicesPage() {
+function EmailInvoicesPage() {
   const [activeTab, setActiveTab] = useState<'dispatch' | 'sent'>('dispatch');
   const [rows, setRows] = useState<EmailInvoiceDispatch[]>([]);
   const [loading, setLoading] = useState(false);
@@ -965,3 +967,5 @@ function PaymentStatusModal({
     </div>
   );
 }
+
+export default withAuth(EmailInvoicesPage, [UserRole.ADMIN, UserRole.KONTROLA]);
