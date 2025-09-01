@@ -202,10 +202,14 @@ export async function dispatchOneEmailOperation(opId: number, force = false) {
   }
 
   // Check if already sent
-  const existing = op.emailInvoiceDispatches?.find((dispatch: any) => dispatch.status === EmailDispatchStatus.SENT);
-  if (existing && !force) {
-    return { skipped: true, reason: 'Already SENT', dispatch: existing };
+  const existingSent = op.emailInvoiceDispatches?.find((dispatch: any) => dispatch.status === EmailDispatchStatus.SENT);
+  if (existingSent && !force) {
+    return { skipped: true, reason: 'Already SENT', dispatch: existingSent };
   }
+
+  // Check if any record exists (to avoid unique constraint error)
+  const existingAny = op.emailInvoiceDispatches?.find((dispatch: any) => dispatch.fuelingOperationId === opId);
+  console.log(`📋 Existing record check for operation ${opId}:`, existingAny ? 'FOUND' : 'NOT FOUND');
 
   // Generate Invoice PDF
   const originalInvoicePdfBuffer = await generatePDFInvoiceBuffer(op as unknown as FuelingOperationForPDF);
@@ -231,7 +235,7 @@ export async function dispatchOneEmailOperation(opId: number, force = false) {
   const emailService = new EmailService(emailConfig, imapConfig);
 
   // Create or update record
-  let record = existing;
+  let record = existingAny;
   if (!record) {
     record = await prisma.emailInvoiceDispatch.create({
       data: {
