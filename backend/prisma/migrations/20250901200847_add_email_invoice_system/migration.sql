@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS "EmailInvoiceDispatch" (
     "attempts" INTEGER NOT NULL DEFAULT 0,
     "emailSubject" TEXT,
     "emailTo" TEXT,
+    "emailBody" TEXT,
     "pdfFileName" TEXT,
     "pdfSha256" TEXT,
     "dispatchedAt" TIMESTAMP(3),
