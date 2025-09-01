@@ -253,3 +253,80 @@ backend/private_uploads/email_invoices/YYYY-MM-DD/filename.pdf
 - Provjeri logove aplikacije
 - Restart backend aplikacije
 - Provjeri `TZ` environment varijablu
+
+[2025-09-01 13:45:00] DEBUG [XyCVfKE0JgU] ----_NmP-464244dc3d01fd68-Part_1--
+[2025-09-01 13:45:00] DEBUG [XyCVfKE0JgU] .
+[2025-09-01 13:45:00] INFO  [XyCVfKE0JgU] <519002 bytes encoded mime message (source size 518857 bytes)>
+[2025-09-01 13:45:00] DEBUG [XyCVfKE0JgU] S: 250 2.6.0 <fbf728be-fc40-245b-14c3-f06796d90ae8@hifapetrol.ba> [InternalId=96104188215980, Hostname=MAIL-02.Hifapetrol.ba] 520376 bytes in 0.467, 1087,256 KB/sec Queued mail for delivery
+[2025-09-01 13:45:00] DEBUG [XyCVfKE0JgU] Closing connection to the server using "end"
+[2025-09-01 13:45:00] INFO  [XyCVfKE0JgU] Connection closed
+IMAP connection error: AggregateError
+    at internalConnectMultiple (node:net:1139:18)
+    at afterConnectMultiple (node:net:1714:7) {
+  code: 'ECONNREFUSED',
+  source: 'socket',
+  [errors]: [
+    Error: connect ECONNREFUSED 185.12.78.32:143
+        at createConnectionError (node:net:1677:14)
+        at afterConnectMultiple (node:net:1707:16) {
+      errno: -61,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '185.12.78.32',
+      port: 143
+    },
+    Error: connect ECONNREFUSED 217.75.201.2:143
+        at createConnectionError (node:net:1677:14)
+        at afterConnectMultiple (node:net:1707:16) {
+      errno: -61,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '217.75.201.2',
+      port: 143
+    },
+    Error: connect ECONNREFUSED 217.75.201.3:143
+        at createConnectionError (node:net:1677:14)
+        at afterConnectMultiple (node:net:1707:16) {
+      errno: -61,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '217.75.201.3',
+      port: 143
+    }
+  ]
+}
+Could not save email to Sent folder: AggregateError
+    at internalConnectMultiple (node:net:1139:18)
+    at afterConnectMultiple (node:net:1714:7) {
+  code: 'ECONNREFUSED',
+  source: 'socket',
+  [errors]: [
+    Error: connect ECONNREFUSED 185.12.78.32:143
+        at createConnectionError (node:net:1677:14)
+        at afterConnectMultiple (node:net:1707:16) {
+      errno: -61,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '185.12.78.32',
+      port: 143
+    },
+    Error: connect ECONNREFUSED 217.75.201.2:143
+        at createConnectionError (node:net:1677:14)
+        at afterConnectMultiple (node:net:1707:16) {
+      errno: -61,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '217.75.201.2',
+      port: 143
+    },
+    Error: connect ECONNREFUSED 217.75.201.3:143
+        at createConnectionError (node:net:1677:14)
+        at afterConnectMultiple (node:net:1707:16) {
+      errno: -61,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '217.75.201.3',
+      port: 143
+    }
+  ]
+}
