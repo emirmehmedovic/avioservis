@@ -14,10 +14,9 @@ import {
   EmailInvoiceDispatch,
   EmailPreview
 } from '@/lib/emailInvoiceApiService';
-import withAuth from '@/components/auth/withAuth';
-import { UserRole } from '@/types';
+// Role check handled by backend API - no frontend role restriction needed
 
-function EmailInvoicesPage() {
+export default function EmailInvoicesPage() {
   const [activeTab, setActiveTab] = useState<'dispatch' | 'sent'>('dispatch');
   const [rows, setRows] = useState<EmailInvoiceDispatch[]>([]);
   const [loading, setLoading] = useState(false);
@@ -968,4 +967,3 @@ function PaymentStatusModal({
   );
 }
 
-export default withAuth(EmailInvoicesPage, [UserRole.ADMIN, UserRole.KONTROLA]);

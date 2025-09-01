@@ -109,6 +109,7 @@ export default function Sidebar() {
     authUser && item.roles.includes(authUser.role)
   );
 
+
   const toggleSidebar = () => {
     setCollapsed(!collapsed);
   };

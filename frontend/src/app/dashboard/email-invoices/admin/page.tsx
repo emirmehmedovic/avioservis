@@ -20,10 +20,9 @@ import {
   prepareEmailInvoicesForRange,
   EmailInvoiceStats
 } from '@/lib/emailInvoiceApiService';
-import withAuth from '@/components/auth/withAuth';
-import { UserRole } from '@/types';
+// Role check handled by RoleBasedAuth in layout - no frontend role restriction needed
 
-function EmailInvoicesAdminPage() {
+export default function EmailInvoicesAdminPage() {
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<EmailInvoiceStats | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>(dayjs().format('YYYY-MM-DD'));
@@ -440,4 +439,3 @@ function EmailInvoicesAdminPage() {
     </div>
   );
 }
-export default withAuth(EmailInvoicesAdminPage, [UserRole.ADMIN]);

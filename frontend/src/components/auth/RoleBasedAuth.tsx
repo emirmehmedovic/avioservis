@@ -15,6 +15,8 @@ const PAGE_ACCESS_MAP: Record<string, UserRole[]> = {
   '/dashboard/statistics': [UserRole.ADMIN, UserRole.KONTROLA, UserRole.FUEL_OPERATOR],
   '/dashboard/financial-reports': [UserRole.ADMIN, UserRole.KONTROLA],
   '/dashboard/xml-invoices': [UserRole.ADMIN, UserRole.KONTROLA],
+  '/dashboard/email-invoices': [UserRole.ADMIN, UserRole.KONTROLA],
+  '/dashboard/email-invoices/admin': [UserRole.ADMIN, UserRole.KONTROLA],
   '/dashboard/customs': [UserRole.ADMIN, UserRole.CARINA],
   '/dashboard/airport': [UserRole.ADMIN, UserRole.AERODROM],
   '/dashboard/companies': [UserRole.ADMIN],
