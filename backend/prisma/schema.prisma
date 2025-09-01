@@ -461,6 +461,7 @@ model Airline {
   fuelPriceRules        FuelPriceRule[]
   fuelingOperations     FuelingOperation[]
   xmlInvoiceDispatches  XmlInvoiceDispatch[]
+  emailInvoiceDispatches EmailInvoiceDispatch[]
 }
 
 model FuelReceipt {
@@ -568,6 +569,7 @@ model FuelingOperation {
   airline               Airline            @relation(fields: [airlineId], references: [id])
   tank                  FuelTank           @relation(fields: [tankId], references: [id])
   xmlInvoiceDispatch    XmlInvoiceDispatch?
+  emailInvoiceDispatches EmailInvoiceDispatch[]
 
   @@index([dateTime])
   @@index([airlineId])
@@ -777,6 +779,41 @@ model XmlInvoiceDispatch {
   @@index([status])
   @@index([airlineId])
   @@index([createdAt])
+}
+
+enum EmailDispatchStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model EmailInvoiceDispatch {
+  id                 Int                  @id @default(autoincrement())
+  fuelingOperationId Int
+  airlineId          Int
+  status             EmailDispatchStatus  @default(PENDING)
+  attempts           Int                  @default(0)
+  lastError          String?
+  emailTo            String
+  emailSubject       String
+  emailBody          String?
+  pdfFileName        String
+  pdfSha256          String
+  dispatchedAt       DateTime?
+  paymentStatus      PaymentStatus        @default(PENDING)
+  paymentReceivedAt  DateTime?
+  paymentNote        String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  fuelingOperation   FuelingOperation     @relation(fields: [fuelingOperationId], references: [id], onDelete: Cascade)
+  airline            Airline              @relation(fields: [airlineId], references: [id])
+
+  @@index([status])
+  @@index([airlineId])
+  @@index([dispatchedAt])
+  @@index([fuelingOperationId])
+  @@index([paymentStatus])
 }
 
 model TankReserveFuel {

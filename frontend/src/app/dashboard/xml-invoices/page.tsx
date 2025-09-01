@@ -10,8 +10,8 @@ export default function XmlInvoicesPage() {
   const [activeTab, setActiveTab] = useState<'dispatch' | 'sent'>('dispatch');
   const [rows, setRows] = useState<XmlInvoiceDispatch[]>([]);
   const [loading, setLoading] = useState(false);
-  const [startDate, setStartDate] = useState<string>(dayjs().format('YYYY-MM-DD'));
-  const [endDate, setEndDate] = useState<string>(dayjs().format('YYYY-MM-DD'));
+  const [startDate, setStartDate] = useState<string>(dayjs().startOf('month').format('YYYY-MM-DD'));
+  const [endDate, setEndDate] = useState<string>(dayjs().endOf('month').format('YYYY-MM-DD'));
   const [status, setStatus] = useState<string>('');
   const [paymentStatus, setPaymentStatus] = useState<string>('');
   const [nextCronText, setNextCronText] = useState<string>('');

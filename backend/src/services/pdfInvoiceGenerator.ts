@@ -469,6 +469,84 @@ export async function generatePDFInvoiceBuffer(operation: FuelingOperationForPDF
         pageWidth / 2 + 5, summaryBoxY + 32);
       doc.text(`(Exchange rate: 1 ${operation.currency} = ${exchangeRate.toLocaleString('hr-HR', { minimumFractionDigits: 5 })} BAM)`, 
         pageWidth / 2 + 5, summaryBoxY + 37);
+      
+      // Add stamp/seal (pečat) below exchange rate information
+      try {
+        const pecatImagePath = path.join(__dirname, '../../../frontend/public/pecat.png');
+        
+        if (fs.existsSync(pecatImagePath)) {
+          const pecatImageBuffer = fs.readFileSync(pecatImagePath);
+          
+          // Load image to get original dimensions
+          const img = await loadImage(pecatImageBuffer);
+          
+          // Use higher resolution canvas for better quality (2x scale)
+          const scale = 2;
+          const canvas = createCanvas(img.width * scale, img.height * scale);
+          const ctx = canvas.getContext('2d');
+          
+          // Enable image smoothing for better quality
+          ctx.imageSmoothingEnabled = true;
+          // TypeScript may not recognize imageSmoothingQuality, so we cast to any
+          (ctx as any).imageSmoothingQuality = 'high';
+          
+          // Draw with higher resolution
+          ctx.drawImage(img, 0, 0, img.width * scale, img.height * scale);
+          
+          const pecatImageBase64 = canvas.toDataURL('image/png');
+          
+          // Position stamp below exchange rate text, aligned right
+          const pecatWidth = 75; // Same as frontend: 75mm width
+          const pecatHeight = 40; // Same as frontend: 40mm height
+          const pecatX = pageWidth - pecatWidth - 14; // Aligned right
+          const pecatY = summaryBoxY + 42; // Positioned below exchange rate text
+          
+          doc.addImage(pecatImageBase64, 'PNG', pecatX, pecatY, pecatWidth, pecatHeight);
+        } else {
+          console.warn('Pecat image not found at:', pecatImagePath);
+        }
+      } catch (error) {
+        console.error('Error adding pecat image:', error);
+      }
+    } else {
+      // Add stamp/seal (pečat) for non-USD/EUR currencies as well
+      try {
+        const pecatImagePath = path.join(__dirname, '../../../frontend/public/pecat.png');
+        
+        if (fs.existsSync(pecatImagePath)) {
+          const pecatImageBuffer = fs.readFileSync(pecatImagePath);
+          
+          // Load image to get original dimensions
+          const img = await loadImage(pecatImageBuffer);
+          
+          // Use higher resolution canvas for better quality (2x scale)
+          const scale = 2;
+          const canvas = createCanvas(img.width * scale, img.height * scale);
+          const ctx = canvas.getContext('2d');
+          
+          // Enable image smoothing for better quality
+          ctx.imageSmoothingEnabled = true;
+          // TypeScript may not recognize imageSmoothingQuality, so we cast to any
+          (ctx as any).imageSmoothingQuality = 'high';
+          
+          // Draw with higher resolution
+          ctx.drawImage(img, 0, 0, img.width * scale, img.height * scale);
+          
+          const pecatImageBase64 = canvas.toDataURL('image/png');
+          
+          // Position stamp below total amount, aligned right
+          const pecatWidth = 75;
+          const pecatHeight = 40;
+          const pecatX = pageWidth - pecatWidth - 14;
+          const pecatY = summaryBoxY + 42; // Same position as USD/EUR case
+          
+          doc.addImage(pecatImageBase64, 'PNG', pecatX, pecatY, pecatWidth, pecatHeight);
+        } else {
+          console.warn('Pecat image not found at:', pecatImagePath);
+        }
+      } catch (error) {
+        console.error('Error adding pecat image:', error);
+      }
     }
 
     // Payment info - IDENTICAL to frontend
@@ -601,3 +679,4 @@ export function buildPDFInvoiceFileName(operation: FuelingOperationForPDF): stri
   const year = new Date().getFullYear();
   return `Invoice-INV-${deliveryVoucherNumber}-${year}.pdf`;
 }
+

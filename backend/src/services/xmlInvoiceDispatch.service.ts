@@ -5,7 +5,8 @@ import fs from 'fs';
 import dayjs from 'dayjs';
 import { FtpClientService, buildFtpConfigFromEnv } from './ftpClient';
 import { generateXMLInvoiceBackend } from './xmlInvoiceBuilder';
-import { generatePDFInvoiceBuffer, buildPDFInvoiceFileName, FuelingOperationForPDF } from './pdfInvoiceGenerator';
+// NOTE: PDF generation imports removed - PDFs are now sent via email
+// import { generatePDFInvoiceBuffer, buildPDFInvoiceFileName, FuelingOperationForPDF } from './pdfInvoiceGenerator';
 
 const prisma = new PrismaClient();
 
@@ -102,20 +103,20 @@ export async function dispatchOneOperation(opId: number, force = false) {
   const xmlFileName = buildInvoiceFileName(op);
   const xmlLocalPath = getLocalArchivePath(new Date(op.dateTime), xmlFileName);
 
-  // Generate PDF invoice
-  const pdfBuffer = await generatePDFInvoiceBuffer(op as unknown as FuelingOperationForPDF);
-  const pdfFileName = buildPDFInvoiceFileName(op as unknown as FuelingOperationForPDF);
-  const pdfLocalPath = getLocalArchivePath(new Date(op.dateTime), pdfFileName);
+  // NOTE: PDF generation removed - invoices are now sent via email instead of FTP upload
+  // const pdfBuffer = await generatePDFInvoiceBuffer(op as unknown as FuelingOperationForPDF);
+  // const pdfFileName = buildPDFInvoiceFileName(op as unknown as FuelingOperationForPDF);
+  // const pdfLocalPath = getLocalArchivePath(new Date(op.dateTime), pdfFileName);
 
-  // Ensure local dir
+  // Ensure local dir and save XML
   fs.mkdirSync(path.dirname(xmlLocalPath), { recursive: true });
   fs.writeFileSync(xmlLocalPath, xml, 'utf-8');
-  fs.writeFileSync(pdfLocalPath, pdfBuffer);
+  // NOTE: PDF local save removed - PDFs are now sent via email instead
 
   // FTP upload or graceful fail if credentials missing
   const ftpConfig = buildFtpConfigFromEnv();
   const xmlRemotePath = getRemotePath(new Date(op.dateTime), xmlFileName, ftpConfig.baseDir || '/invoices');
-  const pdfRemotePath = getRemotePath(new Date(op.dateTime), pdfFileName, ftpConfig.baseDir || '/invoices');
+  // NOTE: PDF remote path removed - PDFs are now sent via email instead
   const credsAvailable = Boolean(ftpConfig.host && ftpConfig.user && ftpConfig.password);
   const client = credsAvailable ? new FtpClientService(ftpConfig) : null;
 
@@ -151,11 +152,8 @@ export async function dispatchOneOperation(opId: number, force = false) {
     }
     await client!.connect();
     
-    // Upload XML file
+    // Upload only XML file (PDFs are now sent via email)
     await client!.uploadBuffer(Buffer.from(xml, 'utf-8'), xmlRemotePath);
-    
-    // Upload PDF file
-    await client!.uploadBuffer(pdfBuffer, pdfRemotePath);
     
     await client!.close();
 

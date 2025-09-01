@@ -246,7 +246,12 @@ export async function fetchWithAuth<T>(urlPath: string, options: FetchWithAuthOp
   // Ako je status OK, ali tijelo nije JSON, također će baciti grešku.
   try {
     // For other OK statuses (e.g., 200), expect a JSON body.
-    const jsonData = await response.json();
+    const text = await response.text();
+    if (text.trim() === '') {
+      // Handle empty response for successful operations
+      return {} as T;
+    }
+    const jsonData = JSON.parse(text);
     return jsonData;
   } catch (e) {
     // This catch block handles errors if response.json() fails for an OK status

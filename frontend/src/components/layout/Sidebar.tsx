@@ -28,6 +28,7 @@ import {
   Droplet, // Added Droplet for fuel status
   ShieldAlert, // Added ShieldAlert for fuel consistency
   DollarSign, // Added DollarSign for financial reports
+  Mail, // Added Mail for email invoices
   Container, // Added Container for reservoirs
   Calendar, // Added Calendar for calibration plans
   Wrench, // Added Wrench for ostala oprema
@@ -60,6 +61,7 @@ const baseNavItems = [
   { name: 'Aerodrom', href: '/dashboard/airport', icon: Plane, roles: ['ADMIN', 'AERODROM'] },
   { name: 'Konzistentnost goriva', href: '/dashboard/fuel-consistency', icon: ShieldAlert, roles: ['ADMIN', 'KONTROLA'] },
   { name: 'XML fakture', href: '/dashboard/xml-invoices', icon: FileText, roles: ['ADMIN', 'KONTROLA'] },
+  { name: 'Email fakture', href: '/dashboard/email-invoices', icon: Mail, roles: ['ADMIN', 'KONTROLA'] },
   { name: 'Korisnici', href: '/dashboard/users', icon: Users, roles: ['ADMIN'] },
 ];
 

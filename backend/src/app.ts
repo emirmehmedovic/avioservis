@@ -46,6 +46,7 @@ import densityReconciliationRoutes from './routes/densityReconciliation.routes';
 import mrnCleanupRoutes from './routes/mrnCleanup.routes'; // Rute za MRN cleanup
 import fuelReportsTrendsRoutes from './routes/fuelReportsTrends.routes'; // Rute za fuel reports trends
 import xmlInvoiceRoutes from './routes/xmlInvoice.routes';
+import emailInvoiceRoutes from './routes/emailInvoice.routes';
 
 const app = express();
 
@@ -139,6 +140,7 @@ app.use('/api/density-reconciliation', sensitiveOperationsLimiter, densityReconc
 app.use('/api/mrn-cleanup', sensitiveOperationsLimiter, mrnCleanupRoutes); // Registracija ruta za MRN cleanup
 app.use('/api/fuel/reports', reportingLimiter, fuelReportsTrendsRoutes); // Registracija ruta za fuel reports trends
 app.use('/api/invoices/xml', xmlInvoiceRoutes);
+app.use('/api/invoices/email', emailInvoiceRoutes);
 
 app.get('/', (req, res) => {
   res.send('Backend radi!');
