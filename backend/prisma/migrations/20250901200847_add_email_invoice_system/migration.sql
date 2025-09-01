@@ -1,11 +1,19 @@
--- CreateEnum
-CREATE TYPE "EmailDispatchStatus" AS ENUM ('PENDING', 'SENT', 'FAILED');
+-- CreateEnum (only if not exists)
+DO $$ BEGIN
+    CREATE TYPE "EmailDispatchStatus" AS ENUM ('PENDING', 'SENT', 'FAILED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
--- CreateEnum
-CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'PAID', 'OVERDUE', 'EXPIRED');
+-- CreateEnum (only if not exists)
+DO $$ BEGIN
+    CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'PAID', 'OVERDUE', 'EXPIRED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
--- CreateTable
-CREATE TABLE "EmailInvoiceDispatch" (
+-- CreateTable (only if not exists)
+CREATE TABLE IF NOT EXISTS "EmailInvoiceDispatch" (
     "id" SERIAL NOT NULL,
     "fuelingOperationId" INTEGER NOT NULL,
     "airlineId" INTEGER NOT NULL,
