@@ -72,13 +72,13 @@ function buildInvoiceFileName(op: any): string {
 }
 
 function getLocalArchivePath(opDate: Date, fileName: string): string {
-  const dayStr = dayjs(opDate).format('YYYY-MM-DD');
-  return path.join(__dirname, '../../private_uploads/xml_invoices', dayStr, fileName);
+  // Store locally without date subfolders for consistency with FTP
+  return path.join(__dirname, '../../private_uploads/xml_invoices', fileName);
 }
 
 function getRemotePath(opDate: Date, fileName: string, baseDir: string): string {
-  const dayStr = dayjs(opDate).format('YYYY-MM-DD');
-  return path.posix.join(baseDir || '/invoices', dayStr, fileName);
+  // Upload directly to configured base directory without date subfolders
+  return path.posix.join(baseDir || 'PROD', fileName);
 }
 
 export async function dispatchOneOperation(opId: number, force = false) {
