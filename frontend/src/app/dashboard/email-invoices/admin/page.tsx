@@ -20,6 +20,7 @@ import {
   prepareEmailInvoicesForRange,
   EmailInvoiceStats
 } from '@/lib/emailInvoiceApiService';
+import { downloadEmailInvoicePdf } from '@/lib/apiService';
 // Role check handled by RoleBasedAuth in layout - no frontend role restriction needed
 
 export default function EmailInvoicesAdminPage() {
@@ -102,8 +103,8 @@ export default function EmailInvoicesAdminPage() {
           <div className="sm:flex sm:items-center sm:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg">
-                  <CogIcon className="h-8 w-8 text-white" />
+                <div className="p-2 bg-gray-100 rounded-lg">
+                  <CogIcon className="h-8 w-8 text-gray-600" />
                 </div>
                 Email Invoices - Admin Panel
               </h1>
@@ -125,53 +126,53 @@ export default function EmailInvoicesAdminPage() {
         {/* System Status Cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {/* Total Email Invoices */}
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <ChartBarIcon className="h-8 w-8 text-blue-100" />
+                <ChartBarIcon className="h-8 w-8 text-blue-600" />
               </div>
               <div className="ml-4">
-                <p className="text-blue-100 text-sm font-medium">Ukupno Email Faktura</p>
-                <p className="text-2xl font-bold">{stats?.total || 0}</p>
+                <p className="text-gray-600 text-sm font-medium">Ukupno Email Faktura</p>
+                <p className="text-2xl font-bold text-gray-900">{stats?.total || 0}</p>
               </div>
             </div>
           </div>
 
           {/* Sent Invoices */}
-          <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <CheckCircleIcon className="h-8 w-8 text-green-100" />
+                <CheckCircleIcon className="h-8 w-8 text-green-600" />
               </div>
               <div className="ml-4">
-                <p className="text-green-100 text-sm font-medium">Uspješno Poslano</p>
-                <p className="text-2xl font-bold">{stats?.sent || 0}</p>
+                <p className="text-gray-600 text-sm font-medium">Uspješno Poslano</p>
+                <p className="text-2xl font-bold text-gray-900">{stats?.sent || 0}</p>
               </div>
             </div>
           </div>
 
           {/* Failed Invoices */}
-          <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-lg shadow-lg p-6 text-white">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <ExclamationTriangleIcon className="h-8 w-8 text-red-100" />
+                <ExclamationTriangleIcon className="h-8 w-8 text-red-600" />
               </div>
               <div className="ml-4">
-                <p className="text-red-100 text-sm font-medium">Neuspješno</p>
-                <p className="text-2xl font-bold">{stats?.failed || 0}</p>
+                <p className="text-gray-600 text-sm font-medium">Neuspješno</p>
+                <p className="text-2xl font-bold text-gray-900">{stats?.failed || 0}</p>
               </div>
             </div>
           </div>
 
           {/* Success Rate */}
-          <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg shadow-lg p-6 text-white">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <ChartBarIcon className="h-8 w-8 text-purple-100" />
+                <ChartBarIcon className="h-8 w-8 text-purple-600" />
               </div>
               <div className="ml-4">
-                <p className="text-purple-100 text-sm font-medium">Stopa Uspješnosti</p>
-                <p className="text-2xl font-bold">{getSuccessRate()}%</p>
+                <p className="text-gray-600 text-sm font-medium">Stopa Uspješnosti</p>
+                <p className="text-2xl font-bold text-gray-900">{getSuccessRate()}%</p>
               </div>
             </div>
           </div>
@@ -242,7 +243,7 @@ export default function EmailInvoicesAdminPage() {
               <button
                 onClick={handlePrepareDay}
                 disabled={loading}
-                className="w-full inline-flex justify-center items-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-all"
+                className="w-full inline-flex justify-center items-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-all"
               >
                 {loading ? (
                   <ArrowPathIcon className="animate-spin -ml-1 mr-2 h-4 w-4" />
@@ -272,7 +273,7 @@ export default function EmailInvoicesAdminPage() {
               <button
                 onClick={handlePrepareRange}
                 disabled={loading}
-                className="w-full inline-flex justify-center items-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 transition-all"
+                className="w-full inline-flex justify-center items-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 transition-all"
               >
                 {loading ? (
                   <ArrowPathIcon className="animate-spin -ml-1 mr-2 h-4 w-4" />
@@ -305,7 +306,7 @@ export default function EmailInvoicesAdminPage() {
               <button
                 onClick={handleDispatchRange}
                 disabled={loading}
-                className="w-full inline-flex justify-center items-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 transition-all"
+                className="w-full inline-flex justify-center items-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 transition-all"
               >
                 {loading ? (
                   <ArrowPathIcon className="animate-spin -ml-1 mr-2 h-4 w-4" />

@@ -2,10 +2,13 @@ import * as cron from 'node-cron';
 import dayjs from 'dayjs';
 import timezone from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
-import { dispatchEmailRange } from '../services/emailInvoiceDispatch.service';
+import { dispatchEmailRange, dispatchOneEmailOperation } from '../services/emailInvoiceDispatch.service';
+import { PrismaClient, EmailDispatchStatus } from '@prisma/client';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
+
+const prisma = new PrismaClient();
 
 export function initEmailInvoiceCron(): void {
   // Run at 23:50 every day (10 minutes before XML invoice cron)
@@ -50,6 +53,79 @@ export function initEmailInvoiceCron(): void {
   });
 
   console.log(`Email invoice cron job scheduled: ${cronExpression} (timezone: ${tz})`);
+
+  // Retry failed emails at 23:57 (7 minutes after main cron)
+  const retryCronExpression = '57 23 * * *';
+  
+  cron.schedule(retryCronExpression, async () => {
+    try {
+      console.log(`[${new Date().toISOString()}] Starting email invoice retry cron job...`);
+      
+      // Find failed email dispatches from today
+      const today = dayjs().tz(tz).startOf('day').toDate();
+      const tomorrow = dayjs().tz(tz).add(1, 'day').startOf('day').toDate();
+      
+      const failedDispatches = await prisma.emailInvoiceDispatch.findMany({
+        where: {
+          status: EmailDispatchStatus.FAILED,
+          createdAt: {
+            gte: today,
+            lt: tomorrow
+          },
+          attempts: {
+            lt: 3 // Only retry if less than 3 attempts
+          }
+        },
+        include: {
+          fuelingOperation: {
+            include: {
+              airline: true,
+              tank: true,
+              documents: true
+            }
+          }
+        }
+      });
+
+      console.log(`[${new Date().toISOString()}] Found ${failedDispatches.length} failed email dispatches to retry`);
+
+      if (failedDispatches.length === 0) {
+        console.log(`[${new Date().toISOString()}] No failed email dispatches to retry`);
+        return;
+      }
+
+      let retrySuccessCount = 0;
+      let retryFailedCount = 0;
+
+      for (const dispatch of failedDispatches) {
+        try {
+          console.log(`[${new Date().toISOString()}] Retrying email dispatch for operation ${dispatch.fuelingOperationId}...`);
+          
+          const result = await dispatchOneEmailOperation(dispatch.fuelingOperationId, true); // Force retry
+          
+          if (result.success) {
+            retrySuccessCount++;
+            console.log(`[${new Date().toISOString()}] ✅ Retry successful for operation ${dispatch.fuelingOperationId}`);
+          } else {
+            retryFailedCount++;
+            console.log(`[${new Date().toISOString()}] ❌ Retry failed for operation ${dispatch.fuelingOperationId}: ${result.error || 'Unknown error'}`);
+          }
+        } catch (error: any) {
+          retryFailedCount++;
+          console.error(`[${new Date().toISOString()}] ❌ Retry error for operation ${dispatch.fuelingOperationId}:`, error.message);
+        }
+      }
+
+      console.log(`[${new Date().toISOString()}] Email invoice retry completed: ${retrySuccessCount} successful, ${retryFailedCount} failed`);
+      
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] Email invoice retry cron job failed:`, error);
+    }
+  }, {
+    timezone: tz
+  });
+
+  console.log(`Email invoice retry cron job scheduled: ${retryCronExpression} (timezone: ${tz})`);
 }
 
 // Function to manually trigger email dispatch for a specific date
@@ -62,6 +138,79 @@ export async function manualEmailDispatch(date: string): Promise<any> {
     return result;
   } catch (error) {
     console.error(`Manual email dispatch for ${date} failed:`, error);
+    throw error;
+  }
+}
+
+// Function to manually retry failed email dispatches
+export async function manualRetryFailedEmails(date?: string): Promise<any> {
+  try {
+    const tz = process.env.TZ || 'Europe/Sarajevo';
+    let targetDate: Date;
+    
+    if (date) {
+      targetDate = dayjs(date).tz(tz).startOf('day').toDate();
+    } else {
+      targetDate = dayjs().tz(tz).startOf('day').toDate();
+    }
+    
+    const tomorrow = dayjs(targetDate).add(1, 'day').startOf('day').toDate();
+    
+    const failedDispatches = await prisma.emailInvoiceDispatch.findMany({
+      where: {
+        status: EmailDispatchStatus.FAILED,
+        createdAt: {
+          gte: targetDate,
+          lt: tomorrow
+        },
+        attempts: {
+          lt: 3
+        }
+      },
+      include: {
+        fuelingOperation: {
+          include: {
+            airline: true,
+            tank: true,
+            documents: true
+          }
+        }
+      }
+    });
+
+    console.log(`Manual retry found ${failedDispatches.length} failed email dispatches`);
+
+    const results = [];
+    let successCount = 0;
+    let failedCount = 0;
+
+    for (const dispatch of failedDispatches) {
+      try {
+        const result = await dispatchOneEmailOperation(dispatch.fuelingOperationId, true);
+        results.push({ opId: dispatch.fuelingOperationId, ...result });
+        
+        if (result.success) {
+          successCount++;
+        } else {
+          failedCount++;
+        }
+      } catch (error: any) {
+        results.push({ opId: dispatch.fuelingOperationId, error: error.message });
+        failedCount++;
+      }
+    }
+
+    const summary = {
+      total: failedDispatches.length,
+      successful: successCount,
+      failed: failedCount,
+      results
+    };
+
+    console.log(`Manual retry completed:`, summary);
+    return summary;
+  } catch (error) {
+    console.error(`Manual retry failed:`, error);
     throw error;
   }
 }

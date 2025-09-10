@@ -1409,6 +1409,29 @@ export async function runPaymentStatusUpdate(): Promise<{ success: boolean; mess
   });
 }
 
+// --- Email Invoices API --- //
+export async function downloadEmailInvoicePdf(dispatchId: number, desiredFilename?: string): Promise<void> {
+  const response = await fetchWithAuth<Response>(`/api/invoices/email/dispatch/${dispatchId}/download`, {
+    method: 'GET',
+    returnRawResponse: true,
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Neuspješan download PDF-a');
+  }
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = desiredFilename || `email-invoice-${dispatchId}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  setTimeout(() => {
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  }, 0);
+}
+
 // --- Reserve Fuel API --- //
 
 // Cache for Reserve Fuel by Tank

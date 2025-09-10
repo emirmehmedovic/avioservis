@@ -1,0 +1,6 @@
+-Kod izvještaja ulaznih transakcija dešava se clashing na pages
+-Dodati u fueling operacijue (Virman, Pos,)
+-Kod email faktura, dodati opciju downloada attachmenta, kao kod xml faktura
+-Prodiskutovati s njima oko issue date fakture
+-Urediti finansijski dio (email fakture)
+-

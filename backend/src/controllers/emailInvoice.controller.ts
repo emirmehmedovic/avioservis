@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { PrismaClient, EmailDispatchStatus, PaymentStatus } from '@prisma/client';
 import dayjs from 'dayjs';
+import path from 'path';
+import fs from 'fs';
 import { 
   dispatchOneEmailOperation, 
   dispatchEmailRange, 
@@ -8,6 +10,7 @@ import {
   prepareEmailDay,
   prepareEmailRange
 } from '../services/emailInvoiceDispatch.service';
+import { manualRetryFailedEmails } from '../cron/emailInvoiceCron';
 import { AuthRequest } from '../middleware/auth';
 
 const prisma = new PrismaClient();
@@ -21,7 +24,8 @@ export const getEmailInvoiceDispatches = async (req: AuthRequest, res: Response)
       airlineId, 
       startDate, 
       endDate,
-      paymentStatus 
+      paymentStatus,
+      deliveryNote
     } = req.query;
 
     const skip = (Number(page) - 1) * Number(limit);
@@ -45,6 +49,16 @@ export const getEmailInvoiceDispatches = async (req: AuthRequest, res: Response)
       where.createdAt = {};
       if (startDate) where.createdAt.gte = new Date(startDate as string);
       if (endDate) where.createdAt.lte = new Date(endDate as string);
+    }
+
+    // Delivery note filter - search in fuelingOperation.delivery_note_number
+    if (deliveryNote) {
+      where.fuelingOperation = {
+        delivery_note_number: {
+          contains: deliveryNote as string,
+          mode: 'insensitive'
+        }
+      };
     }
 
     const [dispatches, total] = await Promise.all([
@@ -604,6 +618,98 @@ export const externalEmailPaymentUpdate = async (req: AuthRequest, res: Response
     console.error('externalEmailPaymentUpdate error:', err);
     res.status(500).json({ 
       message: 'Greška pri vanjskom ažuriranju payment status-a', 
+      error: String(err) 
+    });
+  }
+};
+
+/**
+ * GET /api/invoices/email/dispatch/:id/download
+ * Download the PDF that was sent via email
+ */
+export const downloadEmailInvoicePdf = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    
+    if (isNaN(id)) {
+      res.status(400).json({ message: 'Neispravan ID dispatch-a' });
+      return;
+    }
+
+    console.log(`📥 Download request for email dispatch ${id}`);
+
+    const dispatch = await prisma.emailInvoiceDispatch.findUnique({
+      where: { id },
+      include: { 
+        fuelingOperation: { 
+          include: { 
+            airline: true, 
+            tank: true 
+          } 
+        } 
+      },
+    });
+    
+    if (!dispatch || !dispatch.fuelingOperation) {
+      res.status(404).json({ message: 'Email dispatch ili operacija nije pronađena' });
+      return;
+    }
+
+    console.log(`📁 Looking for PDF file: ${dispatch.pdfFileName}`);
+
+    // Rekonstruiraj putanju do PDF-a (ista logika kao u emailInvoiceDispatch.service.ts)
+    const opDate = new Date(dispatch.fuelingOperation.dateTime);
+    const dayStr = dayjs(opDate).format('YYYY-MM-DD');
+    const baseDir = path.join(process.cwd(), 'private_uploads', 'email_invoices');
+    const pdfPath = path.join(baseDir, dayStr, dispatch.pdfFileName);
+
+    console.log(`📁 Full path: ${pdfPath}`);
+
+    // Provjeri da li fajl postoji
+    if (!fs.existsSync(pdfPath)) {
+      console.log(`❌ PDF file not found at: ${pdfPath}`);
+      res.status(404).json({ 
+        message: 'PDF fajl nije pronađen. Možda je stariji zapis koji nema spremljen PDF.',
+        filePath: pdfPath 
+      });
+      return;
+    }
+
+    console.log(`✅ PDF file found, sending to client`);
+
+    // Pošalji PDF
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${dispatch.pdfFileName}"`);
+    res.status(200).sendFile(pdfPath);
+
+  } catch (err) {
+    console.error('downloadEmailInvoicePdf error:', err);
+    res.status(500).json({ 
+      message: 'Greška pri preuzimanju PDF-a', 
+      error: String(err) 
+    });
+  }
+};
+
+export const retryFailedEmailDispatches = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { date } = req.body;
+    
+    console.log(`🔄 Manual retry request for failed email dispatches${date ? ` for date: ${date}` : ' (today)'}`);
+    
+    const result = await manualRetryFailedEmails(date);
+    
+    res.status(200).json({
+      success: true,
+      message: `Retry completed: ${result.successful} successful, ${result.failed} failed`,
+      data: result
+    });
+    
+  } catch (err) {
+    console.error('retryFailedEmailDispatches error:', err);
+    res.status(500).json({ 
+      success: false,
+      message: 'Greška pri retry-u failed email dispatches', 
       error: String(err) 
     });
   }

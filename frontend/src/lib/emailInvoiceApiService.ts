@@ -69,10 +69,19 @@ export const listEmailDispatches = async (params: {
   startDate?: string;
   endDate?: string;
   paymentStatus?: string;
+  deliveryNote?: string;
 }): Promise<EmailInvoiceDispatch[]> => {
-  const response = await fetchWithAuth<EmailDispatchResponse>('/api/invoices/email', {
-    params,
-  });
+  const query = new URLSearchParams();
+  if (params?.startDate) query.append('startDate', params.startDate);
+  if (params?.endDate) query.append('endDate', params.endDate);
+  if (params?.status) query.append('status', params.status);
+  if (params?.airlineId) query.append('airlineId', String(params.airlineId));
+  if (params?.paymentStatus) query.append('paymentStatus', params.paymentStatus);
+  if (params?.deliveryNote) query.append('deliveryNote', params.deliveryNote);
+  if (params?.page) query.append('page', String(params.page));
+  if (params?.limit) query.append('limit', String(params.limit));
+  
+  const response = await fetchWithAuth<EmailDispatchResponse>(`/api/invoices/email?${query.toString()}`);
   return response.dispatches;
 };
 

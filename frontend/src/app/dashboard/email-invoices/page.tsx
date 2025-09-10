@@ -3,7 +3,25 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import { toast } from 'react-hot-toast';
-import { CheckCircleIcon, XCircleIcon, ClockIcon, ExclamationTriangleIcon, EnvelopeIcon, ArrowPathIcon, CogIcon } from '@heroicons/react/24/outline';
+import { 
+  CheckCircleIcon, 
+  XCircleIcon, 
+  ClockIcon, 
+  ExclamationTriangleIcon, 
+  EnvelopeIcon, 
+  ArrowPathIcon, 
+  CogIcon,
+  FunnelIcon,
+  CalendarIcon,
+  BuildingOfficeIcon,
+  CreditCardIcon,
+  DocumentTextIcon,
+  TrashIcon,
+  EyeIcon,
+  ArrowDownTrayIcon,
+  PaperAirplaneIcon,
+  InformationCircleIcon
+} from '@heroicons/react/24/outline';
 import {
   listEmailDispatches,
   manualDispatchEmailDay,
@@ -14,6 +32,7 @@ import {
   EmailInvoiceDispatch,
   EmailPreview
 } from '@/lib/emailInvoiceApiService';
+import { downloadEmailInvoicePdf } from '@/lib/apiService';
 // Role check handled by backend API - no frontend role restriction needed
 
 export default function EmailInvoicesPage() {
@@ -24,6 +43,9 @@ export default function EmailInvoicesPage() {
   const [endDate, setEndDate] = useState<string>(dayjs().endOf('month').format('YYYY-MM-DD'));
   const [status, setStatus] = useState<string>('');
   const [paymentStatus, setPaymentStatus] = useState<string>('');
+  const [airlineFilter, setAirlineFilter] = useState<string>('');
+  const [deliveryNoteFilter, setDeliveryNoteFilter] = useState<string>('');
+  const [deliveryNoteDebounced, setDeliveryNoteDebounced] = useState<string>('');
   const [nextCronText, setNextCronText] = useState<string>('');
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [emailPreview, setEmailPreview] = useState<EmailPreview | null>(null);
@@ -44,6 +66,8 @@ export default function EmailInvoicesPage() {
       const params: any = { startDate, endDate };
       if (status) params.status = status;
       if (paymentStatus) params.paymentStatus = paymentStatus;
+      if (airlineFilter) params.airlineId = airlineFilter;
+      if (deliveryNoteDebounced) params.deliveryNote = deliveryNoteDebounced;
       
       // Filter based on active tab
       if (activeTab === 'sent') {
@@ -59,7 +83,18 @@ export default function EmailInvoicesPage() {
     }
   };
 
-  useEffect(() => { load(); }, [startDate, endDate, status, paymentStatus, activeTab]);
+  useEffect(() => { 
+    load(); 
+  }, [startDate, endDate, status, paymentStatus, airlineFilter, deliveryNoteDebounced, activeTab]);
+
+  // Debounce delivery note filter
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDeliveryNoteDebounced(deliveryNoteFilter);
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timer);
+  }, [deliveryNoteFilter]);
 
   useEffect(() => {
     const updateCron = () => {
@@ -106,6 +141,16 @@ export default function EmailInvoicesPage() {
       toast.error(e?.message || 'Greška pri slanju email fakture');
     }
   };
+
+  const handleDownloadPdf = async (dispatchId: number, filename?: string) => {
+    try {
+      await downloadEmailInvoicePdf(dispatchId, filename);
+      toast.success('PDF uspješno preuzet');
+    } catch (e: any) {
+      toast.error(e?.message || 'Greška pri preuzimanju PDF-a');
+    }
+  };
+
 
   const handlePreviewEmail = async (operationId: number) => {
     try {
@@ -209,8 +254,8 @@ export default function EmailInvoicesPage() {
         <div className="sm:flex sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg">
-                <EnvelopeIcon className="h-8 w-8 text-white" />
+              <div className="p-2 bg-gray-100 rounded-lg">
+                <EnvelopeIcon className="h-8 w-8 text-gray-600" />
               </div>
               Email Fakture
             </h1>
@@ -245,53 +290,53 @@ export default function EmailInvoicesPage() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Total Email Invoices */}
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <EnvelopeIcon className="h-8 w-8 text-blue-100" />
+              <EnvelopeIcon className="h-8 w-8 text-blue-600" />
             </div>
             <div className="ml-4">
-              <p className="text-blue-100 text-sm font-medium">Ukupno Email Faktura</p>
-              <p className="text-2xl font-bold">{rows.length}</p>
+              <p className="text-gray-600 text-sm font-medium">Ukupno Email Faktura</p>
+              <p className="text-2xl font-bold text-gray-900">{rows.length}</p>
             </div>
           </div>
         </div>
 
         {/* Sent Invoices */}
-        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <CheckCircleIcon className="h-8 w-8 text-green-100" />
+              <CheckCircleIcon className="h-8 w-8 text-green-600" />
             </div>
             <div className="ml-4">
-              <p className="text-green-100 text-sm font-medium">Uspješno Poslano</p>
-              <p className="text-2xl font-bold">{statusCounts.SENT}</p>
+              <p className="text-gray-600 text-sm font-medium">Uspješno Poslano</p>
+              <p className="text-2xl font-bold text-gray-900">{statusCounts.SENT}</p>
             </div>
           </div>
         </div>
 
         {/* Failed Invoices */}
-        <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-lg shadow-lg p-6 text-white">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <XCircleIcon className="h-8 w-8 text-red-100" />
+              <XCircleIcon className="h-8 w-8 text-red-600" />
             </div>
             <div className="ml-4">
-              <p className="text-red-100 text-sm font-medium">Neuspješno</p>
-              <p className="text-2xl font-bold">{statusCounts.FAILED}</p>
+              <p className="text-gray-600 text-sm font-medium">Neuspješno</p>
+              <p className="text-2xl font-bold text-gray-900">{statusCounts.FAILED}</p>
             </div>
           </div>
         </div>
 
         {/* Success Rate */}
-        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg shadow-lg p-6 text-white">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <ArrowPathIcon className="h-8 w-8 text-purple-100" />
+              <ArrowPathIcon className="h-8 w-8 text-purple-600" />
             </div>
             <div className="ml-4">
-              <p className="text-purple-100 text-sm font-medium">Stopa Uspješnosti</p>
-              <p className="text-2xl font-bold">
+              <p className="text-gray-600 text-sm font-medium">Stopa Uspješnosti</p>
+              <p className="text-2xl font-bold text-gray-900">
                 {rows.length > 0 ? Math.round((statusCounts.SENT / rows.length) * 100) : 0}%
               </p>
             </div>
@@ -353,69 +398,120 @@ export default function EmailInvoicesPage() {
         {/* Filters */}
         <div className="p-6 bg-gray-50 border-t border-gray-200">
           <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
+            <FunnelIcon className="w-5 h-5 text-gray-600" />
             Filteri
           </h3>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
             <div>
-              <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">
-                📅 Početni datum
+              <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                <CalendarIcon className="w-4 h-4" />
+                Početni datum
               </label>
               <input
                 type="date"
                 id="startDate"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               />
             </div>
             <div>
-              <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">
-                📅 Završni datum
+              <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                <CalendarIcon className="w-4 h-4" />
+                Završni datum
               </label>
               <input
                 type="date"
                 id="endDate"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               />
             </div>
             <div>
-              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-                🏷️ Status Slanja
+              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                <EnvelopeIcon className="w-4 h-4" />
+                Status Slanja
               </label>
               <select
                 id="status"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               >
                 <option value="">Svi statusi</option>
-                <option value="PENDING">⏳ Na čekanju</option>
-                <option value="SENT">✅ Poslano</option>
-                <option value="FAILED">❌ Neuspješno</option>
+                <option value="PENDING">Na čekanju</option>
+                <option value="SENT">Poslano</option>
+                <option value="FAILED">Neuspješno</option>
               </select>
             </div>
             <div>
-              <label htmlFor="paymentStatus" className="block text-sm font-medium text-gray-700 mb-1">
-                💰 Status Plaćanja
+              <label htmlFor="paymentStatus" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                <CreditCardIcon className="w-4 h-4" />
+                Status Plaćanja
               </label>
               <select
                 id="paymentStatus"
                 value={paymentStatus}
                 onChange={(e) => setPaymentStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               >
                 <option value="">Svi statusi</option>
-                <option value="PENDING">⏳ Na čekanju</option>
-                <option value="PAID">✅ Plaćeno</option>
-                <option value="OVERDUE">⚠️ Dospjelo</option>
-                <option value="EXPIRED">❌ Isteklo</option>
+                <option value="PENDING">Na čekanju</option>
+                <option value="PAID">Plaćeno</option>
+                <option value="OVERDUE">Dospjelo</option>
+                <option value="EXPIRED">Isteklo</option>
               </select>
             </div>
+            <div>
+              <label htmlFor="airlineFilter" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                <BuildingOfficeIcon className="w-4 h-4" />
+                Aviokompanija
+              </label>
+              <select
+                id="airlineFilter"
+                value={airlineFilter}
+                onChange={(e) => setAirlineFilter(e.target.value)}
+                className="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              >
+                <option value="">Sve aviokompanije</option>
+                {Array.from(new Set(rows.map(row => row.airline?.name).filter(Boolean))).map(airlineName => (
+                  <option key={airlineName} value={rows.find(row => row.airline?.name === airlineName)?.airlineId}>
+                    {airlineName}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="deliveryNoteFilter" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                <DocumentTextIcon className="w-4 h-4" />
+                Dostavnica
+              </label>
+              <input
+                type="text"
+                id="deliveryNoteFilter"
+                value={deliveryNoteFilter}
+                onChange={(e) => setDeliveryNoteFilter(e.target.value)}
+                placeholder="Zadnji brojevi dostavnice..."
+                className="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              />
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={() => {
+                setStatus('');
+                setPaymentStatus('');
+                setAirlineFilter('');
+                setDeliveryNoteFilter('');
+                setStartDate(dayjs().startOf('month').format('YYYY-MM-DD'));
+                setEndDate(dayjs().endOf('month').format('YYYY-MM-DD'));
+              }}
+              className="px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center gap-2"
+            >
+              <TrashIcon className="w-4 h-4" />
+              Očisti filtere
+            </button>
           </div>
         </div>
 
@@ -469,8 +565,8 @@ export default function EmailInvoicesPage() {
                   PDF
                 </th>
                 {activeTab === 'dispatch' && (
-                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                    Greška
+                  <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
+                    <ExclamationTriangleIcon className="w-4 h-4 mx-auto" />
                   </th>
                 )}
                 <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
@@ -546,31 +642,33 @@ export default function EmailInvoicesPage() {
                       
                       {/* Cijena/kg */}
                       <td className="px-2 py-2 text-xs">
-                        {Number(price).toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {Number(price).toLocaleString('bs-BA', { minimumFractionDigits: 5, maximumFractionDigits: 5 })}
                       </td>
                       
                       {/* Ukupno */}
                       <td className="px-2 py-2 text-xs font-medium">
-                        {total.toLocaleString('bs-BA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} {currency}
+                        {total.toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}
                       </td>
                       
                       {/* Status Slanja */}
                       <td className="px-2 py-2">
-                        <span className={`px-1 py-1 rounded text-xs ${
+                        <span className={`px-1 py-1 rounded text-xs flex items-center justify-center ${
                           row.status === 'SENT' ? 'bg-green-100 text-green-700' : 
                           row.status === 'FAILED' ? 'bg-red-100 text-red-700' : 
                           'bg-yellow-100 text-yellow-700'
                         }`}>
-                          {row.status === 'SENT' ? '✓' : row.status === 'FAILED' ? '✗' : '⏳'}
+                          {row.status === 'SENT' ? <CheckCircleIcon className="w-3 h-3" /> : 
+                           row.status === 'FAILED' ? <XCircleIcon className="w-3 h-3" /> : 
+                           <ClockIcon className="w-3 h-3" />}
                         </span>
                       </td>
 
                       {/* Status Plaćanja */}
                       <td className="px-2 py-2">
                         <span className={`px-1 py-1 rounded text-xs ${getPaymentStatusClass(row.paymentStatus)}`}>
-                          {row.paymentStatus === 'PAID' ? '💰' : 
-                           row.paymentStatus === 'OVERDUE' ? '⚠️' : 
-                           row.paymentStatus === 'EXPIRED' ? '❌' : '⏳'}
+                          {row.paymentStatus === 'PAID' ? 'Plaćeno' : 
+                           row.paymentStatus === 'OVERDUE' ? 'Dospjelo' : 
+                           row.paymentStatus === 'EXPIRED' ? 'Isteklo' : 'Na čekanju'}
                         </span>
                         {row.paymentReceivedAt && (
                           <div className="text-xs text-gray-500">
@@ -591,13 +689,29 @@ export default function EmailInvoicesPage() {
                       
                       {/* PDF fajl */}
                       <td className="px-2 py-2 text-center">
-                        <span className="text-lg" title={row.pdfFileName}>📄</span>
+                        <button
+                          onClick={() => handleDownloadPdf(row.id, row.pdfFileName)}
+                          className="px-1 py-1 text-xs bg-white border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center"
+                          title="Download PDF"
+                        >
+                          <ArrowDownTrayIcon className="w-3 h-3" />
+                        </button>
                       </td>
                       
                       {/* Greška (samo u dispatch tab) */}
                       {activeTab === 'dispatch' && (
-                        <td className="px-2 py-2 text-xs max-w-xs truncate text-red-600" title={row.lastError || ''}>
-                          {row.lastError || ''}
+                        <td className="px-2 py-2 text-center">
+                          {row.lastError ? (
+                            <div className="relative group inline-block">
+                              <ExclamationTriangleIcon className="w-4 h-4 text-red-600 mx-auto cursor-help" />
+                              <div className="absolute z-10 invisible group-hover:visible bg-gray-900 text-white text-xs rounded-lg p-2 w-64 bottom-full left-1/2 transform -translate-x-1/2 mb-2 shadow-lg">
+                                {row.lastError}
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
                         </td>
                       )}
                       
@@ -606,38 +720,38 @@ export default function EmailInvoicesPage() {
                         <div className="flex gap-1 flex-wrap justify-center">
                           <button
                             onClick={() => handlePreviewEmail(row.fuelingOperationId)}
-                            className="px-1 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700"
+                            className="px-1 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 flex items-center justify-center"
                             disabled={loading || previewLoading}
                             title="Pregled email template-a"
                           >
-                            👁️
+                            <EyeIcon className="w-3 h-3" />
                           </button>
                           
                           <button
                             onClick={() => handleUpdatePaymentStatus(row)}
-                            className="px-1 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
+                            className="px-1 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 flex items-center justify-center"
                             disabled={loading}
                             title="Ažuriraj status plaćanja"
                           >
-                            💰
+                            <CreditCardIcon className="w-3 h-3" />
                           </button>
                           {activeTab === 'dispatch' && (
                             <button
                               onClick={() => handleManualDispatchOperation(row.fuelingOperationId, false)}
-                              className="px-1 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                              className="px-1 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center justify-center"
                               disabled={loading}
                               title="Pošalji ponovo"
                             >
-                              📧
+                              <PaperAirplaneIcon className="w-3 h-3" />
                             </button>
                           )}
                           <button
                             onClick={() => handleManualDispatchOperation(row.fuelingOperationId, true)}
-                            className="px-1 py-1 text-xs bg-orange-600 text-white rounded hover:bg-orange-700"
+                            className="px-1 py-1 text-xs bg-orange-600 text-white rounded hover:bg-orange-700 flex items-center justify-center"
                             disabled={loading}
                             title="Prinudno pošalji"
                           >
-                            🔄
+                            <ArrowPathIcon className="w-3 h-3" />
                           </button>
                         </div>
                       </td>
@@ -652,15 +766,10 @@ export default function EmailInvoicesPage() {
 
           {/* Financial Summary */}
         {rows.length > 0 && (
-          <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200">
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <svg className="w-5 h-5 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                  <line x1="16" y1="2" x2="16" y2="6"/>
-                  <line x1="8" y1="2" x2="8" y2="6"/>
-                  <line x1="3" y1="10" x2="21" y2="10"/>
-                </svg>
+                <DocumentTextIcon className="w-5 h-5 text-gray-600" />
                 Financijski pregled email faktura
               </h3>
               
@@ -695,7 +804,7 @@ export default function EmailInvoicesPage() {
                 <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Neuspešne email fakture</p>
+                      <p className="text-sm font-medium text-gray-600">Neusjpešne email fakture</p>
                       <p className="text-2xl font-bold text-red-600">{statusCounts.FAILED}</p>
                     </div>
                     <div className="p-3 bg-red-100 rounded-full">
@@ -708,7 +817,7 @@ export default function EmailInvoicesPage() {
                 <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Stopa uspešnosti</p>
+                      <p className="text-sm font-medium text-gray-600">Stopa uspješnosti</p>
                       <p className="text-2xl font-bold text-purple-600">
                         {rows.length > 0 ? Math.round((statusCounts.SENT / rows.length) * 100) : 0}%
                       </p>

@@ -9,7 +9,9 @@ import {
   getEmailInvoiceStats,
   previewEmailTemplate,
   updateEmailInvoicePaymentStatus,
-  externalEmailPaymentUpdate
+  externalEmailPaymentUpdate,
+  downloadEmailInvoicePdf,
+  retryFailedEmailDispatches
 } from '../controllers/emailInvoice.controller';
 import { authenticateToken, requireRole, AuthRequest } from '../middleware/auth';
 
@@ -60,5 +62,11 @@ router.put('/payment/:id', updateEmailInvoicePaymentStatus);
 
 // POST /api/invoices/email/external-payment - External payment status update
 router.post('/external-payment', externalEmailPaymentUpdate);
+
+// GET /api/invoices/email/dispatch/:id/download - Download PDF that was sent via email
+router.get('/dispatch/:id/download', downloadEmailInvoicePdf);
+
+// POST /api/invoices/email/retry-failed - Retry failed email dispatches
+router.post('/retry-failed', retryFailedEmailDispatches);
 
 export default router;
