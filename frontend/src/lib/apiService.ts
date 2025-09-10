@@ -875,6 +875,14 @@ export const getFuelIntakes = async (filters?: Partial<FuelIntakeFilters>): Prom
   }
 };
 
+// Update a fuel intake record
+export const updateFuelIntakeRecord = async (id: number, payload: Partial<FuelIntakeRecord>): Promise<FuelIntakeRecord> => {
+  return fetchWithAuth<FuelIntakeRecord>(`${API_BASE_URL}/api/fuel/intake-records/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+};
+
 // --- Service Records API --- //
 
 // Get all service records for a vehicle

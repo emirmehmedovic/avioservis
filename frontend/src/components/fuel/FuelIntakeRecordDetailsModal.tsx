@@ -195,7 +195,7 @@ export default function FuelIntakeRecordDetailsModal({
                 <div className="flex items-start">
                   <span className="text-gray-500 w-40 flex-shrink-0">Cijena po KG:</span>
                   <span className="font-medium text-gray-900">
-                    {typeof record.price_per_kg === 'number' ? record.price_per_kg.toLocaleString('bs-BA', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'N/A'}
+                    {typeof record.price_per_kg === 'number' ? record.price_per_kg.toLocaleString('bs-BA', {minimumFractionDigits: 3, maximumFractionDigits: 3}) : 'N/A'}
                     {record.currency ? ` ${record.currency}` : ''}
                   </span>
                 </div>
