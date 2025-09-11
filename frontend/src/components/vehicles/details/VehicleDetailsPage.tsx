@@ -30,6 +30,8 @@ import ServiceRecordDetailsView from './ServiceRecordDetailsView';
 import ReportsSection from './ReportsSection';
 import { formatServiceCategory, formatDateForDisplay } from './serviceHelpers';
 import { getSecureFileUrl } from '@/lib/utils';
+import { notificationService } from '@/services/notificationService';
+import { ExpirationNotification, NotificationStats } from '@/types/notification';
 
 // Import the sections configuration
 import { sections } from '@/components/vehicles/details/sections';
@@ -53,6 +55,9 @@ const VehicleDetailsPage: React.FC = () => {
   const [showViewWorkOrderModal, setShowViewWorkOrderModal] = useState(false);
   const [selectedImageForModal, setSelectedImageForModal] = useState<VehicleImageType | null>(null);
   const [mainImageChanged, setMainImageChanged] = useState(false);
+  const [vehicleNotifications, setVehicleNotifications] = useState<ExpirationNotification[]>([]);
+  const [notificationStats, setNotificationStats] = useState<NotificationStats | null>(null);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
 
   // Define formatter here for use in VehicleDetailsPage scope
   const formatDateForDisplayInPage = (date: Date | string | null | undefined) => {
@@ -99,11 +104,33 @@ const VehicleDetailsPage: React.FC = () => {
     }
   }, [id]);
 
+  // Fetch vehicle notifications
+  const fetchVehicleNotifications = useCallback(async () => {
+    if (!id) return;
+    
+    setNotificationsLoading(true);
+    try {
+      const [vehicleNotificationsResponse, statsResponse] = await Promise.all([
+        notificationService.getVehicleNotifications(Number(id)),
+        notificationService.getNotificationStats()
+      ]);
+      
+      setVehicleNotifications(vehicleNotificationsResponse.notifications);
+      setNotificationStats(statsResponse);
+    } catch (error) {
+      console.error('Error fetching vehicle notifications:', error);
+      // Ne prikazujemo grešku jer nije kritično
+    } finally {
+      setNotificationsLoading(false);
+    }
+  }, [id]);
+
   // Initial data loading
   useEffect(() => {
     fetchVehicleDetails();
     fetchServiceRecords();
-  }, [fetchVehicleDetails, fetchServiceRecords]);
+    fetchVehicleNotifications();
+  }, [fetchVehicleDetails, fetchServiceRecords, fetchVehicleNotifications]);
 
   // Handle setting main image
   const handleSetMainImage = async (imageId: number) => {
@@ -230,10 +257,30 @@ const VehicleDetailsPage: React.FC = () => {
           <div className="flex-1">
             <div className="flex flex-col md:flex-row justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-gray-800 flex items-center">
-                  <FaCar className="mr-2 text-indigo-500" />
-                  {vehicle.vehicle_name || "Vozilo"}
-                </h1>
+                <div className="flex items-center justify-between mb-2">
+                  <h1 className="text-2xl font-bold text-gray-800 flex items-center">
+                    <FaCar className="mr-2 text-indigo-500" />
+                    {vehicle.vehicle_name || "Vozilo"}
+                  </h1>
+                  
+                  {/* Notification Widget */}
+                  {vehicleNotifications.length > 0 && (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                        <span className="text-sm font-medium text-red-700">
+                          {vehicleNotifications.length} obavještenje{vehicleNotifications.length > 1 ? 'a' : ''}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => window.location.href = '/dashboard/notifications'}
+                        className="text-xs text-red-600 hover:text-red-800 font-medium underline"
+                      >
+                        Prikaži sve
+                      </button>
+                    </div>
+                  )}
+                </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 mt-3">
                   <div>

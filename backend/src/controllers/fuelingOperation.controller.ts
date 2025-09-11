@@ -38,20 +38,23 @@ const fuelingOperationSchema = z.object({
   notes: z.string().optional(),
   tip_saobracaja: z.string().optional(),
   delivery_note_number: z.string().optional(),
+  payment_method: z.string().optional(),
   exd_number: z.string().max(50, 'EXD broj ne može biti duži od 50 karaktera').optional(),
   k_number: z.string().max(50, 'K broj ne može biti duži od 50 karaktera').optional(),
 });
 
 export const getAllFuelingOperations = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { startDate, endDate, airlineId, destination, tankId, tip_saobracaja, currency, deliveryVoucher } = req.query;
+    const { startDate, endDate, airlineId, destination, tankId, tip_saobracaja, currency, deliveryVoucher, payment_method } = req.query;
 
     // Debug logging
     console.log('🔍 All query parameters:', req.query);
     console.log('🔍 airlineIds from req.query:', req.query.airlineIds);
     console.log('🔍 destinations from req.query:', req.query.destinations);
+    console.log('🔍 payment_method from req.query:', req.query.payment_method);
     console.log('🔍 airlineIds type:', typeof req.query.airlineIds);
     console.log('🔍 destinations type:', typeof req.query.destinations);
+    console.log('🔍 payment_method type:', typeof req.query.payment_method);
     console.log('🔍 airlineIds isArray:', Array.isArray(req.query.airlineIds));
     console.log('🔍 destinations isArray:', Array.isArray(req.query.destinations));
 
@@ -112,6 +115,9 @@ export const getAllFuelingOperations = async (req: Request, res: Response): Prom
     }
     if (deliveryVoucher) {
       whereClause.delivery_note_number = { endsWith: deliveryVoucher as string, mode: 'insensitive' };
+    }
+    if (payment_method) {
+      whereClause.payment_method = payment_method as string;
     }
 
     // Debug logging for whereClause
@@ -451,6 +457,7 @@ export const createFuelingOperation = async (req: Request, res: Response): Promi
           notes,
           tip_saobracaja: tip_saobracaja || null,
           delivery_note_number: delivery_note_number || null,
+          payment_method: validationResult.data.payment_method || null,
           usd_exchange_rate: validationResult.data.usd_exchange_rate,
           // Inicijalno prazan mrnBreakdown - bit će ažuriran kasnije
           mrnBreakdown: null

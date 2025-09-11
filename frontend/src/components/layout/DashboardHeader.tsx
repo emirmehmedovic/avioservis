@@ -7,6 +7,7 @@ import { Bell, Search, User } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/contexts/AuthContext';
 import { getInitials } from '@/lib/utils';
+import NotificationBell from '@/components/NotificationBell';
 
 interface DashboardHeaderProps {
   title?: string;
@@ -14,7 +15,6 @@ interface DashboardHeaderProps {
 }
 
 export default function DashboardHeader({ title, subtitle }: DashboardHeaderProps) {
-  const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const pathname = usePathname();
   const { authUser } = useAuth();
@@ -90,47 +90,7 @@ export default function DashboardHeader({ title, subtitle }: DashboardHeaderProp
         </div>
         
         <div className="flex items-center space-x-3 self-end">
-          <div className="relative">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="relative"
-            >
-              <Bell size={18} />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </Button>
-            
-            {showNotifications && (
-              <motion.div 
-                className="absolute right-0 mt-2 w-80 bg-card border border-border rounded-md shadow-lg z-50"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-              >
-                <div className="p-4 border-b border-border">
-                  <h3 className="font-medium">Obavještenja</h3>
-                </div>
-                <div className="p-2 max-h-80 overflow-y-auto">
-                  <div className="p-3 hover:bg-muted rounded-md transition-colors">
-                    <p className="text-sm font-medium">Servis vozila uskoro</p>
-                    <p className="text-xs text-muted-foreground">Vozilo BMW X5 ima zakazan servis za 3 dana</p>
-                    <p className="text-xs text-muted-foreground mt-1">Prije 2 sata</p>
-                  </div>
-                  <div className="p-3 hover:bg-muted rounded-md transition-colors">
-                    <p className="text-sm font-medium">Registracija ističe</p>
-                    <p className="text-xs text-muted-foreground">Vozilu Mercedes Sprinter ističe registracija za 7 dana</p>
-                    <p className="text-xs text-muted-foreground mt-1">Prije 1 dan</p>
-                  </div>
-                </div>
-                <div className="p-2 border-t border-border">
-                  <button className="w-full text-center text-sm text-primary p-2 hover:bg-muted rounded-md transition-colors">
-                    Pogledaj sva obavještenja
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </div>
+          <NotificationBell className="text-gray-600 hover:text-gray-900" />
           
           <div className="relative">
             <Button 

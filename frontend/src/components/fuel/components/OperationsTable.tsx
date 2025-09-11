@@ -19,6 +19,7 @@ const OperationsTable: React.FC<OperationsTableProps> = ({ operations, handleRow
           <tr>
             <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900" style={{ width: '90px', wordWrap: 'break-word' }}>Datum i Vrijeme</th>
             <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900" style={{ width: '80px', wordWrap: 'break-word' }}>Registracija</th>
+            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900" style={{ width: '80px', wordWrap: 'break-word' }}>Broj leta</th>
             <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900" style={{ width: '90px', wordWrap: 'break-word' }}>Avio Kompanija</th>
             <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900" style={{ width: '80px', wordWrap: 'break-word' }}>Destinacija</th>
             <th scope="col" className="px-3 py-3.5 text-center text-sm font-semibold text-gray-900" style={{ width: '60px', wordWrap: 'break-word' }}>Tip goriva</th>
@@ -26,12 +27,12 @@ const OperationsTable: React.FC<OperationsTableProps> = ({ operations, handleRow
             <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-gray-900" style={{ width: '60px', wordWrap: 'break-word' }}>Gustoća</th>
             <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-gray-900" style={{ width: '70px', wordWrap: 'break-word' }}>Količina (kg)</th>
             <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-gray-900" style={{ width: '70px', wordWrap: 'break-word' }}>Cijena/kg</th>
-            <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-gray-900" style={{ width: '60px', wordWrap: 'break-word' }}>Rabat (%)</th>
+            <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-gray-900" style={{ width: '80px', wordWrap: 'break-word' }}>Ukupna cijena</th>
             <th scope="col" className="px-3 py-3.5 text-center text-sm font-semibold text-gray-900" style={{ width: '50px', wordWrap: 'break-word' }}>Valuta</th>
             <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900" style={{ width: '100px', wordWrap: 'break-word' }}>Avio cisterna</th>
             <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900" style={{ width: '80px', wordWrap: 'break-word' }}>Broj dostavnice</th>
+            <th scope="col" className="px-3 py-3.5 text-center text-sm font-semibold text-gray-900" style={{ width: '80px', wordWrap: 'break-word' }}>Način plaćanja</th>
             <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900" style={{ width: '80px', wordWrap: 'break-word' }}>Tip saobraćaja</th>
-            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900" style={{ width: '80px', wordWrap: 'break-word' }}>Operater</th>
             <th scope="col" className="px-3 py-3.5 text-center text-sm font-semibold text-gray-900" style={{ width: '80px', wordWrap: 'break-word' }}>Akcije</th>
           </tr>
         </thead>
@@ -46,6 +47,9 @@ const OperationsTable: React.FC<OperationsTableProps> = ({ operations, handleRow
               <td className="px-3 py-4 text-sm text-gray-500 table-cell-wrap">{formatDate(operation.dateTime)}</td>
               <td className="px-3 py-4 text-sm text-gray-500 table-cell-wrap">
                 {operation.aircraft_registration || 'N/A (Sistemska letjelica)'}
+              </td>
+              <td className="px-3 py-4 text-sm text-gray-500 table-cell-wrap">
+                {operation.flight_number || 'N/A'}
               </td>
               <td className="px-3 py-4 text-sm font-medium text-gray-900 table-cell-wrap">{operation.airline?.name || 'N/A'}</td>
               <td className="px-3 py-4 text-sm text-gray-500 table-cell-wrap">{operation.destination}</td>
@@ -77,11 +81,7 @@ const OperationsTable: React.FC<OperationsTableProps> = ({ operations, handleRow
                 {(operation.price_per_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 5 })}
               </td>
               <td className="whitespace-nowrap px-3 py-4 text-sm font-medium text-gray-900 text-right">
-                {operation.discount_percentage ? (
-                  <span className="text-indigo-600">{operation.discount_percentage}%</span>
-                ) : (
-                  <span className="text-gray-400">0%</span>
-                )}
+                {(operation.total_amount || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 })} {operation.currency || 'BAM'}
               </td>
               <td className="whitespace-nowrap px-3 py-4 text-sm font-medium text-gray-900 text-center">
                 {operation.currency || 'BAM'}
@@ -106,6 +106,18 @@ const OperationsTable: React.FC<OperationsTableProps> = ({ operations, handleRow
                   <span className="text-gray-400 italic">N/A</span>
                 )}
               </td>
+              <td className="px-3 py-4 text-sm text-gray-500 table-cell-wrap text-center">
+                {operation.payment_method ? (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800" style={{ wordBreak: 'break-word' }}>
+                    {operation.payment_method === 'VIRMAN' ? 'Virman' : 
+                     operation.payment_method === 'POS_APARAT' ? 'POS' : 
+                     operation.payment_method === 'GOTOVINA' ? 'Gotovina' : 
+                     operation.payment_method}
+                  </span>
+                ) : (
+                  <span className="text-gray-400 italic">N/A</span>
+                )}
+              </td>
               <td className="px-3 py-4 text-sm text-gray-500 table-cell-wrap">
                 {operation.tip_saobracaja ? (
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800" style={{ wordBreak: 'break-word' }}>
@@ -115,7 +127,6 @@ const OperationsTable: React.FC<OperationsTableProps> = ({ operations, handleRow
                   <span className="text-gray-400 italic">N/A</span>
                 )}
               </td>
-              <td className="px-3 py-4 text-sm text-gray-500 table-cell-wrap">{operation.operator_name}</td>
               <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 text-center">
                 <div className="flex justify-center space-x-1">
                   {handleEditOperation && (

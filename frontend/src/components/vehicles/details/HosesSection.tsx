@@ -308,16 +308,6 @@ const HosesSection: React.FC<HosesSectionProps> = ({
             icon={<FaCalendarCheck />} 
           />
           <DatePairItem 
-            baseLabel="Umjeravanje manometrom" 
-            lastDate={vehicle.manometer_calibration_date} 
-            nextDate={vehicle.manometer_calibration_valid_until} 
-            vehicleId={vehicle.id} 
-            lastDateFieldName="manometer_calibration_date" 
-            nextDateFieldName="manometer_calibration_valid_until" 
-            onUpdate={onUpdate} 
-            icon={<FaCalendarCheck />} 
-          />
-          <DatePairItem 
             baseLabel="Test curenja crijeva" 
             lastDate={vehicle.last_hose_leak_test_date} 
             nextDate={vehicle.next_hose_leak_test_date} 

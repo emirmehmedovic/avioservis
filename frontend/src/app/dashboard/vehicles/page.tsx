@@ -5,6 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { getVehicles, deleteVehicle } from '@/lib/apiService';
 import { Vehicle, VehicleStatus } from '@/types';
+import { notificationService } from '@/services/notificationService';
+import { ExpirationNotification, NotificationStats } from '@/types/notification';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -20,7 +22,10 @@ import {
   Filter,
   Grid,
   List,
-  Fuel
+  Fuel,
+  Bell,
+  Clock,
+  AlertCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -32,6 +37,10 @@ export default function VehiclesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [notifications, setNotifications] = useState<ExpirationNotification[]>([]);
+  const [notificationStats, setNotificationStats] = useState<NotificationStats | null>(null);
+  const [showNotificationsOnly, setShowNotificationsOnly] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
 
   const fetchVehiclesData = async () => {
     try {
@@ -48,9 +57,45 @@ export default function VehiclesPage() {
     }
   };
 
+  const fetchNotificationsData = async () => {
+    try {
+      setNotificationsLoading(true);
+      const [notificationsResponse, statsResponse] = await Promise.all([
+        notificationService.getExpirationNotifications({ limit: 100, isActive: true }),
+        notificationService.getNotificationStats()
+      ]);
+      
+      setNotifications(notificationsResponse.notifications);
+      setNotificationStats(statsResponse);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      // Ne prikazujemo grešku za obaveštenja jer nije kritično
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchVehiclesData();
+    fetchNotificationsData();
   }, []);
+
+  // Helper funkcija za dobijanje broja obaveštenja za vozilo
+  const getVehicleNotificationCount = (vehicleId: number) => {
+    return notifications.filter(n => n.vehicleId === vehicleId && n.isActive).length;
+  };
+
+  // Helper funkcija za dobijanje najkritičnijeg obaveštenja za vozilo
+  const getVehicleCriticalNotification = (vehicleId: number) => {
+    const vehicleNotifications = notifications.filter(n => n.vehicleId === vehicleId && n.isActive);
+    if (vehicleNotifications.length === 0) return null;
+    
+    // Sortiraj po prioritetu: EXPIRED > CRITICAL_7_DAYS > WARNING_15_DAYS > WARNING_30_DAYS
+    const priority = { 'EXPIRED': 4, 'CRITICAL_7_DAYS': 3, 'WARNING_15_DAYS': 2, 'WARNING_30_DAYS': 1 };
+    return vehicleNotifications.sort((a, b) => 
+      priority[b.notificationType] - priority[a.notificationType]
+    )[0];
+  };
 
   const handleDeleteVehicle = async (vehicleId: number, vehicleName: string) => {
     if (window.confirm(`Jeste li sigurni da želite obrisati vozilo "${vehicleName}"?`)) {
@@ -69,18 +114,26 @@ export default function VehiclesPage() {
   };
 
   useEffect(() => {
-    if (searchTerm.trim() === '') {
-      setFilteredVehicles(vehicles);
-    } else {
+    let filtered = vehicles;
+    
+    // Filtriranje po pretrazi
+    if (searchTerm.trim() !== '') {
       const lowercasedSearch = searchTerm.toLowerCase();
-      const filtered = vehicles.filter(vehicle => 
+      filtered = filtered.filter(vehicle => 
         vehicle.vehicle_name.toLowerCase().includes(lowercasedSearch) ||
         vehicle.license_plate.toLowerCase().includes(lowercasedSearch) ||
         (vehicle.status && vehicle.status.toLowerCase().includes(lowercasedSearch))
       );
-      setFilteredVehicles(filtered);
     }
-  }, [searchTerm, vehicles]);
+    
+    // Filtriranje po obaveštenjima
+    if (showNotificationsOnly) {
+      const vehiclesWithNotifications = new Set(notifications.map(n => n.vehicleId));
+      filtered = filtered.filter(vehicle => vehiclesWithNotifications.has(vehicle.id));
+    }
+    
+    setFilteredVehicles(filtered);
+  }, [searchTerm, vehicles, showNotificationsOnly, notifications]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -151,6 +204,19 @@ export default function VehiclesPage() {
             <p className="text-gray-300 mt-1">Upravljajte voznim parkom</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 items-center">
+            {/* Notification Stats Widget */}
+            {notificationStats && notificationStats.total > 0 && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-red-500/20 border border-red-500/30 rounded-lg backdrop-blur-md">
+                <Bell className="w-4 h-4 text-red-400" />
+                <span className="text-sm font-medium text-red-200">
+                  {notificationStats.unread} nepročitano
+                </span>
+                <span className="text-xs text-red-300">
+                  ({notificationStats.total} ukupno)
+                </span>
+              </div>
+            )}
+            
             <div className="relative w-full sm:w-auto">
               <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#F08080] h-4 w-4">
                 <Search size={16} />
@@ -164,6 +230,23 @@ export default function VehiclesPage() {
               />
             </div>
             <div className="flex gap-2">
+              {/* Notification Filter Button */}
+              <Button 
+                variant="secondary"
+                onClick={() => setShowNotificationsOnly(!showNotificationsOnly)}
+                className={showNotificationsOnly 
+                  ? 'backdrop-blur-md bg-red-500/30 border border-red-500/50 text-white shadow-lg hover:bg-red-500/40 transition-all' 
+                  : 'backdrop-blur-md bg-white/10 border border-white/20 text-white shadow-lg hover:bg-white/20 transition-all'}
+              >
+                <Bell size={16} className="mr-2" />
+                {showNotificationsOnly ? 'Sva vozila' : 'Sa obaveštenjima'}
+                {notificationStats && notificationStats.total > 0 && (
+                  <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">
+                    {notificationStats.total}
+                  </span>
+                )}
+              </Button>
+              
               <Button 
                 variant="secondary"
                 size="icon"
@@ -270,6 +353,19 @@ export default function VehiclesPage() {
                         <Car className="h-16 w-16 text-gray-300" />
                       </div>
                     )}
+                    
+                    {/* Notification Badge */}
+                    {getVehicleNotificationCount(vehicle.id) > 0 && (
+                      <div className="absolute top-3 right-3 z-20">
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-red-500 rounded-full animate-pulse"></div>
+                          <div className="relative bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg">
+                            {getVehicleNotificationCount(vehicle.id)}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="absolute bottom-3 left-3 z-20">
                       <span className={`backdrop-blur-md ${getStatusColor(vehicle.status)} inline-block px-3 py-1 rounded-full text-xs font-medium text-white shadow-md border border-white/20 transition-all duration-300 group-hover:scale-105`}>
                         {vehicle.status || 'N/A'}
@@ -295,6 +391,24 @@ export default function VehiclesPage() {
                           <p className="text-sm text-white/80">{vehicle.fuel_type}</p>
                         </div>
                       )}
+                      
+                      {/* Notification Info */}
+                      {getVehicleNotificationCount(vehicle.id) > 0 && (() => {
+                        const criticalNotification = getVehicleCriticalNotification(vehicle.id);
+                        return (
+                          <div className="flex items-center gap-2 mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded-lg">
+                            <AlertTriangle size={14} className="text-red-400" />
+                            <div className="flex-1">
+                              <p className="text-xs font-medium text-red-300">
+                                {criticalNotification?.fieldDisplayName}
+                              </p>
+                              <p className="text-xs text-red-400">
+                                Ističe: {new Date(criticalNotification?.expirationDate || '').toLocaleDateString('bs-BA')}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                     
                     <div className="mt-auto flex justify-between items-center pt-3 border-t border-white/20">
@@ -377,9 +491,19 @@ export default function VehiclesPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <Link href={`/dashboard/vehicles/details/${vehicle.id}`} className="font-medium hover:underline bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
-                          {vehicle.vehicle_name}
-                        </Link>
+                        <div className="flex items-center gap-2">
+                          <Link href={`/dashboard/vehicles/details/${vehicle.id}`} className="font-medium hover:underline bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+                            {vehicle.vehicle_name}
+                          </Link>
+                          {getVehicleNotificationCount(vehicle.id) > 0 && (
+                            <div className="flex items-center gap-1">
+                              <Bell size={14} className="text-red-500" />
+                              <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                                {getVehicleNotificationCount(vehicle.id)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm">
                         {vehicle.license_plate}

@@ -89,6 +89,7 @@ export interface FuelingOperation {
   parsedMrnBreakdown?: { mrn: string, quantity: number }[] | null; // Parsirani MRN podaci
   exd_number?: string | null; // EXD broj za avio gorivo
   k_number?: string | null; // K broj za avio gorivo
+  payment_method?: string | null; // Način plaćanja (VIRMAN, POS_APARAT, GOTOVINA)
 }
 
 export interface FuelingOperationsApiResponse {
@@ -115,4 +116,5 @@ export interface FuelingOperationFormData {
   notes: string;
   tip_saobracaja: string;
   delivery_note_number: string; // Broj dostavnice
+  payment_method?: string; // Način plaćanja (VIRMAN, POS_APARAT, GOTOVINA)
 }

@@ -17,7 +17,8 @@ import {
   FaWarehouse,
   FaArrowCircleUp,
   FaArrowCircleDown,
-  FaIndustry
+  FaIndustry,
+  FaWeightHanging
 } from 'react-icons/fa';
 import Card from './Card';
 import EditableItem from './EditableItem';
@@ -58,6 +59,33 @@ const TankerSpecificationSection: React.FC<TankerSpecificationSectionProps> = ({
               onUpdate={onUpdate} 
             />
             <EditableItem 
+              label="Kapacitet (kg)" 
+              value={vehicle.capacity_kg} 
+              icon={<FaWeightHanging />} 
+              vehicleId={vehicle.id} 
+              fieldName="capacity_kg" 
+              type="number" 
+              onUpdate={onUpdate} 
+            />
+            <EditableItem 
+              label="Trenutno stanje (kg)" 
+              value={vehicle.current_kg} 
+              icon={<FaWeightHanging />} 
+              vehicleId={vehicle.id} 
+              fieldName="current_kg" 
+              type="number" 
+              onUpdate={onUpdate} 
+            />
+            <EditableItem 
+              label="Trenutno stanje (L)" 
+              value={vehicle.current_liters} 
+              icon={<FaTint />} 
+              vehicleId={vehicle.id} 
+              fieldName="current_liters" 
+              type="number" 
+              onUpdate={onUpdate} 
+            />
+            <EditableItem 
               label="Broj odjeljaka" 
               value={vehicle.tanker_compartments} 
               icon={<FaRulerVertical />} 
@@ -81,6 +109,19 @@ const TankerSpecificationSection: React.FC<TankerSpecificationSectionProps> = ({
               vehicleId={vehicle.id} 
               fieldName="tanker_material" 
               onUpdate={onUpdate} 
+            />
+            <EditableItem 
+              label="Tip tanka" 
+              value={vehicle.tank_type} 
+              icon={<FaWarehouse />} 
+              vehicleId={vehicle.id} 
+              fieldName="tank_type" 
+              onUpdate={onUpdate} 
+              options={[
+                { value: 'Fixed', label: 'Fiksni tank' },
+                { value: 'Mobile', label: 'Mobilni tank' },
+                { value: 'Portable', label: 'Prenosni tank' }
+              ]}
             />
           </div>
         </div>
@@ -186,21 +227,13 @@ const TankerSpecificationSection: React.FC<TankerSpecificationSectionProps> = ({
           </div>
         </div>
 
-        {/* Filtri i crijeva */}
+        {/* Crijeva za točenje */}
         <div>
           <h3 className="text-lg font-medium text-gray-800 mb-3 pb-2 border-b border-gray-200">
-            <FaFlask className="inline-block mr-2 text-indigo-500" /> 
-            Filtri i crijeva
+            <FaShippingFast className="inline-block mr-2 text-indigo-500" /> 
+            Crijeva za točenje
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <EditableItem 
-              label="Tip filtera" 
-              value={vehicle.tip_filtera} 
-              icon={<FaFlask />} 
-              vehicleId={vehicle.id} 
-              fieldName="tip_filtera" 
-              onUpdate={onUpdate} 
-            />
             <EditableItem 
               label="Crijeva za točenje" 
               value={vehicle.crijeva_za_tocenje} 

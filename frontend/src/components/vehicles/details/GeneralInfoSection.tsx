@@ -262,6 +262,24 @@ const GeneralInfoSection: React.FC<GeneralInfoSectionProps> = ({ vehicle, onUpda
               type="date" 
               onUpdate={onUpdate} 
             />
+            <EditableItem 
+              label="Zadnji godišnji pregled" 
+              value={vehicle.last_annual_inspection_date} 
+              icon={<FaCalendarAlt />} 
+              vehicleId={vehicle.id} 
+              fieldName="last_annual_inspection_date" 
+              type="date" 
+              onUpdate={onUpdate} 
+            />
+            <EditableItem 
+              label="Sljedeći godišnji pregled" 
+              value={vehicle.next_annual_inspection_date} 
+              icon={<FaCalendarAlt />} 
+              vehicleId={vehicle.id} 
+              fieldName="next_annual_inspection_date" 
+              type="date" 
+              onUpdate={onUpdate} 
+            />
           </div>
         </div>
       </div>

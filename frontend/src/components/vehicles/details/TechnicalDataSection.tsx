@@ -129,12 +129,6 @@ const TechnicalDataSection: React.FC<TechnicalDataSectionProps> = ({ vehicle, on
             </div>
             <div className="p-3 border rounded-md bg-gray-50">
               <div className="text-sm text-gray-500 mb-1 flex items-center">
-                <FaTint className="mr-2 text-indigo-500" /> Kapacitet
-              </div>
-              <div className="font-medium">{vehicle.kapacitet_cisterne ? `${vehicle.kapacitet_cisterne} L` : 'Nije postavljeno'}</div>
-            </div>
-            <div className="p-3 border rounded-md bg-gray-50">
-              <div className="text-sm text-gray-500 mb-1 flex items-center">
                 <FaCalendarAlt className="mr-2 text-indigo-500" /> Godina proizvodnje
               </div>
               <div className="font-medium">{vehicle.year_of_manufacture || 'Nije postavljeno'}</div>
@@ -150,63 +144,52 @@ const TechnicalDataSection: React.FC<TechnicalDataSectionProps> = ({ vehicle, on
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <DatePairItem 
-              title="Šestomjesečni pregled"
+              baseLabel="Šestomjesečni pregled"
               lastDate={vehicle.last_6_month_check_date}
               nextDate={vehicle.next_6_month_check_date}
+              vehicleId={vehicle.id}
+              lastDateFieldName="last_6_month_check_date"
+              nextDateFieldName="next_6_month_check_date"
+              onUpdate={onUpdate}
               icon={<FaCalendarAlt />}
             />
             <DatePairItem 
-              title="Tromjesečni pregled"
+              baseLabel="Tromjesečni pregled"
               lastDate={vehicle.tromjesecni_pregled_datum}
               nextDate={vehicle.tromjesecni_pregled_vazi_do}
+              vehicleId={vehicle.id}
+              lastDateFieldName="tromjesecni_pregled_datum"
+              nextDateFieldName="tromjesecni_pregled_vazi_do"
+              onUpdate={onUpdate}
               icon={<FaCalendarAlt />}
             />
             <DatePairItem 
-              title="ADR"
+              baseLabel="ADR"
               lastDate={null}
               nextDate={vehicle.adr_vazi_do}
+              vehicleId={vehicle.id}
+              lastDateFieldName=""
+              nextDateFieldName="adr_vazi_do"
+              onUpdate={onUpdate}
               icon={<FaCalendarAlt />}
               showLastDate={false}
               nextDateLabel="Važi do"
             />
             <DatePairItem 
-              title="Licenca"
+              baseLabel="Licenca"
               lastDate={vehicle.licenca_datum_izdavanja}
               nextDate={vehicle.licenca_vazi_do}
+              vehicleId={vehicle.id}
+              lastDateFieldName="licenca_datum_izdavanja"
+              nextDateFieldName="licenca_vazi_do"
+              onUpdate={onUpdate}
               icon={<FaCalendarAlt />}
               lastDateLabel="Izdana"
               nextDateLabel="Važi do"
             />
-            <DatePairItem 
-              title="Kalibracija volumetra"
-              lastDate={vehicle.volumeter_kalibracija_datum}
-              nextDate={vehicle.volumeter_kalibracija_vazi_do}
-              icon={<FaCalendarAlt />}
-            />
           </div>
         </div>
 
-        {/* Pregledi */}
-        <div>
-          <h3 className="text-lg font-medium text-gray-800 mb-3 pb-2 border-b border-gray-200">
-            <FaCalendarAlt className="inline-block mr-2 text-indigo-500" /> 
-            Pregledi
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-3 border rounded-md bg-gray-50">
-              <div className="text-sm text-gray-500 mb-1 flex items-center">
-                <FaCalendarAlt className="mr-2 text-indigo-500" /> Tromjesečni pregled - datum
-              </div>
-              <div className="font-medium">{vehicle.tromjesecni_pregled_datum ? formatDate(vehicle.tromjesecni_pregled_datum) : 'Nije postavljeno'}</div>
-            </div>
-            <div className="p-3 border rounded-md bg-gray-50">
-              <div className="text-sm text-gray-500 mb-1 flex items-center">
-                <FaCalendarAlt className="mr-2 text-indigo-500" /> Tromjesečni pregled - važi do
-              </div>
-              <div className="font-medium">{vehicle.tromjesecni_pregled_vazi_do ? formatDate(vehicle.tromjesecni_pregled_vazi_do) : 'Nije postavljeno'}</div>
-            </div>
-          </div>
-        </div>
 
         {/* Upload dokumentacije */}
         <div>

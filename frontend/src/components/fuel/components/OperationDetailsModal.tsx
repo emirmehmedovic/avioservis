@@ -300,10 +300,10 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
   }, []);
   
   return createPortal(
-    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-0">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 max-w-6xl w-full max-h-[90vh] overflow-y-auto p-0">
         {/* Header with black glassmorphism effect */}
-        <div className="p-6 text-white relative overflow-hidden">
+        <div className="p-6 text-white relative overflow-hidden rounded-t-2xl">
           {/* Black glassmorphism background */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/60 to-black/40 backdrop-blur-xl border border-white/20 z-0"></div>
           {/* Glass highlight effect */}
@@ -333,13 +333,13 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
           </div>
         </div>
         
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 bg-gradient-to-b from-transparent to-gray-50/30">
           {/* MRN Podaci - Prikazuje se samo ako postoje MRN podaci */}
           {renderMrnSection()}
           
           {/* Osnovni Podaci */}
-          <section className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-            <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-750 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <section className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg overflow-hidden">
+            <div className="bg-gradient-to-r from-indigo-50/80 to-purple-50/80 dark:from-gray-800/80 dark:to-gray-750/80 backdrop-blur-sm px-4 py-3 border-b border-gray-200/50 dark:border-gray-700/50">
               <h3 className="text-lg font-semibold flex items-center text-gray-800 dark:text-gray-200">
                 <svg className="w-5 h-5 mr-2 text-indigo-600 dark:text-indigo-400" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M9 12H15M9 16H15M9 8H15M5 21H19C20.1046 21 21 20.1046 21 19V9.41421C21 9.149 20.8946 8.89464 20.7071 8.70711L13.2929 3.29289C13.1054 3.10536 12.851 3 12.5858 3H7C5.89543 3 5 3.89543 5 5V19C5 20.1046 5.89543 21 7 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -349,7 +349,7 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
             </div>
             <div className="p-5">
               {/* Flight Information Card */}
-              <div className="mb-6 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+              <div className="mb-6 bg-gradient-to-br from-blue-50/40 to-indigo-50/40 dark:bg-gray-800/40 backdrop-blur-lg rounded-2xl p-4 border border-white/40 dark:border-gray-700/40 shadow-xl">
                 <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center">
                   <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M3.55 19.09L19.78 7.22L16.06 3.5L15 4.56L17.11 6.67C16.17 7.03 15.5 7.93 15.5 9C15.5 10.38 16.62 11.5 18 11.5C18.36 11.5 18.69 11.42 19 11.29V18.5C19 19.05 18.55 19.5 18 19.5C17.45 19.5 17 19.05 17 18.5V14C17 12.9 16.1 12 15 12H14V5C14 3.9 13.1 3 12 3H6C4.9 3 4 3.9 4 5V21H14V13.5H15.5V18.5C15.5 19.88 16.62 21 18 21C19.38 21 20.5 19.88 20.5 18.5V9C20.5 8.31 20.22 7.68 19.77 7.23ZM12 10H6V5H12V10Z" fill="currentColor"/>
@@ -357,22 +357,22 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
                   Informacije o letu
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700">
+                  <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl p-3 border border-white/30 dark:border-gray-700/30 shadow-lg">
                     <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Tip Saobraćaja</div>
                     <div className="font-semibold text-gray-900 dark:text-gray-100">{operation.tip_saobracaja || 'N/A'}</div>
                   </div>
 
-                  <div className="bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700">
+                  <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl p-3 border border-white/30 dark:border-gray-700/30 shadow-lg">
                     <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Registracija Aviona</div>
                     <div className="font-semibold text-gray-900 dark:text-gray-100">{operation.aircraft_registration || 'N/A'}</div>
                   </div>
-                  <div className="bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700">
+                  <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl p-3 border border-white/30 dark:border-gray-700/30 shadow-lg">
                     <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Broj Leta</div>
                     <div className="font-semibold text-gray-900 dark:text-gray-100">{operation.flight_number || 'N/A'}</div>
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700">
+                  <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl p-3 border border-white/30 dark:border-gray-700/30 shadow-lg">
                     <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Destinacija</div>
                     <div className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
                       <svg className="w-4 h-4 mr-1 text-gray-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -381,13 +381,23 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
                       {operation.destination}
                     </div>
                   </div>
-                  <div className="bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700">
+                  <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl p-3 border border-white/30 dark:border-gray-700/30 shadow-lg">
                     <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Datum i Vrijeme</div>
                     <div className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
                       <svg className="w-4 h-4 mr-1 text-gray-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2ZM16.2 16.2L11 13V7H12.5V12.2L17 14.9L16.2 16.2Z" fill="currentColor"/>
                       </svg>
                       {formatDate(operation.dateTime)}
+                    </div>
+                  </div>
+                  <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl p-3 border border-white/30 dark:border-gray-700/30 shadow-lg">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Operater</div>
+                    <div className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                      <svg className="w-4 h-4 mr-1 text-gray-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M12 14C8.13401 14 5 17.134 5 21H19C19 17.134 15.866 14 12 14Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      {operation.operator_name || 'N/A'}
                     </div>
                   </div>
                 </div>
@@ -400,7 +410,7 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
               </div>
               
               {/* Fueling Information Card */}
-              <div className="mb-6 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+              <div className="mb-6 bg-gradient-to-br from-blue-50/40 to-indigo-50/40 dark:bg-gray-800/40 backdrop-blur-lg rounded-2xl p-4 border border-white/40 dark:border-gray-700/40 shadow-xl">
                 <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center">
                   <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M19.77 7.23L19.78 7.22L16.06 3.5L15 4.56L17.11 6.67C16.17 7.03 15.5 7.93 15.5 9C15.5 10.38 16.62 11.5 18 11.5C18.36 11.5 18.69 11.42 19 11.29V18.5C19 19.05 18.55 19.5 18 19.5C17.45 19.5 17 19.05 17 18.5V14C17 12.9 16.1 12 15 12H14V5C14 3.9 13.1 3 12 3H6C4.9 3 4 3.9 4 5V21H14V13.5H15.5V18.5C15.5 19.88 16.62 21 18 21C19.38 21 20.5 19.88 20.5 18.5V9C20.5 8.31 20.22 7.68 19.77 7.23ZM12 10H6V5H12V10Z" fill="currentColor"/>
@@ -408,7 +418,7 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
                   Informacije o točenju
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700">
+                  <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl p-3 border border-white/30 dark:border-gray-700/30 shadow-lg">
                     <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Tip Goriva</div>
                     <div className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
                       {operation.tank?.fuel_type?.toLowerCase() === 'jet a-1'.toLowerCase() ? (
@@ -425,31 +435,46 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
                       )}
                     </div>
                   </div>
-                  <div className="bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700">
+                  <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl p-3 border border-white/30 dark:border-gray-700/30 shadow-lg">
                     <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Količina (L)</div>
                     <div className="font-semibold text-gray-900 dark:text-gray-100">
                       {(operation.quantity_liters || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 })} L
                     </div>
                   </div>
-                  <div className="bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700">
+                  <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl p-3 border border-white/30 dark:border-gray-700/30 shadow-lg">
                     <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Količina (kg)</div>
                     <div className="font-semibold text-gray-900 dark:text-gray-100">
                       {(operation.quantity_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg
                     </div>
                   </div>
                 </div>
-                <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700">
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl p-3 border border-white/30 dark:border-gray-700/30 shadow-lg">
                     <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Gustoća</div>
                     <div className="font-semibold text-gray-900 dark:text-gray-100">
                       {(operation.specific_density || 0).toLocaleString('hr-HR', { minimumFractionDigits: 3 })} kg/L
                     </div>
                   </div>
-                  <div className="bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700">
+                  <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl p-3 border border-white/30 dark:border-gray-700/30 shadow-lg">
                     <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Broj dostavnice</div>
                     <div className="font-semibold text-gray-900 dark:text-gray-100">{operation.delivery_note_number || 'N/A'}</div>
                   </div>
-                  <div className="bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700">
+                  <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl p-3 border border-white/30 dark:border-gray-700/30 shadow-lg">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Način plaćanja</div>
+                    <div className="font-semibold text-gray-900 dark:text-gray-100">
+                      {operation.payment_method ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          {operation.payment_method === 'VIRMAN' ? 'Virman' : 
+                           operation.payment_method === 'POS_APARAT' ? 'POS aparat' : 
+                           operation.payment_method === 'GOTOVINA' ? 'Gotovina' : 
+                           operation.payment_method}
+                        </span>
+                      ) : (
+                        'N/A'
+                      )}
+                    </div>
+                  </div>
+                  <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl p-3 border border-white/30 dark:border-gray-700/30 shadow-lg">
                     <div className="flex flex-col space-y-1">
                       <span className="text-xs text-gray-500 dark:text-gray-400 mb-1">Cijena po kg</span>
                       <span className="text-lg font-medium text-gray-900 dark:text-gray-100">
@@ -488,13 +513,13 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700">
+                    <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl p-3 border border-white/30 dark:border-gray-700/30 shadow-lg">
                       <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">EXD BROJ</div>
                       <div className="font-semibold text-gray-900 dark:text-gray-100">
                         {updatedOperation.exd_number || 'Nije unesen'}
                       </div>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700">
+                    <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-xl p-3 border border-white/30 dark:border-gray-700/30 shadow-lg">
                       <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">K BROJ</div>
                       <div className="font-semibold text-gray-900 dark:text-gray-100">
                         {updatedOperation.k_number || 'Nije unesen'}
@@ -507,8 +532,8 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
           </section>
           
           {/* Total Price Calculation Section */}
-          <section className="bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-            <div className="bg-gray-100 dark:bg-gray-700/50 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <section className="bg-gradient-to-br from-amber-50/40 to-orange-50/40 dark:bg-gray-800/40 backdrop-blur-lg rounded-2xl border border-white/40 dark:border-gray-700/40 shadow-xl overflow-hidden">
+            <div className="bg-gradient-to-r from-amber-100/60 to-orange-100/60 dark:from-gray-700/40 dark:to-gray-700/40 backdrop-blur-md px-4 py-3 border-b border-white/30 dark:border-gray-700/30">
               <h3 className="text-lg font-semibold flex items-center text-gray-700 dark:text-gray-300">
                 <svg className="w-5 h-5 mr-2 text-gray-600 dark:text-gray-400" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -520,7 +545,7 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
               <div className="flex flex-col space-y-4">
                 <div className="flex flex-col space-y-2">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-indigo-100 dark:border-indigo-800 shadow-sm">
+                    <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-4 border border-white/40 dark:border-indigo-800/40 shadow-xl">
                       <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Obračun po formuli</h4>
                       <div className="flex items-center space-x-2 text-lg font-semibold text-gray-800 dark:text-gray-200">
                         <span>{(operation.quantity_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg</span>
@@ -534,7 +559,7 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
                         )}
                       </div>
                     </div>
-                    <div className="bg-gray-700 dark:bg-gray-800 rounded-lg p-4 border border-gray-600 dark:border-gray-700 shadow-sm text-white">
+                    <div className="bg-gradient-to-br from-gray-700/70 to-gray-800/70 dark:bg-gray-800/70 backdrop-blur-lg rounded-2xl p-4 border border-white/20 dark:border-gray-700/30 shadow-xl text-white">
                       <h4 className="text-sm font-medium text-gray-200 mb-2">Ukupna cijena</h4>
                       <div className="flex items-center justify-between">
                         <div className="flex flex-col">
@@ -559,7 +584,7 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
                 </div>
                 
                 {/* Additional pricing information */}
-                <div className="text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700">
+                <div className="text-xs text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-gray-800/50 backdrop-blur-lg rounded-xl p-3 border border-white/30 dark:border-gray-700/30 shadow-lg">
                   <p className="flex items-center mb-2">
                     <svg className="w-4 h-4 mr-1 text-gray-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -589,8 +614,8 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
           </section>
           
           {/* Napomene */}
-          <section className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+          <section className="bg-white/60 backdrop-blur-lg rounded-2xl border border-white/40 shadow-xl overflow-hidden">
+            <div className="bg-gradient-to-r from-gray-50/60 to-gray-100/60 backdrop-blur-md px-4 py-3 border-b border-white/30">
               <h3 className="text-lg font-semibold flex items-center text-gray-800">
                 <svg className="w-5 h-5 mr-2 text-indigo-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M9 12H15M9 16H15M9 8H15M5 21H19C20.1046 21 21 20.1046 21 19V5C21 3.89543 20.1046 3 19 3H5C3.89543 3 3 3.89543 3 5V19C3 20.1046 3.89543 21 5 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -609,8 +634,8 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
           
           {/* Priloženi Dokument */}
           {operation.documents && operation.documents.length > 0 && (
-            <section className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+            <section className="bg-white/60 backdrop-blur-lg rounded-2xl border border-white/40 shadow-xl overflow-hidden">
+              <div className="bg-gradient-to-r from-gray-50/60 to-gray-100/60 backdrop-blur-md px-4 py-3 border-b border-white/30">
                 <h3 className="text-lg font-semibold flex items-center text-gray-800">
                   <svg className="w-5 h-5 mr-2 text-indigo-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M7 21H17C18.1046 21 19 20.1046 19 19V9.41421C19 9.149 18.8946 8.89464 18.7071 8.70711L13.2929 3.29289C13.1054 3.10536 12.851 3 12.5858 3H7C5.89543 3 5 3.89543 5 5V19C5 20.1046 5.89543 21 7 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="rgba(99, 102, 241, 0.1)"/>
@@ -622,7 +647,7 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
               <div className="p-4">
                 <div className="space-y-4">
                   {operation.documents?.map((doc: any) => (
-                    <div key={doc.id} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div key={doc.id} className="p-3 bg-gradient-to-r from-gray-50/40 to-gray-100/40 backdrop-blur-lg rounded-2xl border border-white/30 shadow-lg">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div className="flex items-center">
                           <svg className="w-8 h-8 text-indigo-500 mr-3 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -668,7 +693,7 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
                               }
                             );
                           }}
-                          className="p-2 bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors rounded-md flex items-center justify-center shadow-sm self-center sm:self-end" 
+                          className="p-2 bg-indigo-50/80 text-indigo-700 border border-indigo-200/50 hover:bg-indigo-100/80 transition-all duration-200 rounded-lg flex items-center justify-center shadow-sm self-center sm:self-end backdrop-blur-sm" 
                           title="Preuzmi dokument"
                         >
                           <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -687,7 +712,7 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
         </div>
 
         {/* Footer with document generation options */}
-        <div className="px-6 py-6 bg-gray-50 border-t border-gray-200">
+        <div className="px-6 py-6 bg-gradient-to-r from-gray-50/80 to-gray-100/80 backdrop-blur-sm border-t border-gray-200/50 rounded-b-2xl">
           <div className="mb-4">
             <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
               <svg className="w-5 h-5 mr-2 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -770,7 +795,7 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
                 
                 generatePDFInvoice(operationWithDocuments);
               }}
-              className="group relative bg-white border border-gray-200 rounded-lg shadow-sm p-4 hover:border-indigo-300 hover:shadow-md transition-all duration-200 text-left flex flex-col h-full"
+              className="group relative bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-lg p-4 hover:border-indigo-300/70 hover:shadow-xl transition-all duration-200 text-left flex flex-col h-full"
               title="Standardna faktura za izvoz"
             >
               <div className="flex items-center mb-2">
@@ -864,7 +889,7 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
                 
                 generateDomesticPDFInvoice(operationWithDocuments);
               }}
-              className="group relative bg-white border border-gray-200 rounded-lg shadow-sm p-4 hover:border-indigo-300 hover:shadow-md transition-all duration-200 text-left flex flex-col h-full"
+              className="group relative bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-lg p-4 hover:border-indigo-300/70 hover:shadow-xl transition-all duration-200 text-left flex flex-col h-full"
               title="Faktura za unutarnji saobraćaj sa PDV-om"
             >
               <div className="flex items-center mb-2">
@@ -900,7 +925,7 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
                 const invoiceNumber = `INV-${deliveryVoucherNumber}-${new Date().getFullYear()}`;
                 downloadXML(xmlContent, `Invoice-${invoiceNumber}.xml`);
               }}
-              className="group relative bg-white border border-gray-200 rounded-lg shadow-sm p-4 hover:border-indigo-300 hover:shadow-md transition-all duration-200 text-left flex flex-col h-full"
+              className="group relative bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-lg p-4 hover:border-indigo-300/70 hover:shadow-xl transition-all duration-200 text-left flex flex-col h-full"
               title="XML faktura za sistemsku integraciju"
             >
               <div className="flex items-center mb-2">
@@ -928,7 +953,7 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
 
           {/* Secondary/rarely used actions (EUFOR) */}
           <div className="mb-6">
-            <details className="group bg-white border border-gray-200 rounded-lg shadow-sm">
+            <details className="group bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-lg">
               <summary className="flex items-center justify-between px-4 py-3 cursor-pointer list-none">
                 <div className="flex items-center space-x-2">
                   <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">Opcije</span>
@@ -987,7 +1012,7 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
                       const operationWithDocuments = { ...operation, parsedMrnBreakdown: mrnDataForPdf } as any;
                       generateEUFORPDFInvoice(operationWithDocuments);
                     }}
-                    className="group relative bg-gray-50 border border-dashed border-gray-300 rounded-lg shadow-sm p-4 hover:border-gray-400 hover:shadow transition-all duration-200 text-left flex flex-col h-full opacity-80"
+                    className="group relative bg-gray-50/80 backdrop-blur-sm border border-dashed border-gray-300/50 rounded-xl shadow-lg p-4 hover:border-gray-400/70 hover:shadow-xl transition-all duration-200 text-left flex flex-col h-full opacity-80"
                     title="EUFOR faktura (SOFA)"
                   >
                     <div className="flex items-center mb-2">
@@ -1020,7 +1045,7 @@ const OperationDetailsModal: React.FC<OperationDetailsModalProps> = React.memo((
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors flex items-center font-medium shadow-sm"
+              className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl transition-all duration-200 flex items-center font-medium shadow-lg backdrop-blur-sm"
             >
               <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

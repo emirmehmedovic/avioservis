@@ -15,6 +15,7 @@ import {
 } from 'react-icons/fa';
 import Card from './Card';
 import DatePairItem from './DatePairItem';
+import EditableItem from './EditableItem';
 import CalibrationServiceRecords from './CalibrationServiceRecords';
 
 interface CalibrationSectionProps {
@@ -173,45 +174,41 @@ const CalibrationSection: React.FC<CalibrationSectionProps> = ({
           Dodatni datumi kalibracije
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <DatePairItem 
-            baseLabel="Datum kalibracije hidrometra" 
-            lastDate={vehicle.datum_kalibracije_hidrometra} 
-            nextDate={null} 
-            vehicleId={vehicle.id} 
-            lastDateFieldName="datum_kalibracije_hidrometra" 
-            nextDateFieldName={undefined} 
-            onUpdate={onUpdate} 
+          <EditableItem 
+            label="Datum kalibracije hidrometra" 
+            value={vehicle.datum_kalibracije_hidrometra} 
             icon={<FaTint />} 
-          />
-          <DatePairItem 
-            baseLabel="Datum kalibracije moment ključa" 
-            lastDate={vehicle.datum_kalibracije_moment_kljuca} 
-            nextDate={null} 
             vehicleId={vehicle.id} 
-            lastDateFieldName="datum_kalibracije_moment_kljuca" 
-            nextDateFieldName={undefined} 
+            fieldName="datum_kalibracije_hidrometra" 
+            type="date" 
             onUpdate={onUpdate} 
+          />
+          <EditableItem 
+            label="Datum kalibracije moment ključa" 
+            value={vehicle.datum_kalibracije_moment_kljuca} 
             icon={<FaWrench />} 
-          />
-          <DatePairItem 
-            baseLabel="Datum kalibracije termometra" 
-            lastDate={vehicle.datum_kalibracije_termometra} 
-            nextDate={null} 
             vehicleId={vehicle.id} 
-            lastDateFieldName="datum_kalibracije_termometra" 
-            nextDateFieldName={undefined} 
+            fieldName="datum_kalibracije_moment_kljuca" 
+            type="date" 
             onUpdate={onUpdate} 
+          />
+          <EditableItem 
+            label="Datum kalibracije termometra" 
+            value={vehicle.datum_kalibracije_termometra} 
             icon={<FaThermometerHalf />} 
-          />
-          <DatePairItem 
-            baseLabel="Datum kalibracije el. provodljivosti" 
-            lastDate={vehicle.datum_kalibracije_uredjaja_elektricne_provodljivosti} 
-            nextDate={null} 
             vehicleId={vehicle.id} 
-            lastDateFieldName="datum_kalibracije_uredjaja_elektricne_provodljivosti" 
-            nextDateFieldName={undefined} 
+            fieldName="datum_kalibracije_termometra" 
+            type="date" 
             onUpdate={onUpdate} 
+          />
+          <EditableItem 
+            label="Datum kalibracije el. provodljivosti" 
+            value={vehicle.datum_kalibracije_uredjaja_elektricne_provodljivosti} 
             icon={<FaBolt />} 
+            vehicleId={vehicle.id} 
+            fieldName="datum_kalibracije_uredjaja_elektricne_provodljivosti" 
+            type="date" 
+            onUpdate={onUpdate} 
           />
           <DatePairItem 
             baseLabel="Manometer kalibracija" 

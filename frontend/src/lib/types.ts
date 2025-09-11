@@ -57,6 +57,7 @@ export interface FuelOperation {
   createdAt?: string;
   updatedAt?: string;
   delivery_note_number?: string | null; // Broj dostavnice
+  payment_method?: string | null; // Način plaćanja (VIRMAN, POS_APARAT, GOTOVINA)
   mrnBreakdown?: string | null; // JSON string s MRN podacima
   parsedMrnBreakdown?: { mrn: string, quantity: number, quantity_kg?: number | null }[] | null; // Parsirani MRN podaci
 

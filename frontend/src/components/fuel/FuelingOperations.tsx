@@ -99,6 +99,7 @@ export default function FuelingOperations() {
     notes: '',
     tip_saobracaja: 'Izvoz',
     delivery_note_number: '', // Dodano polje za broj dostavnice
+    payment_method: '', // Dodano polje za način plaćanja
   });
   
   // Dodatno stanje za tekstualni prikaz polja
@@ -247,6 +248,7 @@ export default function FuelingOperations() {
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     console.log(`handleInputChange: ${name} = ${value}`); // Dodajemo log za debugging
+    console.log('Current formData before update:', formData); // Dodajemo log za debugging
 
     // Start with current form data
     const newFormData = { ...formData };
@@ -402,6 +404,7 @@ export default function FuelingOperations() {
       else if (formKey === 'notes') newFormData.notes = value;
       else if (formKey === 'tip_saobracaja') newFormData.tip_saobracaja = value;
       else if (formKey === 'delivery_note_number') newFormData.delivery_note_number = value;
+      else if (formKey === 'payment_method') (newFormData as ExtendedFuelingOperationFormData).payment_method = value;
       // Rukovanje s currency je premješteno na početak funkcije
     }
 
@@ -420,6 +423,7 @@ export default function FuelingOperations() {
       }
     }
     
+    console.log('New formData after update:', newFormData); // Dodajemo log za debugging
     setFormData(newFormData);
   }, [formData, setFormData, setSelectedFiles, setTextInputs]);
 
@@ -512,6 +516,10 @@ export default function FuelingOperations() {
       toast.error('Unesite ime operatera');
       return;
     }
+    if (!formData.payment_method) {
+      toast.error('Odaberite način plaćanja');
+      return;
+    }
 
     try {
       const submissionFormData = new FormData();
@@ -547,6 +555,7 @@ export default function FuelingOperations() {
       submissionFormData.append('notes', formData.notes || '');
       submissionFormData.append('tip_saobracaja', formData.tip_saobracaja || '');
       submissionFormData.append('delivery_note_number', formData.delivery_note_number || '');
+      submissionFormData.append('payment_method', formData.payment_method || '');
       
       // Add documents if any
       if ((selectedFiles || []).length > 0) {

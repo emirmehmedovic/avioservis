@@ -128,6 +128,7 @@ export default function FuelOperationsReport() {
   // Debounce timeout reference
   const destinationDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const [filterCurrency, setFilterCurrency] = useState<string>('__ALL__');
+  const [filterPaymentMethod, setFilterPaymentMethod] = useState<string>('__ALL__');
   const [filterDeliveryVoucher, setFilterDeliveryVoucher] = useState<string>('');
   const [debouncedDeliveryVoucher, setDebouncedDeliveryVoucher] = useState<string>('');
   const deliveryVoucherDebounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -266,6 +267,7 @@ export default function FuelOperationsReport() {
       updatedAt: operation.updatedAt || '',
       tip_saobracaja: operation.tip_saobracaja || null,
       delivery_note_number: operation.delivery_note_number || null,
+      payment_method: operation.payment_method || null,
     } as FuelingOperation;
   };
 
@@ -337,6 +339,9 @@ export default function FuelOperationsReport() {
       }
       if (filterCurrency && filterCurrency !== '__ALL__') {
         queryParams.append('currency', filterCurrency);
+      }
+      if (filterPaymentMethod && filterPaymentMethod !== '__ALL__') {
+        queryParams.append('payment_method', filterPaymentMethod);
       }
       if (debouncedDeliveryVoucher && debouncedDeliveryVoucher.trim() !== '') {
         queryParams.append('deliveryVoucher', debouncedDeliveryVoucher.trim());
@@ -646,7 +651,7 @@ export default function FuelOperationsReport() {
     if (authUser && authToken) {
         fetchOperations();
     }
-  }, [authUser, authToken, filterDateFrom, filterDateTo, filterTrafficType, filterAirline, filterAirlines, filterDestination, filterDestinations, filterCurrency, debouncedDeliveryVoucher, error]);
+  }, [authUser, authToken, filterDateFrom, filterDateTo, filterTrafficType, filterAirline, filterAirlines, filterDestination, filterDestinations, filterCurrency, filterPaymentMethod, debouncedDeliveryVoucher, error]);
 
   const trafficTypeOptions = useMemo(() => {
     // Safely extract traffic types, handling potential undefined values
@@ -758,6 +763,17 @@ export default function FuelOperationsReport() {
       rightColumnFilters.push(`Valuta: Sve valute`);
     }
     
+    // Prikaz načina plaćanja
+    if (filterPaymentMethod !== '__ALL__') {
+      const paymentMethodLabel = filterPaymentMethod === 'VIRMAN' ? 'Virman' : 
+                                 filterPaymentMethod === 'POS_APARAT' ? 'POS aparat' : 
+                                 filterPaymentMethod === 'GOTOVINA' ? 'Gotovina' : 
+                                 filterPaymentMethod;
+      rightColumnFilters.push(`Način plaćanja: ${paymentMethodLabel}`);
+    } else {
+      rightColumnFilters.push(`Način plaćanja: Svi načini`);
+    }
+    
     // Prikaz broja dostavnice
     if (debouncedDeliveryVoucher && debouncedDeliveryVoucher.trim() !== '') {
       rightColumnFilters.push(`Broj dostavnice: ${debouncedDeliveryVoucher}`);
@@ -837,7 +853,8 @@ export default function FuelOperationsReport() {
       "Let",             // Let
       "Br.dost.",        // Broj dostavnice
       "MRN",             // MRN podaci
-      "Saobraćaj"        // Tip Saobraćaja
+      "Saobraćaj",       // Tip Saobraćaja
+      "Način plaćanja"   // Način plaćanja
     ];
     const tableRows: any[][] = [];
 
@@ -867,7 +884,11 @@ export default function FuelOperationsReport() {
         op.flight_number || 'N/A',
         op.delivery_note_number || 'N/A',
         mrnDisplay,
-        op.tip_saobracaja || 'N/A'
+        op.tip_saobracaja || 'N/A',
+        op.payment_method ? (op.payment_method === 'VIRMAN' ? 'Virman' : 
+                            op.payment_method === 'POS_APARAT' ? 'POS aparat' : 
+                            op.payment_method === 'GOTOVINA' ? 'Gotovina' : 
+                            op.payment_method) : 'N/A'
       ];
       tableRows.push(operationData);
     });
@@ -1078,11 +1099,12 @@ export default function FuelOperationsReport() {
         11: { cellWidth: 10, halign: 'center' }, // Let
         12: { cellWidth: 17, halign: 'center' }, // Broj dostavnice
         13: { 
-              cellWidth: 66, 
-              halign: 'left',  // MRN podaci (Povećana širina, lijevo poravnanje za bolju čitljivost dužeg teksta)
+              cellWidth: 40, 
+              halign: 'left',  // MRN podaci (Smanjena širina da ostane prostor za način plaćanja)
               fontStyle: 'normal' // Osiguravamo da font nije bold po defaultu za ovu ćeliju ako je naslijeđeno
             },
-        14: { cellWidth: 17, halign: 'center' }  // Tip Saobraćaja (Pomaknut na indeks 14)
+        14: { cellWidth: 17, halign: 'center' }, // Tip Saobraćaja (Pomaknut na indeks 14)
+        15: { cellWidth: 20, halign: 'center' }  // Način plaćanja (Novi indeks 15)
       },
 
 
@@ -1913,6 +1935,21 @@ export default function FuelOperationsReport() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="payment_method" className="text-sm font-medium text-gray-700 dark:text-gray-300">Način Plaćanja</label>
+                  <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}>
+                    <SelectTrigger id="payment_method">
+                      <SelectValue placeholder="Svi načini plaćanja" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__ALL__">Svi načini plaćanja</SelectItem>
+                      <SelectItem value="VIRMAN">Virman</SelectItem>
+                      <SelectItem value="POS_APARAT">POS aparat</SelectItem>
+                      <SelectItem value="GOTOVINA">Gotovina</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 </div>
                 
                 {/* Drugi red - 4 filtera */}
@@ -1937,6 +1974,7 @@ export default function FuelOperationsReport() {
                       setFilterDestination('__ALL__'); // Reset to all destinations
                       setFilterDestinations([]); // Reset multi-destination filter
                       setFilterCurrency('__ALL__');
+                      setFilterPaymentMethod('__ALL__');
                       setFilterDeliveryVoucher(''); // Reset delivery voucher filter
                       setDebouncedDeliveryVoucher(''); // Reset debounced delivery voucher
                     }} 
@@ -1984,20 +2022,21 @@ export default function FuelOperationsReport() {
                     <thead className="bg-gray-50 dark:bg-gray-800">
                       <tr>
                         <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '8%' }}>Datum</th>
-                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '7%' }}>Reg.</th>
-                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '8%' }}>Avio Komp.</th>
-                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '7%' }}>Dest.</th>
+                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '5%' }}>Reg.</th>
+                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '10%' }}>Avio Komp.</th>
+                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '4%' }}>Dest.</th>
                         <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '6%' }}>Kol. (L)</th>
                         <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '6%' }}>Spec. Gust.</th>
                         <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '6%' }}>Kol. (kg)</th>
                         <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '6%' }}>Cijena/kg</th>
-                        <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '5%' }}>Val.</th>
-                        <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '6%' }}>Ukupna cijena</th>
+                        <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '3%' }}>Val.</th>
+                        <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '4%' }}>Ukupna cijena</th>
                         <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '6%' }}>Tip Goriva</th>
                         <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '6%' }}>Br. Leta</th>
                         <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '7%' }}>Broj dostavnice</th>
                         <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '7%' }}>MRN podaci</th>
-                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '7%' }}>Tip Saob.</th>
+                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '4%' }}>Tip Saob.</th>
+                        <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '5%' }}>Način plaćanja</th>
                         <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ wordWrap: 'break-word', width: '9%' }}>Dokumenti</th>
                       </tr>
                     </thead>
@@ -2058,6 +2097,18 @@ export default function FuelOperationsReport() {
                             {op.tip_saobracaja ? (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium text-[0.65rem] bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100">
                                 {op.tip_saobracaja}
+                              </span>
+                            ) : (
+                              <Badge variant="outline" className="text-[0.65rem] py-0 h-4">N/A</Badge>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-[0.68rem] text-gray-700 dark:text-gray-300 table-cell-wrap text-center">
+                            {op.payment_method ? (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium text-[0.65rem] bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100">
+                                {op.payment_method === 'VIRMAN' ? 'Virman' : 
+                                 op.payment_method === 'POS_APARAT' ? 'POS' : 
+                                 op.payment_method === 'GOTOVINA' ? 'Gotovina' : 
+                                 op.payment_method}
                               </span>
                             ) : (
                               <Badge variant="outline" className="text-[0.65rem] py-0 h-4">N/A</Badge>

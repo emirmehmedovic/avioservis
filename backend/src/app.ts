@@ -47,6 +47,7 @@ import mrnCleanupRoutes from './routes/mrnCleanup.routes'; // Rute za MRN cleanu
 import fuelReportsTrendsRoutes from './routes/fuelReportsTrends.routes'; // Rute za fuel reports trends
 import xmlInvoiceRoutes from './routes/xmlInvoice.routes';
 import emailInvoiceRoutes from './routes/emailInvoice.routes';
+import expirationNotificationRoutes from './routes/expirationNotification.routes';
 
 const app = express();
 
@@ -114,7 +115,7 @@ app.use('/api/fuel/fixed-tanks', fixedStorageTankRoutes);
 // The `fuelIntakeRecordDocumentsRoutes` router uses `mergeParams: true` 
 // and expects the parent parameter to be named `recordId` for its controllers.
 fuelIntakeRecordRoutes.use('/:recordId/documents', fuelIntakeRecordDocumentsRoutes);
-app.use('/api/fuel/intakes', reportingLimiter, fuelIntakeRecordRoutes);
+app.use('/api/fuel/intakes', sensitiveOperationsLimiter, fuelIntakeRecordRoutes);
 app.use('/api/fuel/documents', fuelDocumentRoutes);
 app.use('/api/fuel/transfers', sensitiveOperationsLimiter, fixedTankTransferRoutes);
 app.use('/api/fuel/fueling-operations', sensitiveOperationsLimiter, fuelingOperationRoutes);
@@ -141,6 +142,7 @@ app.use('/api/mrn-cleanup', sensitiveOperationsLimiter, mrnCleanupRoutes); // Re
 app.use('/api/fuel/reports', reportingLimiter, fuelReportsTrendsRoutes); // Registracija ruta za fuel reports trends
 app.use('/api/invoices/xml', xmlInvoiceRoutes);
 app.use('/api/invoices/email', emailInvoiceRoutes);
+app.use('/api/notifications/expirations', expirationNotificationRoutes);
 
 app.get('/', (req, res) => {
   res.send('Backend radi!');

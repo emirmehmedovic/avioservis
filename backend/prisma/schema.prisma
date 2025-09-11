@@ -198,6 +198,7 @@ model Vehicle {
   serviceRecords                                       ServiceRecord[]
   technicalDocuments                                   TechnicalDocument[]
   valveTestRecords                                     ValveTestRecord[]
+  expirationNotifications                              ExpirationNotification[]
   company                                              Company             @relation(fields: [companyId], references: [id])
   location                                             Location            @relation(fields: [locationId], references: [id])
   images                                               VehicleImage[]
@@ -563,6 +564,7 @@ model FuelingOperation {
   usd_exchange_rate     Decimal?           @db.Decimal(15, 6)
   exd_number            String?            @db.VarChar(50)
   k_number              String?            @db.VarChar(50)
+  payment_method        String?            // Način plaćanja (VIRMAN, POS_APARAT, GOTOVINA)
   is_deleted            Boolean            @default(false)
   documents             AttachedDocument[]
   aircraft              Vehicle?           @relation(fields: [aircraftId], references: [id])
@@ -579,6 +581,7 @@ model FuelingOperation {
   @@index([tip_saobracaja])
   @@index([flight_number])
   @@index([delivery_note_number])
+  @@index([payment_method])
   @@index([createdAt])
   @@index([is_deleted])
 }
@@ -1061,4 +1064,32 @@ enum FuelOperationType {
   DRAIN_REVERSE
   ADJUSTMENT
   SYNC
+}
+
+model ExpirationNotification {
+  id                    Int                 @id @default(autoincrement())
+  vehicleId             Int
+  fieldName             String              // Naziv polja (npr. "next_annual_inspection_date")
+  fieldDisplayName      String              // Prikazni naziv (npr. "Godišnji pregled")
+  expirationDate        DateTime
+  notificationType      NotificationType
+  daysUntilExpiration   Int                 // Broj dana do isteka
+  isActive              Boolean             @default(true)
+  isRead                Boolean             @default(false)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  vehicle               Vehicle             @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([notificationType])
+  @@index([isActive])
+  @@index([isRead])
+  @@index([expirationDate])
+}
+
+enum NotificationType {
+  WARNING_30_DAYS    // Upozorenje 30 dana prije
+  WARNING_15_DAYS    // Upozorenje 15 dana prije
+  CRITICAL_7_DAYS    // Kritično 7 dana prije
+  EXPIRED            // Isteklo
 }

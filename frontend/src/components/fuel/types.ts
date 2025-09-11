@@ -117,6 +117,7 @@ export interface FuelingOperation {
   updatedAt?: string;
   mrnBreakdown?: string; // Dodano za praćenje MRN podataka u operacijama točenja
   parsedMrnBreakdown?: Array<{ mrn: string; quantity_liters?: number; quantity_kg?: number; [key: string]: any }>; // Dodano za parsirane MRN podatke s backenda, usklađeno s ConsolidatedReportExport.tsx
+  payment_method?: string; // Način plaćanja (VIRMAN, POS_APARAT, GOTOVINA)
   aircraft?: { // Added for OperationDetailsModal.tsx
     registration?: string;
     type?: string;

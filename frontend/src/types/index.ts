@@ -66,7 +66,8 @@ export interface Vehicle {
   filter_installation_date?: Date | null; 
   filter_validity_period_months?: number | null;
   filter_type_plate_no?: string | null;
-  last_annual_inspection_date?: Date | null; 
+  last_annual_inspection_date?: Date | null;
+  next_annual_inspection_date?: Date | null; 
   sensor_technology?: string | null;
   last_hose_hd63_replacement_date?: Date | null;
   next_hose_hd63_replacement_date?: Date | null;
@@ -100,6 +101,7 @@ export interface Vehicle {
   flow_rate?: number | null;            // Protok (L/min)
   vehicle_type?: string | null;         // Tip (Refuler, Dispenser, Defuler)
   tanker_type?: string | null;          // Tip tanka
+  tank_type?: string | null;            // Dodatni tip tanka
   fueling_type?: string | null;         // Vrsta punjenja (Nadkrilno, Podkrilno)
   loading_type?: string | null;         // Tip punjenja (Top, Bottom)
   truck_type?: string | null;           // Tip kamiona (Solo, Poluprikolica)

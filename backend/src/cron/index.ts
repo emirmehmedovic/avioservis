@@ -3,6 +3,7 @@ import { initWizzXmlInvoiceCron } from './wizzXmlInvoiceCron';
 import { initPaymentStatusCron } from './paymentStatusCron';
 import { initEmailInvoiceCron } from './emailInvoiceCron';
 import { initEmailPaymentStatusCron } from './emailPaymentStatusCron';
+import { initExpirationNotificationCron } from './expirationNotificationCron';
 
 import { logger } from '../utils/logger';
 
@@ -18,6 +19,7 @@ export function initAllCronJobs(): void {
   initPaymentStatusCron(); // Automatsko ažuriranje payment statusa (XML)
   initEmailInvoiceCron(); // Automatsko slanje email faktura
   initEmailPaymentStatusCron(); // Automatsko ažuriranje payment statusa (Email)
+  initExpirationNotificationCron(); // Automatska provera datuma isteka
   
 
 

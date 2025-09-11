@@ -26,6 +26,7 @@ interface EditFormData {
   notes: string;
   delivery_note_number: string;
   usd_exchange_rate: string;
+  payment_method: string;
 }
 
 const EditOperationModal: React.FC<EditOperationModalProps> = ({
@@ -46,7 +47,8 @@ const EditOperationModal: React.FC<EditOperationModalProps> = ({
     tip_saobracaja: '',
     notes: '',
     delivery_note_number: '',
-    usd_exchange_rate: ''
+    usd_exchange_rate: '',
+    payment_method: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -65,7 +67,8 @@ const EditOperationModal: React.FC<EditOperationModalProps> = ({
         tip_saobracaja: operation.tip_saobracaja || '',
         notes: operation.notes || '',
         delivery_note_number: operation.delivery_note_number || '',
-        usd_exchange_rate: (operation.usd_exchange_rate !== undefined && operation.usd_exchange_rate !== null) ? String(operation.usd_exchange_rate) : ''
+        usd_exchange_rate: (operation.usd_exchange_rate !== undefined && operation.usd_exchange_rate !== null) ? String(operation.usd_exchange_rate) : '',
+        payment_method: operation.payment_method || ''
       });
       setErrors({});
     }
@@ -430,6 +433,24 @@ const EditOperationModal: React.FC<EditOperationModalProps> = ({
                 <option value="Izvoz">Izvoz</option>
                 <option value="Unutarnji saobraćaj">Unutarnji saobraćaj</option>
                 <option value="Domaće tržište">Domaće tržište</option>
+              </select>
+            </div>
+
+            {/* Način plaćanja */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Način plaćanja
+              </label>
+              <select
+                name="payment_method"
+                value={formData.payment_method || ''}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Odaberite način plaćanja</option>
+                <option value="VIRMAN">Virman</option>
+                <option value="POS_APARAT">POS aparat</option>
+                <option value="GOTOVINA">Gotovina</option>
               </select>
             </div>
 
