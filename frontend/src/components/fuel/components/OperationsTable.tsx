@@ -81,7 +81,7 @@ const OperationsTable: React.FC<OperationsTableProps> = ({ operations, handleRow
                 {(operation.price_per_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 5 })}
               </td>
               <td className="whitespace-nowrap px-3 py-4 text-sm font-medium text-gray-900 text-right">
-                {(operation.total_amount || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 })} {operation.currency || 'BAM'}
+                {Number(operation.total_amount || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {operation.currency || 'BAM'}
               </td>
               <td className="whitespace-nowrap px-3 py-4 text-sm font-medium text-gray-900 text-center">
                 {operation.currency || 'BAM'}
