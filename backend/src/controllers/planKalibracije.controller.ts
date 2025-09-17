@@ -43,6 +43,20 @@ interface PlanKalibracije {
   moment_kljuc_kalibracija_do: Date | null;
   shal_detector_kalibracija_od: Date | null;
   shal_detector_kalibracija_do: Date | null;
+  kalibraza_vatro_dojava_od: Date | null;
+  kalibraza_vatro_dojava_do: Date | null;
+  kalibraza_pp_aparata_od: Date | null;
+  kalibraza_pp_aparata_do: Date | null;
+  strucne_licence_radnika_od: Date | null;
+  strucne_licence_radnika_do: Date | null;
+  adr_dozvole_radnika_od: Date | null;
+  adr_dozvole_radnika_do: Date | null;
+  mjerenje_otpora_uzemljenja_od: Date | null;
+  mjerenje_otpora_uzemljenja_do: Date | null;
+  vatro_dojava_od: Date | null;
+  vatro_dojava_do: Date | null;
+  ispitivanje_elektro_instalacija_od: Date | null;
+  ispitivanje_elektro_instalacija_do: Date | null;
   napomene: string | null;
   dokumenti_url: string | null;
   kreiran: Date;
@@ -75,6 +89,13 @@ const getStatusInfo = (plan: PlanKalibracije): StatusInfo => {
     { name: 'Mjerač otpora provoda', date: plan.mjerac_otpora_provoda_kalibracija_do },
     { name: 'Moment ključ', date: plan.moment_kljuc_kalibracija_do },
     { name: 'Shal detector', date: plan.shal_detector_kalibracija_do },
+    { name: 'Kalibraža vatro dojava', date: plan.kalibraza_vatro_dojava_do },
+    { name: 'Kalibraža PP aparata', date: plan.kalibraza_pp_aparata_do },
+    { name: 'Stručne licence radnika', date: plan.strucne_licence_radnika_do },
+    { name: 'ADR dozvole za radnike', date: plan.adr_dozvole_radnika_do },
+    { name: 'Mjerenje otpora uzemljenja', date: plan.mjerenje_otpora_uzemljenja_do },
+    { name: 'Vatro dojava', date: plan.vatro_dojava_do },
+    { name: 'Ispitivanje elektro instalacija', date: plan.ispitivanje_elektro_instalacija_do },
   ];
 
   const expiredInstruments: string[] = [];
@@ -271,6 +292,20 @@ export const createPlanKalibracije = async (req: Request, res: Response) => {
         moment_kljuc_kalibracija_do: planData.moment_kljuc_kalibracija_do ? new Date(planData.moment_kljuc_kalibracija_do) : null,
         shal_detector_kalibracija_od: planData.shal_detector_kalibracija_od ? new Date(planData.shal_detector_kalibracija_od) : null,
         shal_detector_kalibracija_do: planData.shal_detector_kalibracija_do ? new Date(planData.shal_detector_kalibracija_do) : null,
+        kalibraza_vatro_dojava_od: planData.kalibraza_vatro_dojava_od ? new Date(planData.kalibraza_vatro_dojava_od) : null,
+        kalibraza_vatro_dojava_do: planData.kalibraza_vatro_dojava_do ? new Date(planData.kalibraza_vatro_dojava_do) : null,
+        kalibraza_pp_aparata_od: planData.kalibraza_pp_aparata_od ? new Date(planData.kalibraza_pp_aparata_od) : null,
+        kalibraza_pp_aparata_do: planData.kalibraza_pp_aparata_do ? new Date(planData.kalibraza_pp_aparata_do) : null,
+        strucne_licence_radnika_od: planData.strucne_licence_radnika_od ? new Date(planData.strucne_licence_radnika_od) : null,
+        strucne_licence_radnika_do: planData.strucne_licence_radnika_do ? new Date(planData.strucne_licence_radnika_do) : null,
+        adr_dozvole_radnika_od: planData.adr_dozvole_radnika_od ? new Date(planData.adr_dozvole_radnika_od) : null,
+        adr_dozvole_radnika_do: planData.adr_dozvole_radnika_do ? new Date(planData.adr_dozvole_radnika_do) : null,
+        mjerenje_otpora_uzemljenja_od: planData.mjerenje_otpora_uzemljenja_od ? new Date(planData.mjerenje_otpora_uzemljenja_od) : null,
+        mjerenje_otpora_uzemljenja_do: planData.mjerenje_otpora_uzemljenja_do ? new Date(planData.mjerenje_otpora_uzemljenja_do) : null,
+        vatro_dojava_od: planData.vatro_dojava_od ? new Date(planData.vatro_dojava_od) : null,
+        vatro_dojava_do: planData.vatro_dojava_do ? new Date(planData.vatro_dojava_do) : null,
+        ispitivanje_elektro_instalacija_od: planData.ispitivanje_elektro_instalacija_od ? new Date(planData.ispitivanje_elektro_instalacija_od) : null,
+        ispitivanje_elektro_instalacija_do: planData.ispitivanje_elektro_instalacija_do ? new Date(planData.ispitivanje_elektro_instalacija_do) : null,
       }
     });
 
@@ -344,6 +379,20 @@ export const updatePlanKalibracije = async (req: Request, res: Response) => {
         moment_kljuc_kalibracija_do: planData.moment_kljuc_kalibracija_do ? new Date(planData.moment_kljuc_kalibracija_do) : null,
         shal_detector_kalibracija_od: planData.shal_detector_kalibracija_od ? new Date(planData.shal_detector_kalibracija_od) : null,
         shal_detector_kalibracija_do: planData.shal_detector_kalibracija_do ? new Date(planData.shal_detector_kalibracija_do) : null,
+        kalibraza_vatro_dojava_od: planData.kalibraza_vatro_dojava_od ? new Date(planData.kalibraza_vatro_dojava_od) : null,
+        kalibraza_vatro_dojava_do: planData.kalibraza_vatro_dojava_do ? new Date(planData.kalibraza_vatro_dojava_do) : null,
+        kalibraza_pp_aparata_od: planData.kalibraza_pp_aparata_od ? new Date(planData.kalibraza_pp_aparata_od) : null,
+        kalibraza_pp_aparata_do: planData.kalibraza_pp_aparata_do ? new Date(planData.kalibraza_pp_aparata_do) : null,
+        strucne_licence_radnika_od: planData.strucne_licence_radnika_od ? new Date(planData.strucne_licence_radnika_od) : null,
+        strucne_licence_radnika_do: planData.strucne_licence_radnika_do ? new Date(planData.strucne_licence_radnika_do) : null,
+        adr_dozvole_radnika_od: planData.adr_dozvole_radnika_od ? new Date(planData.adr_dozvole_radnika_od) : null,
+        adr_dozvole_radnika_do: planData.adr_dozvole_radnika_do ? new Date(planData.adr_dozvole_radnika_do) : null,
+        mjerenje_otpora_uzemljenja_od: planData.mjerenje_otpora_uzemljenja_od ? new Date(planData.mjerenje_otpora_uzemljenja_od) : null,
+        mjerenje_otpora_uzemljenja_do: planData.mjerenje_otpora_uzemljenja_do ? new Date(planData.mjerenje_otpora_uzemljenja_do) : null,
+        vatro_dojava_od: planData.vatro_dojava_od ? new Date(planData.vatro_dojava_od) : null,
+        vatro_dojava_do: planData.vatro_dojava_do ? new Date(planData.vatro_dojava_do) : null,
+        ispitivanje_elektro_instalacija_od: planData.ispitivanje_elektro_instalacija_od ? new Date(planData.ispitivanje_elektro_instalacija_od) : null,
+        ispitivanje_elektro_instalacija_do: planData.ispitivanje_elektro_instalacija_do ? new Date(planData.ispitivanje_elektro_instalacija_do) : null,
       }
     });
 
@@ -447,20 +496,132 @@ export const uploadKalibracijaDocument = async (req: Request, res: Response) => 
 };
 
 // Generisanje PDF izvještaja
+// Translation helper function
+const getTranslation = (language: string) => {
+  const translations = {
+    bs: {
+      title: 'PLAN KALIBRACIJE INSTRUMENATA',
+      basicInfo: 'OSNOVNI PODACI',
+      equipmentName: 'Naziv opreme:',
+      equipmentId: 'Identifikacijski broj:',
+      owner: 'Vlasnik opreme:',
+      location: 'Mjesto korištenja:',
+      calibrationDates: 'DATUMI KALIBRACIJE',
+      instrument: 'Instrument',
+      value: 'VRIJEDNOST',
+      fromDate: 'Od datuma',
+      toDate: 'Do datuma',
+      status: 'Status',
+      valid: 'Važeći',
+      expiring: 'Ističe',
+      expired: 'Istekao',
+      notSet: 'Nije postavljeno',
+      notes: 'NAPOMENE',
+      generatedOn: 'Generisano:',
+      reportDate: 'Datum izvještaja:',
+      reportTime: 'Vrijeme:',
+      totalReport: 'UKUPNI IZVJEŠTAJ - PLAN KALIBRACIJE',
+      reportSummary: 'SAŽETAK IZVJEŠTAJA',
+      totalPlans: 'Ukupan broj planova:',
+      noCalibrations: 'Nema kalibracija',
+      calibrationFromTo: 'KALIBRACIJA OD - DO',
+      activeCalibrations: 'AKTIVNE KALIBRACIJE',
+      inactiveCalibrations: 'NEAKTIVNE KALIBRACIJE',
+      instruments: {
+        volumetar: 'Volumetar',
+        glavni_volumetar: 'Glavni volumetar',
+        manometri: 'Manometri',
+        crijevo_punjenje: 'Crijevo za punjenje',
+        glavni_manometar: 'Glavni manometar',
+        termometar: 'Termometar',
+        hidrometar: 'Hidrometar',
+        elektricni_denziometar: 'Električni denziometar',
+        mjerac_provodljivosti: 'Mjerač provodljivosti',
+        mjerac_otpora_provoda: 'Mjerač otpora provoda',
+        moment_kljuc: 'Moment ključ',
+        shal_detector: 'Shal detector',
+        kalibraza_vatro_dojava: 'Kalibraža vatro dojava',
+        kalibraza_pp_aparata: 'Kalibraža PP aparata',
+        vatro_dojava: 'Vatro dojava',
+        strucne_licence_radnika: 'Stručne licence radnika',
+        adr_dozvole_radnika: 'ADR dozvole za radnike',
+        mjerenje_otpora_uzemljenja: 'Mjerenje otpora uzemljenja',
+        ispitivanje_elektro_instalacija: 'Ispitivanje elektro instalacija'
+      }
+    },
+    en: {
+      title: 'INSTRUMENT CALIBRATION PLAN',
+      basicInfo: 'BASIC INFORMATION',
+      equipmentName: 'Equipment name:',
+      equipmentId: 'Identification number:',
+      owner: 'Equipment owner:',
+      location: 'Usage location:',
+      calibrationDates: 'CALIBRATION DATES',
+      instrument: 'Instrument',
+      value: 'VALUE',
+      fromDate: 'From date',
+      toDate: 'To date',
+      status: 'Status',
+      valid: 'Valid',
+      expiring: 'Expiring',
+      expired: 'Expired',
+      notSet: 'Not set',
+      notes: 'NOTES',
+      generatedOn: 'Generated on:',
+      reportDate: 'Report date:',
+      reportTime: 'Time:',
+      totalReport: 'COMPREHENSIVE REPORT - CALIBRATION PLAN',
+      reportSummary: 'REPORT SUMMARY',
+      totalPlans: 'Total number of plans:',
+      noCalibrations: 'No calibrations',
+      calibrationFromTo: 'CALIBRATION FROM - TO',
+      activeCalibrations: 'ACTIVE CALIBRATIONS',
+      inactiveCalibrations: 'INACTIVE CALIBRATIONS',
+      instruments: {
+        volumetar: 'Volumeter',
+        glavni_volumetar: 'Main volumeter',
+        manometri: 'Pressure gauges',
+        crijevo_punjenje: 'Filling hose',
+        glavni_manometar: 'Main pressure gauge',
+        termometar: 'Thermometer',
+        hidrometar: 'Hydrometer',
+        elektricni_denziometar: 'Electronic densitometer',
+        mjerac_provodljivosti: 'Conductivity meter',
+        mjerac_otpora_provoda: 'Conductor resistance meter',
+        moment_kljuc: 'Torque wrench',
+        shal_detector: 'Shal detector',
+        kalibraza_vatro_dojava: 'Fire alarm calibration',
+        kalibraza_pp_aparata: 'PP equipment calibration',
+        vatro_dojava: 'Fire alarm',
+        strucne_licence_radnika: 'Worker professional licenses',
+        adr_dozvole_radnika: 'ADR permits for workers',
+        mjerenje_otpora_uzemljenja: 'Ground resistance measurement',
+        ispitivanje_elektro_instalacija: 'Electrical installation testing'
+      }
+    }
+  };
+  
+  return translations[language as keyof typeof translations] || translations.bs;
+};
+
 export const generatePlanKalibracijePDF = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const { language = 'bs' } = req.body || {};
 
     const plan = await prisma.planKalibracije.findUnique({
       where: { id: Number(id) }
     });
 
     if (!plan) {
-      res.status(404).json({ error: 'Plan kalibracije nije pronađen' });
+      const t = getTranslation(language);
+      const errorMsg = language === 'en' ? 'Calibration plan not found' : 'Plan kalibracije nije pronađen';
+      res.status(404).json({ error: errorMsg });
       return;
     }
 
     const statusInfo = getStatusInfo(plan);
+    const t = getTranslation(language);
 
     // Kreiranje PDF-a
     const doc = new jsPDF();
@@ -562,7 +723,7 @@ export const generatePlanKalibracijePDF = async (req: Request, res: Response) =>
       doc.setFont(FONT_NAME, 'normal');
       doc.setTextColor(100, 100, 100);
       doc.text('HIFA-PETROL d.o.o. Sarajevo - Plan kalibracije instrumenata', pageWidth / 2, pageHeight - 15, { align: 'center' });
-      doc.text(`Generiran: ${reportDate} u ${reportTime}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
+      doc.text(`${t.generatedOn} ${reportDate} ${t.reportTime} ${reportTime}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
     };
     
     // Header with company info
@@ -583,8 +744,8 @@ export const generatePlanKalibracijePDF = async (req: Request, res: Response) =>
     // Report metadata
     const reportDate = new Date().toLocaleDateString('bs-BA');
     const reportTime = new Date().toLocaleTimeString('bs-BA');
-    doc.text(`Datum izvještaja: ${reportDate}`, pageWidth - 20, 25, { align: 'right' });
-    doc.text(`Vrijeme: ${reportTime}`, pageWidth - 20, 32, { align: 'right' });
+    doc.text(`${t.generatedOn} ${reportDate}`, pageWidth - 20, 25, { align: 'right' });
+    doc.text(`${t.reportTime} ${reportTime}`, pageWidth - 20, 32, { align: 'right' });
     
     // Report title
     doc.setDrawColor(200, 200, 220);
@@ -594,7 +755,7 @@ export const generatePlanKalibracijePDF = async (req: Request, res: Response) =>
     doc.setFontSize(16);
     doc.setFont(FONT_NAME, 'bold');
     doc.setTextColor(0, 51, 102);
-    doc.text('PLAN KALIBRACIJE INSTRUMENATA', pageWidth / 2, 60, { align: 'center' });
+    doc.text(t.title, pageWidth / 2, 60, { align: 'center' });
     
     // Basic information section
     let yPosition = 80;
@@ -603,18 +764,18 @@ export const generatePlanKalibracijePDF = async (req: Request, res: Response) =>
     doc.setFontSize(12);
     doc.setFont(FONT_NAME, 'bold');
     doc.setTextColor(0, 51, 102);
-    doc.text('OSNOVNI PODACI OPREME', 20, yPosition);
+    doc.text(t.basicInfo, 20, yPosition);
     yPosition += 10;
     
     // Draw table header
-    yPosition = drawTableHeader(yPosition, 'OPIS', 'VRIJEDNOST');
+    yPosition = drawTableHeader(yPosition, t.instrument, t.value);
     
     // Basic info data
     const basicInfoData = [
-      ['Naziv opreme', plan.naziv_opreme],
-      ['Identifikacijski broj', plan.identifikacijski_broj],
-      ['Vlasnik opreme', plan.vlasnik_opreme],
-      ['Mjesto korištenja', plan.mjesto_koristenja_opreme],
+      [t.equipmentName, plan.naziv_opreme],
+      [t.equipmentId, plan.identifikacijski_broj],
+      [t.owner, plan.vlasnik_opreme],
+      [t.location, plan.mjesto_koristenja_opreme],
       ['Status plana', statusInfo.message],
       ['Kreiran', plan.kreiran.toLocaleDateString('bs-BA')],
       ['Zadnje ažuriran', plan.azuriran.toLocaleDateString('bs-BA')]
@@ -624,7 +785,7 @@ export const generatePlanKalibracijePDF = async (req: Request, res: Response) =>
     doc.setFontSize(9);
     
     basicInfoData.forEach((row, index) => {
-      yPosition = checkNewPage(yPosition, 10, { left: 'OPIS', right: 'VRIJEDNOST' }); // Check before each row with table header
+      yPosition = checkNewPage(yPosition, 10, { left: t.instrument, right: t.value }); // Check before each row with table header
       
       const isEven = index % 2 === 0;
       if (isEven) {
@@ -652,70 +813,105 @@ export const generatePlanKalibracijePDF = async (req: Request, res: Response) =>
     doc.setFontSize(12);
     doc.setFont(FONT_NAME, 'bold');
     doc.setTextColor(0, 51, 102);
-    doc.text('KALIBRACIJE INSTRUMENATA', 20, yPosition);
+    doc.text(t.activeCalibrations, 20, yPosition);
     yPosition += 10;
     
     // Calibration instruments data
     const calibrationData = [
       {
-        name: 'Volumetar',
+        name: t.instruments.volumetar,
         from: plan.volumetar_kalibracija_od,
         to: plan.volumetar_kalibracija_do
       },
       {
-        name: 'Glavni volumetar',
+        name: t.instruments.glavni_volumetar,
         from: plan.glavni_volumetar_kalibracija_od,
         to: plan.glavni_volumetar_kalibracija_do
       },
       {
-        name: 'Manometri',
+        name: t.instruments.manometri,
         from: plan.manometri_kalibracija_od,
         to: plan.manometri_kalibracija_do
       },
       {
-        name: 'Crijevo za punjenje',
+        name: t.instruments.crijevo_punjenje,
         from: plan.crijevo_punjenje_kalibracija_od,
         to: plan.crijevo_punjenje_kalibracija_do
       },
       {
-        name: 'Glavni manometar',
+        name: t.instruments.glavni_manometar,
         from: plan.glavni_manometar_kalibracija_od,
         to: plan.glavni_manometar_kalibracija_do
       },
       {
-        name: 'Termometar',
+        name: t.instruments.termometar,
         from: plan.termometar_kalibracija_od,
         to: plan.termometar_kalibracija_do
       },
       {
-        name: 'Hidrometar',
+        name: t.instruments.hidrometar,
         from: plan.hidrometar_kalibracija_od,
         to: plan.hidrometar_kalibracija_do
       },
       {
-        name: 'Električni denziometar',
+        name: t.instruments.elektricni_denziometar,
         from: plan.elektricni_denziometar_kalibracija_od,
         to: plan.elektricni_denziometar_kalibracija_do
       },
       {
-        name: 'Mjerač provodljivosti',
+        name: t.instruments.mjerac_provodljivosti,
         from: plan.mjerac_provodljivosti_kalibracija_od,
         to: plan.mjerac_provodljivosti_kalibracija_do
       },
       {
-        name: 'Mjerač otpora provoda',
+        name: t.instruments.mjerac_otpora_provoda,
         from: plan.mjerac_otpora_provoda_kalibracija_od,
         to: plan.mjerac_otpora_provoda_kalibracija_do
       },
       {
-        name: 'Moment ključ',
+        name: t.instruments.moment_kljuc,
         from: plan.moment_kljuc_kalibracija_od,
         to: plan.moment_kljuc_kalibracija_do
       },
       {
-        name: 'Shal detector',
+        name: t.instruments.shal_detector,
         from: plan.shal_detector_kalibracija_od,
         to: plan.shal_detector_kalibracija_do
+      },
+      {
+        name: t.instruments.kalibraza_vatro_dojava,
+        from: plan.kalibraza_vatro_dojava_od,
+        to: plan.kalibraza_vatro_dojava_do
+      },
+      {
+        name: t.instruments.kalibraza_pp_aparata,
+        from: plan.kalibraza_pp_aparata_od,
+        to: plan.kalibraza_pp_aparata_do
+      },
+      {
+        name: t.instruments.strucne_licence_radnika,
+        from: plan.strucne_licence_radnika_od,
+        to: plan.strucne_licence_radnika_do
+      },
+      {
+        name: t.instruments.adr_dozvole_radnika,
+        from: plan.adr_dozvole_radnika_od,
+        to: plan.adr_dozvole_radnika_do
+      },
+      {
+        name: t.instruments.mjerenje_otpora_uzemljenja,
+        from: plan.mjerenje_otpora_uzemljenja_od,
+        to: plan.mjerenje_otpora_uzemljenja_do
+      },
+      {
+        name: t.instruments.vatro_dojava,
+        from: plan.vatro_dojava_od,
+        to: plan.vatro_dojava_do
+      },
+      {
+        name: t.instruments.ispitivanje_elektro_instalacija,
+        from: plan.ispitivanje_elektro_instalacija_od,
+        to: plan.ispitivanje_elektro_instalacija_do
       }
     ];
 
@@ -726,10 +922,10 @@ export const generatePlanKalibracijePDF = async (req: Request, res: Response) =>
     // Active calibrations section
     if (activeCalibrations.length > 0) {
       // Draw calibration table header
-      yPosition = drawTableHeader(yPosition, 'INSTRUMENT', 'KALIBRACIJA OD - DO | STATUS');
+      yPosition = drawTableHeader(yPosition, t.instrument, `${t.calibrationFromTo} | ${t.status}`);
 
       activeCalibrations.forEach((calibration, index) => {
-        yPosition = checkNewPage(yPosition, 12, { left: 'INSTRUMENT', right: 'KALIBRACIJA OD - DO | STATUS' });
+        yPosition = checkNewPage(yPosition, 12, { left: t.instrument, right: `${t.calibrationFromTo} | ${t.status}` });
 
         const isEven = index % 2 === 0;
         if (isEven) {
@@ -759,13 +955,13 @@ export const generatePlanKalibracijePDF = async (req: Request, res: Response) =>
           thirtyDaysFromNow.setDate(today.getDate() + 30);
 
           if (expiryDate < today) {
-            status = 'ISTEKAO';
+            status = t.expired;
             statusColor = [220, 53, 69]; // Red
           } else if (expiryDate <= thirtyDaysFromNow) {
-            status = 'USKORO ISTIČE';
+            status = t.expiring;
             statusColor = [255, 193, 7]; // Yellow
           } else {
-            status = 'VAŽEĆI';
+            status = t.valid;
             statusColor = [40, 167, 69]; // Green
           }
         }
@@ -792,7 +988,7 @@ export const generatePlanKalibracijePDF = async (req: Request, res: Response) =>
       doc.setFontSize(11);
       doc.setFont(FONT_NAME, 'bold');
       doc.setTextColor(128, 128, 128);
-      doc.text('INSTRUMENTI BEZ UNESENIH KALIBRACIJA', 20, yPosition);
+      doc.text(t.inactiveCalibrations, 20, yPosition);
       yPosition += 10;
 
       doc.setFontSize(9);
@@ -811,7 +1007,7 @@ export const generatePlanKalibracijePDF = async (req: Request, res: Response) =>
       doc.setFontSize(12);
       doc.setFont(FONT_NAME, 'bold');
       doc.setTextColor(0, 51, 102);
-      doc.text('NAPOMENE', 20, yPosition);
+      doc.text(t.notes, 20, yPosition);
       yPosition += 10;
       
       doc.setFontSize(9);
@@ -839,10 +1035,12 @@ export const generatePlanKalibracijePDF = async (req: Request, res: Response) =>
 
 export const generateFullReport = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { planIds } = req.body;
+    const { planIds, language = 'bs' } = req.body;
+    const t = getTranslation(language);
 
     if (!planIds || !Array.isArray(planIds) || planIds.length === 0) {
-      res.status(400).json({ error: 'Lista ID-jeva planova je obavezna' });
+      const errorMsg = language === 'en' ? 'Plan IDs list is required' : 'Lista ID-jeva planova je obavezna';
+      res.status(400).json({ error: errorMsg });
       return;
     }
 
@@ -957,8 +1155,8 @@ export const generateFullReport = async (req: Request, res: Response): Promise<v
       // Report metadata
       const reportDate = new Date().toLocaleDateString('bs-BA');
       const reportTime = new Date().toLocaleTimeString('bs-BA');
-      doc.text(`Datum izvještaja: ${reportDate}`, pageWidth - 20, 25, { align: 'right' });
-      doc.text(`Vrijeme: ${reportTime}`, pageWidth - 20, 32, { align: 'right' });
+      doc.text(`${t.generatedOn} ${reportDate}`, pageWidth - 20, 25, { align: 'right' });
+      doc.text(`${t.reportTime} ${reportTime}`, pageWidth - 20, 32, { align: 'right' });
       
       // Report title
       doc.setDrawColor(200, 200, 220);
@@ -968,7 +1166,7 @@ export const generateFullReport = async (req: Request, res: Response): Promise<v
       doc.setFontSize(16);
       doc.setFont(FONT_NAME, 'bold');
       doc.setTextColor(0, 51, 102);
-      doc.text('UKUPNI IZVJEŠTAJ - PLAN KALIBRACIJE', pageWidth / 2, 60, { align: 'center' });
+      doc.text(t.totalReport, pageWidth / 2, 60, { align: 'center' });
       
       doc.setTextColor(0, 0, 0);
       return 70;
@@ -986,7 +1184,7 @@ export const generateFullReport = async (req: Request, res: Response): Promise<v
       doc.setFont(FONT_NAME, 'normal');
       doc.setTextColor(100, 100, 100);
       doc.text('HIFA-PETROL d.o.o. Sarajevo - Plan kalibracije instrumenata', pageWidth / 2, pageHeight - 15, { align: 'center' });
-      doc.text(`Generiran: ${reportDate} u ${reportTime}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
+      doc.text(`${t.generatedOn} ${reportDate} ${t.reportTime} ${reportTime}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
     };
 
     const doc = new jsPDF({
@@ -1007,15 +1205,15 @@ export const generateFullReport = async (req: Request, res: Response): Promise<v
     doc.setFontSize(12);
     doc.setFont(FONT_NAME, 'bold');
     doc.setTextColor(0, 51, 102);
-    doc.text('SAŽETAK IZVJEŠTAJA', 20, yPosition);
+    doc.text(t.reportSummary, 20, yPosition);
     yPosition += 10;
 
     doc.setFontSize(10);
     doc.setFont(FONT_NAME, 'normal');
     doc.setTextColor(0, 0, 0);
-    doc.text(`Ukupan broj planova: ${planovi.length}`, 20, yPosition);
+    doc.text(`${t.totalPlans} ${planovi.length}`, 20, yPosition);
     yPosition += 6;
-    doc.text(`Datum izvještaja: ${new Date().toLocaleDateString('bs-BA')}`, 20, yPosition);
+    doc.text(`${t.reportDate} ${new Date().toLocaleDateString('bs-BA')}`, 20, yPosition);
     yPosition += 15;
 
     // Process each plan using the same layout as individual reports
@@ -1041,21 +1239,21 @@ export const generateFullReport = async (req: Request, res: Response): Promise<v
       doc.setFontSize(12);
       doc.setFont(FONT_NAME, 'bold');
       doc.setTextColor(0, 51, 102);
-      doc.text('OSNOVNI PODACI', 20, yPosition);
+      doc.text(t.basicInfo, 20, yPosition);
       yPosition += 10;
 
       // Basic data table header
-      yPosition = drawTableHeader(yPosition, 'OPIS', 'VRIJEDNOST');
+      yPosition = drawTableHeader(yPosition, t.instrument, t.value);
 
       const basicData = [
-        { label: 'Naziv opreme', value: plan.naziv_opreme },
-        { label: 'Vlasnik opreme', value: plan.vlasnik_opreme },
-        { label: 'Identifikacijski broj', value: plan.identifikacijski_broj },
-        { label: 'Mjesto korištenja', value: plan.mjesto_koristenja_opreme }
+        { label: t.equipmentName, value: plan.naziv_opreme },
+        { label: t.owner, value: plan.vlasnik_opreme },
+        { label: t.equipmentId, value: plan.identifikacijski_broj },
+        { label: t.location, value: plan.mjesto_koristenja_opreme }
       ];
 
       basicData.forEach((item, index) => {
-        yPosition = checkNewPage(yPosition, 8, { left: 'OPIS', right: 'VRIJEDNOST' });
+        yPosition = checkNewPage(yPosition, 8, { left: t.instrument, right: t.value });
 
         const isEven = index % 2 === 0;
         if (isEven) {
@@ -1084,23 +1282,30 @@ export const generateFullReport = async (req: Request, res: Response): Promise<v
       doc.setFontSize(12);
       doc.setFont(FONT_NAME, 'bold');
       doc.setTextColor(0, 51, 102);
-      doc.text('KALIBRACIJE INSTRUMENATA', 20, yPosition);
+      doc.text(t.activeCalibrations, 20, yPosition);
       yPosition += 10;
 
       // Calibration instruments data
       const calibrationData = [
-        { name: 'Volumetar', from: plan.volumetar_kalibracija_od, to: plan.volumetar_kalibracija_do },
-        { name: 'Glavni volumetar', from: plan.glavni_volumetar_kalibracija_od, to: plan.glavni_volumetar_kalibracija_do },
-        { name: 'Manometri', from: plan.manometri_kalibracija_od, to: plan.manometri_kalibracija_do },
-        { name: 'Crijevo za punjenje', from: plan.crijevo_punjenje_kalibracija_od, to: plan.crijevo_punjenje_kalibracija_do },
-        { name: 'Glavni manometar', from: plan.glavni_manometar_kalibracija_od, to: plan.glavni_manometar_kalibracija_do },
-        { name: 'Termometar', from: plan.termometar_kalibracija_od, to: plan.termometar_kalibracija_do },
-        { name: 'Hidrometar', from: plan.hidrometar_kalibracija_od, to: plan.hidrometar_kalibracija_do },
-        { name: 'Električni denziometar', from: plan.elektricni_denziometar_kalibracija_od, to: plan.elektricni_denziometar_kalibracija_do },
-        { name: 'Mjerač provodljivosti', from: plan.mjerac_provodljivosti_kalibracija_od, to: plan.mjerac_provodljivosti_kalibracija_do },
-        { name: 'Mjerač otpora provoda', from: plan.mjerac_otpora_provoda_kalibracija_od, to: plan.mjerac_otpora_provoda_kalibracija_do },
-        { name: 'Moment ključ', from: plan.moment_kljuc_kalibracija_od, to: plan.moment_kljuc_kalibracija_do },
-        { name: 'Shal detector', from: plan.shal_detector_kalibracija_od, to: plan.shal_detector_kalibracija_do }
+        { name: t.instruments.volumetar, from: plan.volumetar_kalibracija_od, to: plan.volumetar_kalibracija_do },
+        { name: t.instruments.glavni_volumetar, from: plan.glavni_volumetar_kalibracija_od, to: plan.glavni_volumetar_kalibracija_do },
+        { name: t.instruments.manometri, from: plan.manometri_kalibracija_od, to: plan.manometri_kalibracija_do },
+        { name: t.instruments.crijevo_punjenje, from: plan.crijevo_punjenje_kalibracija_od, to: plan.crijevo_punjenje_kalibracija_do },
+        { name: t.instruments.glavni_manometar, from: plan.glavni_manometar_kalibracija_od, to: plan.glavni_manometar_kalibracija_do },
+        { name: t.instruments.termometar, from: plan.termometar_kalibracija_od, to: plan.termometar_kalibracija_do },
+        { name: t.instruments.hidrometar, from: plan.hidrometar_kalibracija_od, to: plan.hidrometar_kalibracija_do },
+        { name: t.instruments.elektricni_denziometar, from: plan.elektricni_denziometar_kalibracija_od, to: plan.elektricni_denziometar_kalibracija_do },
+        { name: t.instruments.mjerac_provodljivosti, from: plan.mjerac_provodljivosti_kalibracija_od, to: plan.mjerac_provodljivosti_kalibracija_do },
+        { name: t.instruments.mjerac_otpora_provoda, from: plan.mjerac_otpora_provoda_kalibracija_od, to: plan.mjerac_otpora_provoda_kalibracija_do },
+        { name: t.instruments.moment_kljuc, from: plan.moment_kljuc_kalibracija_od, to: plan.moment_kljuc_kalibracija_do },
+        { name: t.instruments.shal_detector, from: plan.shal_detector_kalibracija_od, to: plan.shal_detector_kalibracija_do },
+        { name: t.instruments.kalibraza_vatro_dojava, from: plan.kalibraza_vatro_dojava_od, to: plan.kalibraza_vatro_dojava_do },
+        { name: t.instruments.kalibraza_pp_aparata, from: plan.kalibraza_pp_aparata_od, to: plan.kalibraza_pp_aparata_do },
+        { name: t.instruments.strucne_licence_radnika, from: plan.strucne_licence_radnika_od, to: plan.strucne_licence_radnika_do },
+        { name: t.instruments.adr_dozvole_radnika, from: plan.adr_dozvole_radnika_od, to: plan.adr_dozvole_radnika_do },
+        { name: t.instruments.mjerenje_otpora_uzemljenja, from: plan.mjerenje_otpora_uzemljenja_od, to: plan.mjerenje_otpora_uzemljenja_do },
+        { name: t.instruments.vatro_dojava, from: plan.vatro_dojava_od, to: plan.vatro_dojava_do },
+        { name: t.instruments.ispitivanje_elektro_instalacija, from: plan.ispitivanje_elektro_instalacija_od, to: plan.ispitivanje_elektro_instalacija_do }
       ];
 
       // Active calibrations
@@ -1108,10 +1313,10 @@ export const generateFullReport = async (req: Request, res: Response): Promise<v
       const inactiveCalibrations = calibrationData.filter(cal => !cal.from && !cal.to);
 
       if (activeCalibrations.length > 0) {
-        yPosition = drawTableHeader(yPosition, 'INSTRUMENT', 'KALIBRACIJA OD - DO | STATUS');
+        yPosition = drawTableHeader(yPosition, t.instrument, `${t.calibrationFromTo} | ${t.status}`);
 
         activeCalibrations.forEach((calibration, index) => {
-          yPosition = checkNewPage(yPosition, 12, { left: 'INSTRUMENT', right: 'KALIBRACIJA OD - DO | STATUS' });
+          yPosition = checkNewPage(yPosition, 12, { left: t.instrument, right: `${t.calibrationFromTo} | ${t.status}` });
 
           const isEven = index % 2 === 0;
           if (isEven) {
@@ -1139,13 +1344,13 @@ export const generateFullReport = async (req: Request, res: Response): Promise<v
             thirtyDaysFromNow.setDate(today.getDate() + 30);
 
             if (expiryDate < today) {
-              status = 'ISTEKAO';
+              status = t.expired;
               statusColor = [220, 53, 69];
             } else if (expiryDate <= thirtyDaysFromNow) {
-              status = 'USKORO ISTIČE';
+              status = t.expiring;
               statusColor = [255, 193, 7];
             } else {
-              status = 'VAŽEĆI';
+              status = t.valid;
               statusColor = [40, 167, 69];
             }
           }
@@ -1171,7 +1376,7 @@ export const generateFullReport = async (req: Request, res: Response): Promise<v
         doc.setFontSize(11);
         doc.setFont(FONT_NAME, 'bold');
         doc.setTextColor(128, 128, 128);
-        doc.text('INSTRUMENTI BEZ UNESENIH KALIBRACIJA', 20, yPosition);
+        doc.text(t.inactiveCalibrations, 20, yPosition);
         yPosition += 10;
 
         doc.setFontSize(9);
@@ -1190,7 +1395,7 @@ export const generateFullReport = async (req: Request, res: Response): Promise<v
         doc.setFontSize(12);
         doc.setFont(FONT_NAME, 'bold');
         doc.setTextColor(0, 51, 102);
-        doc.text('NAPOMENE', 20, yPosition);
+        doc.text(t.notes, 20, yPosition);
         yPosition += 10;
         
         doc.setFontSize(9);

@@ -9,6 +9,7 @@ import { Plus, Search, Filter, Settings2, Loader2, AlertTriangle, CheckCircle, C
 import { motion } from 'framer-motion';
 import { PlanKalibracijeForm } from '@/components/plan-kalibracije/PlanKalibracijeForm';
 import { PlanKalibracijeCard } from '@/components/plan-kalibracije/PlanKalibracijeCard';
+import PlanKalibracijeDetailsModal from '@/components/plan-kalibracije/PlanKalibracijeDetailsModal';
 import { PlanKalibracije, CreatePlanKalibracijeRequest, UpdatePlanKalibracijeRequest } from '@/types/planKalibracije';
 import planKalibracijeService from '@/services/planKalibracijeService';
 import { toast } from 'sonner';
@@ -35,6 +36,13 @@ const getStatusInfo = (plan: PlanKalibracije) => {
     { name: 'Mjerač otpora provoda', date: plan.mjerac_otpora_provoda_kalibracija_do },
     { name: 'Moment ključ', date: plan.moment_kljuc_kalibracija_do },
     { name: 'Shal detector', date: plan.shal_detector_kalibracija_do },
+    { name: 'Kalibraža vatro dojava', date: plan.kalibraza_vatro_dojava_do },
+    { name: 'Kalibraža PP aparata', date: plan.kalibraza_pp_aparata_do },
+    { name: 'Stručne licence radnika', date: plan.strucne_licence_radnika_do },
+    { name: 'ADR dozvole za radnike', date: plan.adr_dozvole_radnika_do },
+    { name: 'Mjerenje otpora uzemljenja', date: plan.mjerenje_otpora_uzemljenja_do },
+    { name: 'Vatro dojava', date: plan.vatro_dojava_do },
+    { name: 'Ispitivanje elektro instalacija', date: plan.ispitivanje_elektro_instalacija_do },
   ];
 
   const expiredInstruments: string[] = [];
@@ -94,10 +102,13 @@ export default function PlanKalibracjePage() {
   const [filteredPlanovi, setFilteredPlanovi] = useState<PlanKalibracije[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<PlanKalibracije | null>(null);
+  const [detailsModalPlan, setDetailsModalPlan] = useState<PlanKalibracije | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterVlasnik, setFilterVlasnik] = useState('');
+  const [reportLanguage, setReportLanguage] = useState<'bs' | 'en'>('bs');
 
   const loadData = async () => {
     try {
@@ -226,13 +237,31 @@ export default function PlanKalibracjePage() {
       toast.loading('Generiranje ukupnog izvještaja...', { id: 'full-report' });
       
       const planIds = filteredPlanovi.map(plan => plan.id);
-      await planKalibracijeService.generateFullReport(planIds);
+      await planKalibracijeService.generateFullReport(planIds, reportLanguage);
       
       toast.success('Ukupni izvještaj je uspješno generiran', { id: 'full-report' });
     } catch (error: any) {
       console.error('Error generating full report:', error);
       toast.error('Greška pri generiranju ukupnog izvještaja', { id: 'full-report' });
     }
+  };
+
+  const handleGenerateIndividualReport = async (id: number) => {
+    try {
+      toast.loading('Generiranje individualnog izvještaja...', { id: `individual-report-${id}` });
+      
+      await planKalibracijeService.generateIndividualReport(id, reportLanguage);
+      
+      toast.success('Individualni izvještaj je uspješno generiran', { id: `individual-report-${id}` });
+    } catch (error: any) {
+      console.error('Error generating individual report:', error);
+      toast.error('Greška pri generiranju individualnog izvještaja', { id: `individual-report-${id}` });
+    }
+  };
+
+  const handleViewDetails = (plan: PlanKalibracije) => {
+    setDetailsModalPlan(plan);
+    setIsDetailsModalOpen(true);
   };
 
   const handleCloseForm = () => {
@@ -324,15 +353,25 @@ export default function PlanKalibracjePage() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleGenerateFullReport}
-                  disabled={filteredPlanovi.length === 0}
-                  className="bg-green-500 hover:bg-green-600 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Ukupni Izvještaj
-                </Button>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex gap-2">
+                  <select
+                    value={reportLanguage}
+                    onChange={(e) => setReportLanguage(e.target.value as 'bs' | 'en')}
+                    className="px-3 py-2 border border-white/20 rounded-lg bg-white/10 backdrop-blur-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  >
+                    <option value="bs">🇧🇦 Bosanski</option>
+                    <option value="en">🇬🇧 English</option>
+                  </select>
+                  <Button
+                    onClick={handleGenerateFullReport}
+                    disabled={filteredPlanovi.length === 0}
+                    className="bg-green-500 hover:bg-green-600 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Ukupni Izvještaj
+                  </Button>
+                </div>
                 <Button
                   onClick={() => setIsFormOpen(true)}
                   className="bg-blue-500 hover:bg-blue-600 text-white font-medium"
@@ -501,6 +540,8 @@ export default function PlanKalibracjePage() {
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onGeneratePDF={handleGeneratePDF}
+                onGenerateIndividualReport={handleGenerateIndividualReport}
+                onViewDetails={handleViewDetails}
               />
             </motion.div>
           ))
@@ -516,6 +557,16 @@ export default function PlanKalibracjePage() {
           isEdit={!!selectedPlan}
         />
       )}
+
+      {/* Details Modal */}
+      <PlanKalibracijeDetailsModal
+        plan={detailsModalPlan}
+        isOpen={isDetailsModalOpen}
+        onClose={() => {
+          setIsDetailsModalOpen(false);
+          setDetailsModalPlan(null);
+        }}
+      />
     </motion.div>
   );
 } 

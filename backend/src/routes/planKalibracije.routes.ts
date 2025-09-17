@@ -44,5 +44,6 @@ router.delete('/:id', deletePlanKalibracije);        // DELETE /api/plan-kalibra
 router.post('/:id/upload', upload.single('document'), uploadKalibracijaDocument); // POST /api/plan-kalibracije/:id/upload
 router.get('/:id/pdf', generatePlanKalibracijePDF);  // GET /api/plan-kalibracije/:id/pdf
 router.post('/full-report', generateFullReport);     // POST /api/plan-kalibracije/full-report
+router.post('/:id/individual-report', generatePlanKalibracijePDF); // POST /api/plan-kalibracije/:id/individual-report
 
 export default router; 

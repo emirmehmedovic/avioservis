@@ -54,6 +54,34 @@ export interface PlanKalibracije {
   shal_detector_kalibracija_od?: string;
   shal_detector_kalibracija_do?: string;
   
+  // Kalibraža vatro dojava
+  kalibraza_vatro_dojava_od?: string;
+  kalibraza_vatro_dojava_do?: string;
+  
+  // Kalibraža PP aparata
+  kalibraza_pp_aparata_od?: string;
+  kalibraza_pp_aparata_do?: string;
+  
+  // Stručne licence radnika
+  strucne_licence_radnika_od?: string;
+  strucne_licence_radnika_do?: string;
+  
+  // ADR dozvole za radnike
+  adr_dozvole_radnika_od?: string;
+  adr_dozvole_radnika_do?: string;
+  
+  // Mjerenje otpora uzemljenja
+  mjerenje_otpora_uzemljenja_od?: string;
+  mjerenje_otpora_uzemljenja_do?: string;
+  
+  // Vatro dojava
+  vatro_dojava_od?: string;
+  vatro_dojava_do?: string;
+  
+  // Ispitivanje elektro instalacija
+  ispitivanje_elektro_instalacija_od?: string;
+  ispitivanje_elektro_instalacija_do?: string;
+  
   // Dodatne informacije
   napomene?: string;
   dokumenti_url?: string;
@@ -93,6 +121,20 @@ export interface CreatePlanKalibracijeRequest {
   moment_kljuc_kalibracija_do?: string;
   shal_detector_kalibracija_od?: string;
   shal_detector_kalibracija_do?: string;
+  kalibraza_vatro_dojava_od?: string;
+  kalibraza_vatro_dojava_do?: string;
+  kalibraza_pp_aparata_od?: string;
+  kalibraza_pp_aparata_do?: string;
+  strucne_licence_radnika_od?: string;
+  strucne_licence_radnika_do?: string;
+  adr_dozvole_radnika_od?: string;
+  adr_dozvole_radnika_do?: string;
+  mjerenje_otpora_uzemljenja_od?: string;
+  mjerenje_otpora_uzemljenja_do?: string;
+  vatro_dojava_od?: string;
+  vatro_dojava_do?: string;
+  ispitivanje_elektro_instalacija_od?: string;
+  ispitivanje_elektro_instalacija_do?: string;
   napomene?: string;
 }
 
@@ -164,6 +206,13 @@ export const INSTRUMENTI_LISTE = [
   { key: 'mjerac_otpora_provoda', label: 'Mjerač otpora provoda' },
   { key: 'moment_kljuc', label: 'Moment ključ' },
   { key: 'shal_detector', label: 'Shal detector' },
+  { key: 'kalibraza_vatro_dojava', label: 'Kalibraža vatro dojava' },
+  { key: 'kalibraza_pp_aparata', label: 'Kalibraža PP aparata' },
+  { key: 'strucne_licence_radnika', label: 'Stručne licence radnika' },
+  { key: 'adr_dozvole_radnika', label: 'ADR dozvole za radnike' },
+  { key: 'mjerenje_otpora_uzemljenja', label: 'Mjerenje otpora uzemljenja' },
+  { key: 'vatro_dojava', label: 'Vatro dojava' },
+  { key: 'ispitivanje_elektro_instalacija', label: 'Ispitivanje elektro instalacija' },
 ] as const;
 
 // Status konstante sa bojama za UI

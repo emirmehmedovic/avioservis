@@ -918,6 +918,34 @@ model PlanKalibracije {
   shal_detector_kalibracija_od          DateTime?
   shal_detector_kalibracija_do          DateTime?
   
+  // Kalibraža vatro dojava
+  kalibraza_vatro_dojava_od             DateTime?
+  kalibraza_vatro_dojava_do             DateTime?
+  
+  // Kalibraža PP aparata
+  kalibraza_pp_aparata_od               DateTime?
+  kalibraza_pp_aparata_do               DateTime?
+  
+  // Stručne licence radnika
+  strucne_licence_radnika_od            DateTime?
+  strucne_licence_radnika_do            DateTime?
+  
+  // ADR dozvole za radnike
+  adr_dozvole_radnika_od                DateTime?
+  adr_dozvole_radnika_do                DateTime?
+  
+  // Mjerenje otpora uzemljenja
+  mjerenje_otpora_uzemljenja_od         DateTime?
+  mjerenje_otpora_uzemljenja_do         DateTime?
+  
+  // Vatro dojava
+  vatro_dojava_od                       DateTime?
+  vatro_dojava_do                       DateTime?
+  
+  // Ispitivanje elektro instalacija
+  ispitivanje_elektro_instalacija_od    DateTime?
+  ispitivanje_elektro_instalacija_do    DateTime?
+  
   // Dodatne informacije
   napomene                              String?
   dokumenti_url                         String?

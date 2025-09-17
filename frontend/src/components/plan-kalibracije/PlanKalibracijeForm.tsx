@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-import { X, Calendar, Upload, Save, FileText } from 'lucide-react';
+import { X, Calendar, Upload, Save, FileText, Settings2, Shield, Zap } from 'lucide-react';
 import { PlanKalibracije, CreatePlanKalibracijeRequest, UpdatePlanKalibracijeRequest } from '@/types/planKalibracije';
 
 interface PlanKalibracijeFormProps {
@@ -37,6 +37,13 @@ export function PlanKalibracijeForm({ onClose, onSubmit, initialData, isEdit = f
   const [mjeracOtporaOd, setMjeracOtporaOd] = useState(initialData?.mjerac_otpora_provoda_kalibracija_od ? new Date(initialData.mjerac_otpora_provoda_kalibracija_od).toISOString().split('T')[0] : '');
   const [momentKljucOd, setMomentKljucOd] = useState(initialData?.moment_kljuc_kalibracija_od ? new Date(initialData.moment_kljuc_kalibracija_od).toISOString().split('T')[0] : '');
   const [shalDetectorOd, setShalDetectorOd] = useState(initialData?.shal_detector_kalibracija_od ? new Date(initialData.shal_detector_kalibracija_od).toISOString().split('T')[0] : '');
+  const [kalibrazaVatroDojavaOd, setKalibrazaVatroDojavaOd] = useState(initialData?.kalibraza_vatro_dojava_od ? new Date(initialData.kalibraza_vatro_dojava_od).toISOString().split('T')[0] : '');
+  const [kalibrazaPpAparataOd, setKalibrazaPpAparataOd] = useState(initialData?.kalibraza_pp_aparata_od ? new Date(initialData.kalibraza_pp_aparata_od).toISOString().split('T')[0] : '');
+  const [strucneLicenceRadnikaOd, setStrucneLicenceRadnikaOd] = useState(initialData?.strucne_licence_radnika_od ? new Date(initialData.strucne_licence_radnika_od).toISOString().split('T')[0] : '');
+  const [adrDozvoleRadnikaOd, setAdrDozvoleRadnikaOd] = useState(initialData?.adr_dozvole_radnika_od ? new Date(initialData.adr_dozvole_radnika_od).toISOString().split('T')[0] : '');
+  const [mjerenjeOtporaUzemljenjaOd, setMjerenjeOtporaUzemljenjaOd] = useState(initialData?.mjerenje_otpora_uzemljenja_od ? new Date(initialData.mjerenje_otpora_uzemljenja_od).toISOString().split('T')[0] : '');
+  const [vatroDojavaOd, setVatroDojavaOd] = useState(initialData?.vatro_dojava_od ? new Date(initialData.vatro_dojava_od).toISOString().split('T')[0] : '');
+  const [ispitivanjeElektroInstalacijaOd, setIspitivanjeElektroInstalacijaOd] = useState(initialData?.ispitivanje_elektro_instalacija_od ? new Date(initialData.ispitivanje_elektro_instalacija_od).toISOString().split('T')[0] : '');
   
   // Kalibracija datumi - "do"
   const [volumetarDo, setVolumetarDo] = useState(initialData?.volumetar_kalibracija_do ? new Date(initialData.volumetar_kalibracija_do).toISOString().split('T')[0] : '');
@@ -51,6 +58,13 @@ export function PlanKalibracijeForm({ onClose, onSubmit, initialData, isEdit = f
   const [mjeracOtporaDo, setMjeracOtporaDo] = useState(initialData?.mjerac_otpora_provoda_kalibracija_do ? new Date(initialData.mjerac_otpora_provoda_kalibracija_do).toISOString().split('T')[0] : '');
   const [momentKljucDo, setMomentKljucDo] = useState(initialData?.moment_kljuc_kalibracija_do ? new Date(initialData.moment_kljuc_kalibracija_do).toISOString().split('T')[0] : '');
   const [shalDetectorDo, setShalDetectorDo] = useState(initialData?.shal_detector_kalibracija_do ? new Date(initialData.shal_detector_kalibracija_do).toISOString().split('T')[0] : '');
+  const [kalibrazaVatroDojavaDo, setKalibrazaVatroDojavaDo] = useState(initialData?.kalibraza_vatro_dojava_do ? new Date(initialData.kalibraza_vatro_dojava_do).toISOString().split('T')[0] : '');
+  const [kalibrazaPpAparataDo, setKalibrazaPpAparataDo] = useState(initialData?.kalibraza_pp_aparata_do ? new Date(initialData.kalibraza_pp_aparata_do).toISOString().split('T')[0] : '');
+  const [strucneLicenceRadnikaDo, setStrucneLicenceRadnikaDo] = useState(initialData?.strucne_licence_radnika_do ? new Date(initialData.strucne_licence_radnika_do).toISOString().split('T')[0] : '');
+  const [adrDozvoleRadnikaDo, setAdrDozvoleRadnikaDo] = useState(initialData?.adr_dozvole_radnika_do ? new Date(initialData.adr_dozvole_radnika_do).toISOString().split('T')[0] : '');
+  const [mjerenjeOtporaUzemljenjaDo, setMjerenjeOtporaUzemljenjaDo] = useState(initialData?.mjerenje_otpora_uzemljenja_do ? new Date(initialData.mjerenje_otpora_uzemljenja_do).toISOString().split('T')[0] : '');
+  const [vatroDojavaDo, setVatroDojavaDo] = useState(initialData?.vatro_dojava_do ? new Date(initialData.vatro_dojava_do).toISOString().split('T')[0] : '');
+  const [ispitivanjeElektroInstalacijaDo, setIspitivanjeElektroInstalacijaDo] = useState(initialData?.ispitivanje_elektro_instalacija_do ? new Date(initialData.ispitivanje_elektro_instalacija_do).toISOString().split('T')[0] : '');
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -95,6 +109,13 @@ export function PlanKalibracijeForm({ onClose, onSubmit, initialData, isEdit = f
     validateDatePair(mjeracOtporaOd, mjeracOtporaDo, 'Mjerač otpora provoda');
     validateDatePair(momentKljucOd, momentKljucDo, 'Moment ključ');
     validateDatePair(shalDetectorOd, shalDetectorDo, 'Shal detector');
+    validateDatePair(kalibrazaVatroDojavaOd, kalibrazaVatroDojavaDo, 'Kalibraža vatro dojava');
+    validateDatePair(kalibrazaPpAparataOd, kalibrazaPpAparataDo, 'Kalibraža PP aparata');
+    validateDatePair(strucneLicenceRadnikaOd, strucneLicenceRadnikaDo, 'Stručne licence radnika');
+    validateDatePair(adrDozvoleRadnikaOd, adrDozvoleRadnikaDo, 'ADR dozvole za radnike');
+    validateDatePair(mjerenjeOtporaUzemljenjaOd, mjerenjeOtporaUzemljenjaDo, 'Mjerenje otpora uzemljenja');
+    validateDatePair(vatroDojavaOd, vatroDojavaDo, 'Vatro dojava');
+    validateDatePair(ispitivanjeElektroInstalacijaOd, ispitivanjeElektroInstalacijaDo, 'Ispitivanje elektro instalacija');
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -161,6 +182,34 @@ export function PlanKalibracijeForm({ onClose, onSubmit, initialData, isEdit = f
         // Shal detector
         shal_detector_kalibracija_od: shalDetectorOd || undefined,
         shal_detector_kalibracija_do: shalDetectorDo || undefined,
+        
+        // Kalibraža vatro dojava
+        kalibraza_vatro_dojava_od: kalibrazaVatroDojavaOd || undefined,
+        kalibraza_vatro_dojava_do: kalibrazaVatroDojavaDo || undefined,
+        
+        // Kalibraža PP aparata
+        kalibraza_pp_aparata_od: kalibrazaPpAparataOd || undefined,
+        kalibraza_pp_aparata_do: kalibrazaPpAparataDo || undefined,
+        
+        // Stručne licence radnika
+        strucne_licence_radnika_od: strucneLicenceRadnikaOd || undefined,
+        strucne_licence_radnika_do: strucneLicenceRadnikaDo || undefined,
+        
+        // ADR dozvole za radnike
+        adr_dozvole_radnika_od: adrDozvoleRadnikaOd || undefined,
+        adr_dozvole_radnika_do: adrDozvoleRadnikaDo || undefined,
+        
+        // Mjerenje otpora uzemljenja
+        mjerenje_otpora_uzemljenja_od: mjerenjeOtporaUzemljenjaOd || undefined,
+        mjerenje_otpora_uzemljenja_do: mjerenjeOtporaUzemljenjaDo || undefined,
+        
+        // Vatro dojava
+        vatro_dojava_od: vatroDojavaOd || undefined,
+        vatro_dojava_do: vatroDojavaDo || undefined,
+        
+        // Ispitivanje elektro instalacija
+        ispitivanje_elektro_instalacija_od: ispitivanjeElektroInstalacijaOd || undefined,
+        ispitivanje_elektro_instalacija_do: ispitivanjeElektroInstalacijaDo || undefined,
       };
 
       await onSubmit(submitData, selectedFile || undefined);
@@ -194,60 +243,64 @@ export function PlanKalibracijeForm({ onClose, onSubmit, initialData, isEdit = f
     onDoChange: (value: string) => void;
     instrumentKey: string;
   }) => (
-    <div className="relative p-4 rounded-lg border border-white/10 backdrop-blur-md bg-gradient-to-br from-white/10 to-white/5 shadow-lg">
-      <div className="absolute top-0 right-0 w-12 h-12 bg-blue-500/20 rounded-full filter blur-xl opacity-50 -mr-3 -mt-3"></div>
+    <div className="relative p-5 rounded-xl border border-gray-200/50 backdrop-blur-sm bg-white/70 shadow-md hover:shadow-lg transition-all duration-300">
+      <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-blue-400/20 to-indigo-500/20 rounded-full filter blur-xl opacity-60 -mr-4 -mt-4"></div>
       <div className="relative z-10">
-        <Label className="text-white font-medium mb-3 flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-blue-400" />
+        <Label className="text-gray-700 font-medium flex items-center gap-2 mb-4">
+          <Calendar className="h-4 w-4 text-blue-500" />
           {label}
         </Label>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label className="text-white/80 text-xs">Od</Label>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="text-gray-600 text-sm font-medium">Od</Label>
             <Input
               type="date"
               value={odValue}
               onChange={(e) => onOdChange(e.target.value)}
-              className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:ring-blue-500/50 focus:border-blue-500/50"
+              className="bg-white/90 border-gray-200 text-gray-800 focus:ring-blue-500 focus:border-blue-500 rounded-lg h-10"
             />
           </div>
-          <div>
-            <Label className="text-white/80 text-xs">Do</Label>
+          <div className="space-y-2">
+            <Label className="text-gray-600 text-sm font-medium">Do</Label>
             <Input
               type="date"
               value={doValue}
               onChange={(e) => onDoChange(e.target.value)}
-              className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:ring-blue-500/50 focus:border-blue-500/50"
+              className="bg-white/90 border-gray-200 text-gray-800 focus:ring-blue-500 focus:border-blue-500 rounded-lg h-10"
             />
           </div>
         </div>
         {errors[`${instrumentKey}_pair`] && (
-          <p className="text-red-400 text-xs mt-1">{errors[`${instrumentKey}_pair`]}</p>
+          <p className="text-red-500 text-sm mt-2">{errors[`${instrumentKey}_pair`]}</p>
         )}
         {errors[`${instrumentKey}_order`] && (
-          <p className="text-red-400 text-xs mt-1">{errors[`${instrumentKey}_order`]}</p>
+          <p className="text-red-500 text-sm mt-2">{errors[`${instrumentKey}_order`]}</p>
         )}
       </div>
     </div>
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden border border-white/10 backdrop-blur-md bg-gradient-to-br from-[#4d4c4c]/90 to-[#1a1a1a]/90 shadow-2xl rounded-xl relative">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full filter blur-3xl opacity-20 -mr-20 -mt-20"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/20 rounded-full filter blur-3xl opacity-20 -ml-20 -mb-20"></div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+      <Card className="w-full max-w-6xl max-h-[90vh] overflow-hidden border border-white/20 backdrop-blur-xl bg-white/95 shadow-2xl rounded-2xl relative">
+        {/* Glassmorphism background effects */}
+        <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-blue-400/20 to-indigo-500/20 rounded-full filter blur-3xl opacity-30 -mr-36 -mt-36"></div>
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-gradient-to-tr from-purple-400/20 to-pink-500/20 rounded-full filter blur-3xl opacity-30 -ml-36 -mb-36"></div>
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-gradient-to-r from-emerald-400/10 to-cyan-500/10 rounded-full filter blur-3xl opacity-20 transform -translate-x-1/2 -translate-y-1/2"></div>
         
-        <CardHeader className="relative z-10 border-b border-white/10">
+        <CardHeader className="relative z-10 border-b border-gray-200/50 bg-white/80 backdrop-blur-sm">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-bold text-white flex items-center gap-2">
-              <FileText className="h-6 w-6 text-blue-400" />
+            <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                <FileText className="h-5 w-5 text-white" />
+              </div>
               {isEdit ? 'Uredi Plan Kalibracije' : 'Novi Plan Kalibracije'}
             </CardTitle>
             <Button
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="text-white/60 hover:text-white hover:bg-white/10"
+              className="text-gray-500 hover:text-gray-700 hover:bg-gray-100/80 rounded-xl"
             >
               <X className="h-5 w-5" />
             </Button>
@@ -257,63 +310,75 @@ export function PlanKalibracijeForm({ onClose, onSubmit, initialData, isEdit = f
         <CardContent className="relative z-10 p-6 max-h-[calc(90vh-140px)] overflow-y-auto">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Osnovni podaci */}
-            <div className="relative p-4 rounded-lg border border-white/10 backdrop-blur-md bg-gradient-to-br from-white/10 to-white/5 shadow-lg">
-              <div className="absolute top-0 right-0 w-16 h-16 bg-green-500/20 rounded-full filter blur-xl opacity-50 -mr-4 -mt-4"></div>
+            <div className="relative p-6 rounded-2xl border border-gray-200/50 backdrop-blur-sm bg-white/80 shadow-lg">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-emerald-400/20 to-green-500/20 rounded-full filter blur-xl opacity-60 -mr-5 -mt-5"></div>
               <div className="relative z-10">
-                <h3 className="text-lg font-semibold text-white mb-4">Osnovni podaci</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-white/80">Naziv opreme *</Label>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg flex items-center justify-center">
+                    <Settings2 className="h-4 w-4 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800">Osnovni podaci</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-gray-700 font-medium">Naziv opreme *</Label>
                     <Input
                       value={nazivOpreme}
                       onChange={(e) => setNazivOpreme(e.target.value)}
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:ring-blue-500/50 focus:border-blue-500/50"
+                      className="bg-white/90 border-gray-200 text-gray-800 placeholder:text-gray-400 focus:ring-blue-500 focus:border-blue-500 rounded-xl h-12"
                       placeholder="Unesite naziv opreme"
                     />
-                    {errors.naziv_opreme && <p className="text-red-400 text-xs mt-1">{errors.naziv_opreme}</p>}
+                    {errors.naziv_opreme && <p className="text-red-500 text-sm mt-1">{errors.naziv_opreme}</p>}
                   </div>
                   
-                  <div>
-                    <Label className="text-white/80">Identifikacijski broj *</Label>
+                  <div className="space-y-2">
+                    <Label className="text-gray-700 font-medium">Identifikacijski broj *</Label>
                     <Input
                       value={identifikacijskiBroj}
                       onChange={(e) => setIdentifikacijskiBroj(e.target.value)}
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:ring-blue-500/50 focus:border-blue-500/50"
+                      className="bg-white/90 border-gray-200 text-gray-800 placeholder:text-gray-400 focus:ring-blue-500 focus:border-blue-500 rounded-xl h-12"
                       placeholder="Unesite identifikacijski broj"
                     />
-                    {errors.identifikacijski_broj && <p className="text-red-400 text-xs mt-1">{errors.identifikacijski_broj}</p>}
+                    {errors.identifikacijski_broj && <p className="text-red-500 text-sm mt-1">{errors.identifikacijski_broj}</p>}
                   </div>
                   
-                  <div>
-                    <Label className="text-white/80">Vlasnik opreme *</Label>
+                  <div className="space-y-2">
+                    <Label className="text-gray-700 font-medium">Vlasnik opreme *</Label>
                     <Input
                       value={vlasnikOpreme}
                       onChange={(e) => setVlasnikOpreme(e.target.value)}
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:ring-blue-500/50 focus:border-blue-500/50"
+                      className="bg-white/90 border-gray-200 text-gray-800 placeholder:text-gray-400 focus:ring-blue-500 focus:border-blue-500 rounded-xl h-12"
                       placeholder="Unesite vlasnika opreme"
                     />
-                    {errors.vlasnik_opreme && <p className="text-red-400 text-xs mt-1">{errors.vlasnik_opreme}</p>}
+                    {errors.vlasnik_opreme && <p className="text-red-500 text-sm mt-1">{errors.vlasnik_opreme}</p>}
                   </div>
                   
-                  <div>
-                    <Label className="text-white/80">Mjesto korištenja opreme *</Label>
+                  <div className="space-y-2">
+                    <Label className="text-gray-700 font-medium">Mjesto korištenja opreme *</Label>
                     <Input
                       value={mjestoKoristenjaOpreme}
                       onChange={(e) => setMjestoKoristenjaOpreme(e.target.value)}
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:ring-blue-500/50 focus:border-blue-500/50"
+                      className="bg-white/90 border-gray-200 text-gray-800 placeholder:text-gray-400 focus:ring-blue-500 focus:border-blue-500 rounded-xl h-12"
                       placeholder="Unesite mjesto korištenja"
                     />
-                    {errors.mjesto_koristenja_opreme && <p className="text-red-400 text-xs mt-1">{errors.mjesto_koristenja_opreme}</p>}
+                    {errors.mjesto_koristenja_opreme && <p className="text-red-500 text-sm mt-1">{errors.mjesto_koristenja_opreme}</p>}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Kalibracije */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white">Datumi kalibracije</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Kalibracije - Osnovni instrumenti */}
+            <div className="relative p-6 rounded-2xl border border-gray-200/50 backdrop-blur-sm bg-white/80 shadow-lg">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-400/20 to-indigo-500/20 rounded-full filter blur-xl opacity-60 -mr-5 -mt-5"></div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                    <Settings2 className="h-4 w-4 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800">Osnovni instrumenti</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <DatePairInput
                   label="Volumetar"
                   odValue={volumetarOd}
@@ -421,61 +486,179 @@ export function PlanKalibracijeForm({ onClose, onSubmit, initialData, isEdit = f
                   onDoChange={setShalDetectorDo}
                   instrumentKey="Shal detector"
                 />
+                </div>
+              </div>
+            </div>
+
+            {/* Sigurnosni instrumenti */}
+            <div className="relative p-6 rounded-2xl border border-gray-200/50 backdrop-blur-sm bg-white/80 shadow-lg">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-red-400/20 to-orange-500/20 rounded-full filter blur-xl opacity-60 -mr-5 -mt-5"></div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-orange-600 rounded-lg flex items-center justify-center">
+                    <Shield className="h-4 w-4 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800">Sigurnosni instrumenti</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <DatePairInput
+                    label="Kalibraža vatro dojava"
+                    odValue={kalibrazaVatroDojavaOd}
+                    doValue={kalibrazaVatroDojavaDo}
+                    onOdChange={setKalibrazaVatroDojavaOd}
+                    onDoChange={setKalibrazaVatroDojavaDo}
+                    instrumentKey="Kalibraža vatro dojava"
+                  />
+                  
+                  <DatePairInput
+                    label="Kalibraža PP aparata"
+                    odValue={kalibrazaPpAparataOd}
+                    doValue={kalibrazaPpAparataDo}
+                    onOdChange={setKalibrazaPpAparataOd}
+                    onDoChange={setKalibrazaPpAparataDo}
+                    instrumentKey="Kalibraža PP aparata"
+                  />
+                  
+                  <DatePairInput
+                    label="Vatro dojava"
+                    odValue={vatroDojavaOd}
+                    doValue={vatroDojavaDo}
+                    onOdChange={setVatroDojavaOd}
+                    onDoChange={setVatroDojavaDo}
+                    instrumentKey="Vatro dojava"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Radni dokumenti */}
+            <div className="relative p-6 rounded-2xl border border-gray-200/50 backdrop-blur-sm bg-white/80 shadow-lg">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-purple-400/20 to-pink-500/20 rounded-full filter blur-xl opacity-60 -mr-5 -mt-5"></div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+                    <FileText className="h-4 w-4 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800">Radni dokumenti</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <DatePairInput
+                    label="Stručne licence radnika"
+                    odValue={strucneLicenceRadnikaOd}
+                    doValue={strucneLicenceRadnikaDo}
+                    onOdChange={setStrucneLicenceRadnikaOd}
+                    onDoChange={setStrucneLicenceRadnikaDo}
+                    instrumentKey="Stručne licence radnika"
+                  />
+                  
+                  <DatePairInput
+                    label="ADR dozvole za radnike"
+                    odValue={adrDozvoleRadnikaOd}
+                    doValue={adrDozvoleRadnikaDo}
+                    onOdChange={setAdrDozvoleRadnikaOd}
+                    onDoChange={setAdrDozvoleRadnikaDo}
+                    instrumentKey="ADR dozvole za radnike"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Električni instrumenti */}
+            <div className="relative p-6 rounded-2xl border border-gray-200/50 backdrop-blur-sm bg-white/80 shadow-lg">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-yellow-400/20 to-amber-500/20 rounded-full filter blur-xl opacity-60 -mr-5 -mt-5"></div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-lg flex items-center justify-center">
+                    <Zap className="h-4 w-4 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800">Električni instrumenti</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <DatePairInput
+                    label="Mjerenje otpora uzemljenja"
+                    odValue={mjerenjeOtporaUzemljenjaOd}
+                    doValue={mjerenjeOtporaUzemljenjaDo}
+                    onOdChange={setMjerenjeOtporaUzemljenjaOd}
+                    onDoChange={setMjerenjeOtporaUzemljenjaDo}
+                    instrumentKey="Mjerenje otpora uzemljenja"
+                  />
+                  
+                  <DatePairInput
+                    label="Ispitivanje elektro instalacija"
+                    odValue={ispitivanjeElektroInstalacijaOd}
+                    doValue={ispitivanjeElektroInstalacijaDo}
+                    onOdChange={setIspitivanjeElektroInstalacijaOd}
+                    onDoChange={setIspitivanjeElektroInstalacijaDo}
+                    instrumentKey="Ispitivanje elektro instalacija"
+                  />
+                </div>
               </div>
             </div>
 
             {/* Napomene i dokument */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="relative p-4 rounded-lg border border-white/10 backdrop-blur-md bg-gradient-to-br from-white/10 to-white/5 shadow-lg">
-                <div className="absolute top-0 right-0 w-12 h-12 bg-purple-500/20 rounded-full filter blur-xl opacity-50 -mr-3 -mt-3"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="relative p-6 rounded-2xl border border-gray-200/50 backdrop-blur-sm bg-white/80 shadow-lg">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-indigo-400/20 to-purple-500/20 rounded-full filter blur-xl opacity-60 -mr-5 -mt-5"></div>
                 <div className="relative z-10">
-                  <Label className="text-white/80">Napomene</Label>
-                                     <textarea
-                     value={napomene}
-                     onChange={(e) => setNapomene(e.target.value)}
-                     className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:ring-blue-500/50 focus:border-blue-500/50 min-h-[100px] w-full rounded-md p-3 resize-vertical"
-                     placeholder="Unesite dodatne napomene..."
-                     rows={4}
-                   />
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                      <FileText className="h-4 w-4 text-white" />
+                    </div>
+                    <Label className="text-gray-700 font-medium text-lg">Napomene</Label>
+                  </div>
+                  <textarea
+                    value={napomene}
+                    onChange={(e) => setNapomene(e.target.value)}
+                    className="bg-white/90 border-gray-200 text-gray-800 placeholder:text-gray-400 focus:ring-blue-500 focus:border-blue-500 min-h-[120px] w-full rounded-xl p-4 resize-vertical"
+                    placeholder="Unesite dodatne napomene..."
+                    rows={4}
+                  />
                 </div>
               </div>
               
-              <div className="relative p-4 rounded-lg border border-white/10 backdrop-blur-md bg-gradient-to-br from-white/10 to-white/5 shadow-lg">
-                <div className="absolute top-0 right-0 w-12 h-12 bg-orange-500/20 rounded-full filter blur-xl opacity-50 -mr-3 -mt-3"></div>
+              <div className="relative p-6 rounded-2xl border border-gray-200/50 backdrop-blur-sm bg-white/80 shadow-lg">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-amber-400/20 to-orange-500/20 rounded-full filter blur-xl opacity-60 -mr-5 -mt-5"></div>
                 <div className="relative z-10">
-                  <Label className="text-white/80 flex items-center gap-2">
-                    <Upload className="h-4 w-4 text-orange-400" />
-                    Dokument
-                  </Label>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center">
+                      <Upload className="h-4 w-4 text-white" />
+                    </div>
+                    <Label className="text-gray-700 font-medium text-lg">Dokument</Label>
+                  </div>
                   <Input
                     type="file"
                     onChange={handleFileChange}
                     accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                    className="bg-white/10 border-white/20 text-white file:bg-white/20 file:border-0 file:text-white file:rounded file:px-3 file:py-1 focus:ring-blue-500/50 focus:border-blue-500/50"
+                    className="bg-white/90 border-gray-200 text-gray-800 file:bg-blue-500 file:border-0 file:text-white file:rounded-lg file:px-4 file:py-2 file:mr-3 focus:ring-blue-500 focus:border-blue-500 rounded-xl h-12"
                   />
                   {selectedFile && (
-                    <p className="text-green-400 text-xs mt-1">
-                      Odabran fajl: {selectedFile.name}
-                    </p>
+                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <p className="text-green-700 text-sm font-medium">
+                        ✓ Odabran fajl: {selectedFile.name}
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
             </div>
 
             {/* Action buttons */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+            <div className="flex justify-end gap-4 pt-6 border-t border-gray-200/50 bg-white/50 backdrop-blur-sm -mx-6 px-6 -mb-6 pb-6">
               <Button
                 type="button"
                 variant="outline"
                 onClick={onClose}
-                className="bg-white/10 hover:bg-white/20 border-white/20 text-white hover:text-white"
+                className="bg-white/80 hover:bg-white border-gray-300 text-gray-700 hover:text-gray-800 rounded-xl h-12 px-6 font-medium"
               >
                 Odustani
               </Button>
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-blue-500 hover:bg-blue-600 text-white font-medium"
+                className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg rounded-xl h-12 px-8 font-medium"
               >
                 {isSubmitting ? (
                   <>
@@ -485,7 +668,7 @@ export function PlanKalibracijeForm({ onClose, onSubmit, initialData, isEdit = f
                 ) : (
                   <>
                     <Save className="h-4 w-4 mr-2" />
-                    {isEdit ? 'Ažuriraj' : 'Kreiraj'}
+                    {isEdit ? 'Ažuriraj Plan' : 'Kreiraj Plan'}
                   </>
                 )}
               </Button>

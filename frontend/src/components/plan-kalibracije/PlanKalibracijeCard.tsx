@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Edit, Trash, Download, Calendar, AlertTriangle, CheckCircle, Clock, XCircle, Settings2, User, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
+import { Edit, Trash, Download, Calendar, AlertTriangle, CheckCircle, Clock, XCircle, Settings2, User, MapPin, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import { PlanKalibracije } from '@/types/planKalibracije';
 
 interface PlanKalibracijeCardProps {
@@ -11,6 +11,8 @@ interface PlanKalibracijeCardProps {
   onEdit: (plan: PlanKalibracije) => void;
   onDelete: (id: number) => void;
   onGeneratePDF: (id: number) => void;
+  onGenerateIndividualReport: (id: number) => void;
+  onViewDetails: (plan: PlanKalibracije) => void;
 }
 
 interface StatusInfo {
@@ -41,6 +43,13 @@ const getStatusInfo = (plan: PlanKalibracije): StatusInfo => {
     { name: 'Mjerač otpora provoda', date: plan.mjerac_otpora_provoda_kalibracija_do },
     { name: 'Moment ključ', date: plan.moment_kljuc_kalibracija_do },
     { name: 'Shal detector', date: plan.shal_detector_kalibracija_do },
+    { name: 'Kalibraža vatro dojava', date: plan.kalibraza_vatro_dojava_do },
+    { name: 'Kalibraža PP aparata', date: plan.kalibraza_pp_aparata_do },
+    { name: 'Stručne licence radnika', date: plan.strucne_licence_radnika_do },
+    { name: 'ADR dozvole za radnike', date: plan.adr_dozvole_radnika_do },
+    { name: 'Mjerenje otpora uzemljenja', date: plan.mjerenje_otpora_uzemljenja_do },
+    { name: 'Vatro dojava', date: plan.vatro_dojava_do },
+    { name: 'Ispitivanje elektro instalacija', date: plan.ispitivanje_elektro_instalacija_do },
   ];
 
   const expiredInstruments: string[] = [];
@@ -95,7 +104,7 @@ const getStatusInfo = (plan: PlanKalibracije): StatusInfo => {
   };
 };
 
-export function PlanKalibracijeCard({ plan, onEdit, onDelete, onGeneratePDF }: PlanKalibracijeCardProps) {
+export function PlanKalibracijeCard({ plan, onEdit, onDelete, onGeneratePDF, onGenerateIndividualReport, onViewDetails }: PlanKalibracijeCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const statusInfo = getStatusInfo(plan);
 
@@ -149,10 +158,20 @@ export function PlanKalibracijeCard({ plan, onEdit, onDelete, onGeneratePDF }: P
     { name: 'Mjerač otpora provoda', od: plan.mjerac_otpora_provoda_kalibracija_od, do: plan.mjerac_otpora_provoda_kalibracija_do },
     { name: 'Moment ključ', od: plan.moment_kljuc_kalibracija_od, do: plan.moment_kljuc_kalibracija_do },
     { name: 'Shal detector', od: plan.shal_detector_kalibracija_od, do: plan.shal_detector_kalibracija_do },
+    { name: 'Kalibraža vatro dojava', od: plan.kalibraza_vatro_dojava_od, do: plan.kalibraza_vatro_dojava_do },
+    { name: 'Kalibraža PP aparata', od: plan.kalibraza_pp_aparata_od, do: plan.kalibraza_pp_aparata_do },
+    { name: 'Stručne licence radnika', od: plan.strucne_licence_radnika_od, do: plan.strucne_licence_radnika_do },
+    { name: 'ADR dozvole za radnike', od: plan.adr_dozvole_radnika_od, do: plan.adr_dozvole_radnika_do },
+    { name: 'Mjerenje otpora uzemljenja', od: plan.mjerenje_otpora_uzemljenja_od, do: plan.mjerenje_otpora_uzemljenja_do },
+    { name: 'Vatro dojava', od: plan.vatro_dojava_od, do: plan.vatro_dojava_do },
+    { name: 'Ispitivanje elektro instalacija', od: plan.ispitivanje_elektro_instalacija_od, do: plan.ispitivanje_elektro_instalacija_do },
   ];
 
   return (
-    <Card className="group relative bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden">
+    <Card 
+      className="group relative bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden cursor-pointer"
+      onClick={() => onViewDetails(plan)}
+    >
       {/* Gradient border effect */}
       <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
       
@@ -224,7 +243,10 @@ export function PlanKalibracijeCard({ plan, onEdit, onDelete, onGeneratePDF }: P
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsExpanded(!isExpanded)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsExpanded(!isExpanded);
+                }}
                 className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
               >
                 {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -282,7 +304,10 @@ export function PlanKalibracijeCard({ plan, onEdit, onDelete, onGeneratePDF }: P
             <Button
               size="sm"
               variant="outline"
-              onClick={() => onEdit(plan)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(plan);
+              }}
               className="bg-white hover:bg-gray-50 border-gray-200 text-gray-700 hover:text-gray-900 hover:border-gray-300 shadow-sm"
             >
               <Edit className="h-4 w-4" />
@@ -290,7 +315,10 @@ export function PlanKalibracijeCard({ plan, onEdit, onDelete, onGeneratePDF }: P
             <Button
               size="sm"
               variant="outline"
-              onClick={() => onGeneratePDF(plan.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onGeneratePDF(plan.id);
+              }}
               className="bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 hover:text-blue-800 shadow-sm"
             >
               <Download className="h-4 w-4" />
@@ -298,7 +326,20 @@ export function PlanKalibracijeCard({ plan, onEdit, onDelete, onGeneratePDF }: P
             <Button
               size="sm"
               variant="outline"
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
+                onGenerateIndividualReport(plan.id);
+              }}
+              className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700 hover:text-green-800 shadow-sm"
+              title="Generiraj individualni izvještaj"
+            >
+              <FileText className="h-4 w-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={(e) => {
+                e.stopPropagation();
                 if (window.confirm(`Da li ste sigurni da želite obrisati plan kalibracije za "${plan.naziv_opreme}"?`)) {
                   onDelete(plan.id);
                 }
