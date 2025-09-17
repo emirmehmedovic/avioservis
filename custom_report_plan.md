@@ -156,3 +156,4 @@
 - **Prilagođeni izvještaj**: Fokusiran, kraći, operativni podaci
 - **4 dugmeta ukupno**: 2 tipa × 2 jezika
 - **Bolji UX**: Korisnici mogu birati tip izvještaja prema potrebi
+

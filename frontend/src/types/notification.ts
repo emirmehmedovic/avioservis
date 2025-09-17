@@ -51,3 +51,4 @@ export interface NotificationResponse {
   limit: number;
   offset: number;
 }
+

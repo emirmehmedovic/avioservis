@@ -278,3 +278,4 @@ Ovaj sistem će omogućiti:
 - **Centralizovano upravljanje** svih obavještenja
 - **Integraciju** sa postojećim sistemom
 - **Skalabilnost** za buduće proširenja
+

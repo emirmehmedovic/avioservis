@@ -35,3 +35,4 @@ CREATE INDEX "ExpirationNotification_expirationDate_idx" ON "ExpirationNotificat
 
 -- AddForeignKey
 ALTER TABLE "ExpirationNotification" ADD CONSTRAINT "ExpirationNotification_vehicleId_fkey" FOREIGN KEY ("vehicleId") REFERENCES "Vehicle"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+

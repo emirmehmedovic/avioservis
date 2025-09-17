@@ -33,3 +33,4 @@ router.put('/read-all', markAllNotificationsAsRead);
 router.put('/:id/dismiss', dismissNotification);
 
 export default router;
+

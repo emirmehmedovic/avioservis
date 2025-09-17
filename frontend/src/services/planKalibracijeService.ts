@@ -179,7 +179,7 @@ class PlanKalibracijeService {
   /**
    * Generira i downloaduje ukupni PDF izvještaj za više planova kalibracije
    */
-  async generateFullReport(planIds: number[]): Promise<void> {
+  async generateFullReport(planIds: number[], language: 'bs' | 'en' = 'bs'): Promise<void> {
     try {
       const token = localStorage.getItem('token');
       const url = `${API_ENDPOINT}/full-report`;
@@ -190,7 +190,7 @@ class PlanKalibracijeService {
           'Content-Type': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` }),
         },
-        body: JSON.stringify({ planIds }),
+        body: JSON.stringify({ planIds, language }),
       });
 
       if (!response.ok) {
@@ -218,6 +218,52 @@ class PlanKalibracijeService {
       window.URL.revokeObjectURL(downloadUrl);
     } catch (error) {
       console.error('Greška pri generiranju ukupnog izvještaja:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generira i downloaduje individualni PDF izvještaj za jedan plan kalibracije
+   */
+  async generateIndividualReport(id: number, language: 'bs' | 'en' = 'bs'): Promise<void> {
+    try {
+      const token = localStorage.getItem('token');
+      const url = `${API_ENDPOINT}/${id}/individual-report`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify({ language }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Individual report generation failed: ${response.status}`);
+      }
+
+      const pdfBlob = await response.blob();
+      
+      // Kreiranje download linka
+      const downloadUrl = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      
+      // Generiranje filename
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `individual_izvjestaj_plan_kalibracije_${id}_${timestamp}.pdf`;
+      
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Greška pri generiranju individualnog izvještaja:', error);
       throw error;
     }
   }
