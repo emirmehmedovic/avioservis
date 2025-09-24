@@ -10,8 +10,6 @@ import { mergeAndDownloadInvoice } from './pdfMerger';
 
 // VAT rate for domestic traffic (17%)
 const VAT_RATE = 0.17;
-// Excise tax (akcize) per liter in KM
-const EXCISE_TAX_PER_LITER = 0.30;
 // Font name to use throughout the document
 const FONT_NAME = 'NotoSans';
 
@@ -210,9 +208,7 @@ export const generateDomesticPDFInvoice = async (operation: FuelingOperation): P
     const netAmount = operation.total_amount || 0;
     const netAmountNum = Number(netAmount || 0);
     const vatAmount = Number((netAmountNum * VAT_RATE).toFixed(5));
-    const exciseTaxAmount = Number(((operation.quantity_liters || 0) * EXCISE_TAX_PER_LITER).toFixed(5));
-    const subtotalWithoutExcise = Number((netAmountNum + vatAmount).toFixed(5));
-    const grossAmount = Number((netAmountNum + vatAmount + exciseTaxAmount).toFixed(5));
+    const grossAmount = Number((netAmountNum + vatAmount).toFixed(5));
     
     doc.setFontSize(11);
     doc.setFont(FONT_NAME, 'bold');
@@ -220,16 +216,15 @@ export const generateDomesticPDFInvoice = async (operation: FuelingOperation): P
     doc.text('DETALJI TRANSAKCIJE:', 14, 130);
     doc.setFont(FONT_NAME, 'normal');
     
-    const tableColumn = ['Opis', 'Količina (L)', 'Količina (kg)', 'Cijena po kg', 'Neto iznos', 'PDV 17%', 'Akcize (0.30 KM/L)', 'Ukupno sa PDV'];
+    const tableColumn = ['Opis', 'Količina (L)', 'Količina (kg)', 'Cijena po kg', 'Neto iznos', 'PDV 17%', 'Ukupno sa PDV'];
     const tableRows = [
       [
         `Gorivo JET A-1 (${operation.aircraft_registration || 'N/A'})`,
         (operation.quantity_liters || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
         (operation.quantity_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
-        (operation.price_per_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 5 }),
+        `${(operation.price_per_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 5 })} ${operation.currency || 'BAM'}`,
         (Number(netAmount) || 0).toFixed(2).replace('.', ','),
         (Number(vatAmount) || 0).toFixed(2).replace('.', ','),
-        (Number(exciseTaxAmount) || 0).toFixed(2).replace('.', ','),
         (Number(grossAmount) || 0).toFixed(2).replace('.', ',')
       ]
     ];
@@ -350,14 +345,6 @@ export const generateDomesticPDFInvoice = async (operation: FuelingOperation): P
     
     doc.text('PDV (17%):', labelX, summaryLineY);
     doc.text(`${(Number(vatAmount) || 0).toFixed(2).replace('.', ',')} ${operation.currency || 'BAM'}`, valueX, summaryLineY, { align: 'right' });
-    summaryLineY += lineHeight;
-
-    doc.text('Akcize (0.30 KM/L):', labelX, summaryLineY);
-    doc.text(`${(Number(exciseTaxAmount) || 0).toFixed(2).replace('.', ',')} ${operation.currency || 'BAM'}`, valueX, summaryLineY, { align: 'right' });
-    summaryLineY += lineHeight;
-    
-    doc.text('Međuzbir (bez akcize):', labelX, summaryLineY);
-    doc.text(`${(Number(subtotalWithoutExcise) || 0).toFixed(2).replace('.', ',')} ${operation.currency || 'BAM'}`, valueX, summaryLineY, { align: 'right' });
     summaryLineY += 8;
     
     doc.setFontSize(11);
@@ -581,9 +568,7 @@ export const generateConsolidatedDomesticPDFInvoice = async (operations: Fueling
     }, 0);
 
     const totalVatAmountNum = finalTotalNetAmountNum * VAT_RATE;
-    const totalExciseTaxAmountNum = totalLiters * EXCISE_TAX_PER_LITER;
-    const totalSubtotalWithoutExciseNum = finalTotalNetAmountNum + totalVatAmountNum;
-    const totalGrossAmountNum = finalTotalNetAmountNum + totalVatAmountNum + totalExciseTaxAmountNum;
+    const totalGrossAmountNum = finalTotalNetAmountNum + totalVatAmountNum;
 
     let mostCommonCurrency = 'BAM';
     const currencyCounts: Record<string, number> = {};
@@ -611,8 +596,6 @@ export const generateConsolidatedDomesticPDFInvoice = async (operations: Fueling
       ['Ukupan rabat', (Number(totalDiscountAmountNum) || 0).toFixed(2).replace('.', ','), mostCommonCurrency],
       ['Ukupan neto iznos (nakon rabata)', (Number(finalTotalNetAmountNum) || 0).toFixed(2).replace('.', ','), mostCommonCurrency],
       ['Ukupan PDV (17%)', (Number(totalVatAmountNum) || 0).toFixed(2).replace('.', ','), mostCommonCurrency],
-      ['Ukupan međuzbir (neto + PDV)', (Number(totalSubtotalWithoutExciseNum) || 0).toFixed(2).replace('.', ','), mostCommonCurrency],
-      ['Ukupan iznos akcize', (Number(totalExciseTaxAmountNum) || 0).toFixed(2).replace('.', ','), mostCommonCurrency],
       ['Ukupan iznos za plaćanje (sa PDV)', (Number(totalGrossAmountNum) || 0).toFixed(2).replace('.', ','), mostCommonCurrency]
     ];
     
@@ -631,7 +614,7 @@ export const generateConsolidatedDomesticPDFInvoice = async (operations: Fueling
     doc.setFont(FONT_NAME, 'bold');
     doc.text('PREGLED OPERACIJA:', 14, summaryFinalY);
     
-    const tableColumn = ['Datum', 'Registracija', 'Destinacija', 'MRN', 'Dostavnica', 'Količina (L)', 'Količina (kg)', 'Osnovna cijena', 'Neto', 'PDV 17%', 'Akcize', 'Bruto', 'Valuta'];
+    const tableColumn = ['Datum', 'Registracija', 'Destinacija', 'MRN', 'Dostavnica', 'Količina (L)', 'Količina (kg)', 'Osnovna cijena', 'Neto', 'PDV 17%', 'Bruto', 'Valuta'];
     const operationsWithCalculations = operations.map(op => {
       const quantityKg = parseFloat(String(op.quantity_kg || '0'));
       const pricePerKg = parseFloat(String(op.price_per_kg || '0'));
@@ -642,8 +625,7 @@ export const generateConsolidatedDomesticPDFInvoice = async (operations: Fueling
       const discountAmount = baseAmount * (discountPercentage / 100);
       const netAmount = parseFloat(String(op.total_amount || '0')) || (baseAmount - discountAmount);
       const vatAmount = netAmount * VAT_RATE;
-      const exciseTaxAmount = quantityLiters * EXCISE_TAX_PER_LITER;
-      const grossAmount = netAmount + vatAmount + exciseTaxAmount;
+      const grossAmount = netAmount + vatAmount;
 
       return [
         formatDate(op.dateTime),
@@ -658,10 +640,9 @@ export const generateConsolidatedDomesticPDFInvoice = async (operations: Fueling
         op.delivery_note_number || 'N/A',
         (op.quantity_liters || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
         (op.quantity_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
-        (Number(baseAmount) || 0).toFixed(2).replace('.', ','),
+        `${(Number(baseAmount) || 0).toFixed(2).replace('.', ',')} ${op.currency || 'BAM'}`,
         (Number(netAmount) || 0).toFixed(2).replace('.', ','),
         (Number(vatAmount) || 0).toFixed(2).replace('.', ','),
-        (Number(exciseTaxAmount) || 0).toFixed(2).replace('.', ','),
         (Number(grossAmount) || 0).toFixed(2).replace('.', ','),
         op.currency || 'BAM'
       ];
@@ -671,10 +652,9 @@ export const generateConsolidatedDomesticPDFInvoice = async (operations: Fueling
       'UKUPNO', '', '', '', '',
       totalLiters.toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       totalKg.toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-      (Number(totalBaseAmountNum) || 0).toFixed(2).replace('.', ','),
+      `${(Number(totalBaseAmountNum) || 0).toFixed(2).replace('.', ',')} ${mostCommonCurrency}`,
       (Number(finalTotalNetAmountNum) || 0).toFixed(2).replace('.', ','),
       (Number(totalVatAmountNum) || 0).toFixed(2).replace('.', ','),
-      (Number(totalExciseTaxAmountNum) || 0).toFixed(2).replace('.', ','),
       (Number(totalGrossAmountNum) || 0).toFixed(2).replace('.', ','),
       mostCommonCurrency
     ]);

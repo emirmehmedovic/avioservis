@@ -365,3 +365,5 @@ Sistem obavještenja o datumu isteka je potpuno implementiran i spreman za produ
 
 Sistem je dizajniran da bude skalabilan, pouzdan i lako održavan.
 
+
+

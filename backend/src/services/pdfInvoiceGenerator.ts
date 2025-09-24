@@ -11,6 +11,12 @@ import path from 'path';
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+// Helper function to format dates - IDENTICAL to frontend
+const formatDate = (dateString: string | Date): string => {
+  const date = dayjs(dateString).tz('Europe/Sarajevo');
+  return date.format('DD.MM.YYYY HH:mm');
+};
+
 export interface FuelingOperationForPDF {
   id: number;
   dateTime: Date | string;
@@ -46,12 +52,6 @@ export interface FuelingOperationForPDF {
   documents?: any[];
 }
 
-/**
- * Format date identical to frontend
- */
-const formatDate = (dateString: string): string => {
-  return dayjs(dateString).tz('Europe/Sarajevo').format('DD.MM.YYYY. HH:mm');
-};
 
 /**
  * Load header image with grayscale filter - IDENTICAL to frontend
@@ -104,9 +104,17 @@ const configurePDFForSpecialChars = (doc: jsPDF): void => {
 
 /**
  * Generate PDF invoice buffer for SFTP upload - IDENTICAL to frontend version
+ * Now supports both export and domestic invoices based on tip_saobracaja
  */
 export async function generatePDFInvoiceBuffer(operation: FuelingOperationForPDF): Promise<Buffer> {
   try {
+    // Check if this is a domestic operation (Unutarnji saobraćaj)
+    if (operation.tip_saobracaja === 'Unutarnji saobraćaj') {
+      console.log(`🏠 Generating domestic invoice for operation ${operation.id}`);
+      return await generateDomesticPDFInvoiceBuffer(operation);
+    }
+    
+    console.log(`🌍 Generating export invoice for operation ${operation.id}`);
     // Create PDF document with identical settings to frontend
     const doc = new jsPDF({
       putOnlyUsedFonts: true,
@@ -678,5 +686,350 @@ export function buildPDFInvoiceFileName(operation: FuelingOperationForPDF): stri
   const deliveryVoucherNumber = operation.delivery_note_number || operation.id.toString();
   const year = new Date().getFullYear();
   return `Invoice-INV-${deliveryVoucherNumber}-${year}.pdf`;
+}
+
+/**
+ * Generate domestic PDF invoice buffer for email dispatch
+ * Based on frontend domesticInvoice.ts logic
+ */
+export async function generateDomesticPDFInvoiceBuffer(operation: FuelingOperationForPDF): Promise<Buffer> {
+  try {
+    // Create PDF document with identical settings to frontend
+    const doc = new jsPDF({
+      putOnlyUsedFonts: true,
+      compress: true,
+      format: 'a4'
+    });
+
+    // Configure PDF for special characters
+    configurePDFForSpecialChars(doc);
+
+    // Helper function to replace special characters - IDENTICAL to frontend
+    const replaceSpecialChars = (text: string): string => {
+      return text
+        .replace(/č/g, 'c')
+        .replace(/ć/g, 'c')
+        .replace(/ž/g, 'z')
+        .replace(/đ/g, 'd')
+        .replace(/š/g, 's')
+        .replace(/Č/g, 'C')
+        .replace(/Ć/g, 'C')
+        .replace(/Ž/g, 'Z')
+        .replace(/Đ/g, 'D')
+        .replace(/Š/g, 'S');
+    };
+
+    // Override text function - IDENTICAL to frontend
+    const originalText = doc.text.bind(doc);
+    doc.text = function(text: string | string[], x: number, y: number, options?: any): jsPDF {
+      if (typeof text === 'string') {
+        return originalText(replaceSpecialChars(text), x, y, options);
+      } else if (Array.isArray(text)) {
+        return originalText(text.map(replaceSpecialChars), x, y, options);
+      }
+      return originalText(text, x, y, options);
+    } as any;
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    const headerHeight = 40;
+    const topPadding = -3; // IDENTICAL to export invoice
+    
+    // Header with image - IDENTICAL to export invoice
+    try {
+      // Load header image with grayscale filter - same as export invoice
+      const headerImageBase64 = await loadHeaderImageAsBase64();
+      
+      // Add image across full page width - IDENTICAL to export invoice
+      doc.addImage(headerImageBase64, 'PNG', 0, topPadding, pageWidth, headerHeight);
+    } catch (error) {
+      console.error('Error adding header image, using fallback:', error);
+      
+      // Fallback header - IDENTICAL to export invoice
+      doc.setFillColor(240, 240, 250);
+      doc.rect(0, topPadding, pageWidth, 40, 'F');
+      doc.setFontSize(20);
+      doc.setTextColor(0, 51, 102);
+      doc.text('HIFA-PETROL d.o.o. Sarajevo', 14, 20 + topPadding);
+      doc.setFontSize(10);
+      doc.setTextColor(80, 80, 80);
+      doc.text('Međunarodni aerodrom Tuzla', 14, 28 + topPadding);
+    }
+    
+    // Use delivery note number instead of operation ID
+    const deliveryVoucherNumber = operation.delivery_note_number || operation.id.toString();
+    const invoiceNumber = `INV-${deliveryVoucherNumber}-${new Date().getFullYear()}`;
+    
+    doc.setDrawColor(200, 200, 220);
+    doc.setLineWidth(0.5);
+    doc.line(14, 45 + topPadding, pageWidth - 14, 45 + topPadding);
+    
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('FAKTURA ZA GORIVO - UNUTARNJI SAOBRAĆAJ', pageWidth / 2, 55 + topPadding, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    
+    const rightColumnX = pageWidth / 2;
+
+    doc.setFontSize(9);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Broj fakture: ${invoiceNumber}`, 14, 70 + topPadding);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Datum izdavanja: ${formatDate(operation.dateTime)}`, 14, 77 + topPadding);
+    doc.text(`Datum usluge: ${formatDate(operation.dateTime)}`, 14, 83 + topPadding);
+    doc.text(`Paritet/Parity: CPT Aerodrom Tuzla`, 14, 89 + topPadding);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Dostavnica/Voucher: ${operation.delivery_note_number || 'N/A'}`, 14, 95 + topPadding);
+    doc.setFont('helvetica', 'normal');
+    
+    // Customer information
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('KUPAC:', rightColumnX, 70 + topPadding);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`${operation.airline?.name || 'N/A'}`, rightColumnX, 77 + topPadding);
+    doc.text(`ID/PDV: ${operation.airline?.taxId || 'N/A'}`, rightColumnX, 83 + topPadding);
+    doc.text(`Adresa: ${operation.airline?.address || 'N/A'}`, rightColumnX, 89 + topPadding);
+    doc.text(`Tel: ${operation.airline?.contact_details || 'N/A'}`, rightColumnX, 95 + topPadding);
+
+    // Operation details
+    const baseY = 105 + topPadding;
+    doc.text(`Registracija aviona: ${operation.aircraft_registration || 'N/A'}`, 14, baseY);
+    doc.text(`Destinacija: ${operation.destination}`, 14, baseY + 6);
+    doc.text(`Broj leta: ${operation.flight_number || 'N/A'}`, 14, baseY + 12);
+
+    // Calculate amounts
+    const baseAmount = (operation.quantity_kg || 0) * (operation.price_per_kg || 0);
+    const discountPercentage = operation.discount_percentage || 0;
+    const discountAmount = baseAmount * (discountPercentage / 100);
+    const netAmount = operation.total_amount || 0;
+    const netAmountNum = Number(netAmount || 0);
+    const vatAmount = Number((netAmountNum * 0.17).toFixed(5)); // 17% VAT
+    const grossAmount = Number((netAmountNum + vatAmount).toFixed(5));
+    
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('DETALJI TRANSAKCIJE:', 14, 130 + topPadding);
+    doc.setFont('helvetica', 'normal');
+    
+    const tableColumn = ['Opis', 'Količina (L)', 'Količina (kg)', 'Cijena po kg', 'Neto iznos', 'PDV 17%', 'Ukupno sa PDV'];
+    const tableRows = [
+      [
+        `Gorivo JET A-1 (${operation.aircraft_registration || 'N/A'})`,
+        (operation.quantity_liters || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
+        (operation.quantity_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
+        `${(operation.price_per_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 5 })} ${operation.currency || 'BAM'}`,
+        (Number(netAmount) || 0).toFixed(2).replace('.', ','),
+        (Number(vatAmount) || 0).toFixed(2).replace('.', ','),
+        (Number(grossAmount) || 0).toFixed(2).replace('.', ',')
+      ]
+    ];
+    
+    if (discountPercentage > 0) {
+      doc.setFontSize(8);
+      doc.text(`Osnovna cijena prije rabata: ${(Number(baseAmount) || 0).toFixed(2).replace('.', ',')} ${operation.currency || 'BAM'}`, 14, 135 + topPadding);
+    }
+    
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows as any[][],
+      startY: 140 + topPadding,
+      theme: 'grid',
+      styles: { fontSize: 8, cellPadding: 2, font: 'helvetica' },
+      headStyles: { fillColor: [220, 220, 220], textColor: [0, 0, 0], fontStyle: 'bold' },
+      margin: { left: 14, right: 14 }
+    });
+    
+    let finalY = (doc as any).lastAutoTable?.finalY + 10 || 170;
+    
+    // MRN breakdown if available
+    let processedMrnData: { mrn: string, quantityKg: number }[] = [];
+    try {
+      let rawMrnItems: any[] = [];
+      if (operation.parsedMrnBreakdown && Array.isArray(operation.parsedMrnBreakdown)) {
+        rawMrnItems = operation.parsedMrnBreakdown;
+      } else if (typeof operation.mrnBreakdown === 'string') {
+        rawMrnItems = JSON.parse(operation.mrnBreakdown);
+      }
+
+      if (Array.isArray(rawMrnItems)) {
+        processedMrnData = rawMrnItems.map(item => {
+          let mrn = item.mrn || 'N/A';
+          let quantity_kg = item.quantity_kg;
+          const quantityLiters = item.quantity;
+          const density = item.density_at_intake || operation.specific_density || 0.8;
+
+          if (typeof item === 'object' && !item.mrn && Object.keys(item).length === 1) {
+            mrn = Object.keys(item)[0];
+            const val = item[mrn];
+            if (typeof val === 'number' && quantity_kg === undefined) {
+              quantity_kg = Number(val) * Number(density);
+            }
+          }
+
+          if (quantity_kg === undefined && quantityLiters !== undefined && density > 0) {
+            quantity_kg = Number(quantityLiters) * Number(density);
+          }
+          
+          return {
+            mrn,
+            quantityKg: quantity_kg !== undefined ? Number(quantity_kg) : 0,
+          };
+        }).filter(item => item.quantityKg > 0);
+      }
+    } catch (e) {
+      console.error('Error processing MRN data for domestic invoice (kg):', e);
+    }
+
+    if (processedMrnData.length > 0) {
+      doc.setFontSize(8);
+      doc.setTextColor(80, 80, 80);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Razduženje po MRN:', 14, finalY + 5);
+      doc.setFont('helvetica', 'normal');
+      
+      let mrnY = finalY + 11;
+      const maxMrnsToShow = 4;
+      processedMrnData.slice(0, maxMrnsToShow).forEach((item, index) => {
+        const quantityFormatted = Math.round(item.quantityKg).toString();
+        doc.text(`MRN: ${item.mrn} - ${quantityFormatted} kg`, 14, mrnY);
+        mrnY += 5;
+      });
+
+      if (processedMrnData.length > maxMrnsToShow) {
+        doc.text(`+ ${processedMrnData.length - maxMrnsToShow} više...`, 14, mrnY);
+      }
+      
+      // Add company stamp if available
+      try {
+        const pecatImagePath = path.join(process.cwd(), 'public', 'pecat.png');
+        if (fs.existsSync(pecatImagePath)) {
+          const pecatImage = await loadImage(pecatImagePath);
+          const canvas = createCanvas(pecatImage.width, pecatImage.height);
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(pecatImage, 0, 0);
+          
+          const imageData = canvas.toDataURL('image/png');
+          const pecatWidth = 75;
+          const pecatHeight = 40;
+          const pecatX = 14;
+          const pecatY = mrnY + 5;
+          
+          doc.addImage(imageData, 'PNG', pecatX, pecatY, pecatWidth, pecatHeight);
+        }
+      } catch (error) {
+        console.error('Error adding pecat image:', error);
+      }
+    }
+    
+    // Summary box
+    doc.setFillColor(248, 248, 248);
+    doc.rect(pageWidth / 2, finalY, pageWidth / 2 - 14, 50, 'F');
+    doc.setDrawColor(200, 200, 220);
+    doc.line(pageWidth / 2, finalY, pageWidth - 14, finalY);
+    
+    const labelX = pageWidth / 2 + 5;
+    const valueX = pageWidth - 18;
+    let summaryLineY = finalY + 7;
+    const lineHeight = 6;
+    
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 80);
+    doc.setFont('helvetica', 'normal');
+    
+    doc.text('Ukupan neto iznos:', labelX, summaryLineY);
+    doc.text(`${(Number(netAmount) || 0).toFixed(2).replace('.', ',')} ${operation.currency || 'BAM'}`, valueX, summaryLineY, { align: 'right' });
+    summaryLineY += lineHeight;
+    
+    doc.text('PDV (17%):', labelX, summaryLineY);
+    doc.text(`${(Number(vatAmount) || 0).toFixed(2).replace('.', ',')} ${operation.currency || 'BAM'}`, valueX, summaryLineY, { align: 'right' });
+    summaryLineY += 8;
+    
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('Ukupno za plaćanje:', labelX, summaryLineY);
+    doc.text(`${(Number(grossAmount) || 0).toFixed(2).replace('.', ',')} ${operation.currency || 'BAM'}`, valueX, summaryLineY, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    
+    // Footer section with bank accounts
+    let footerStartY = 235;
+    const banksCol1 = [
+        { name: 'Unicredit banka DD Mostar', num: '3385502203296597' },
+        { name: 'Raiffeisen Bank DD Sarajevo', num: '1610000055460052' },
+        { name: 'NLB Razvojna banka AD Banja Luka', num: '5620068100579520' },
+        { name: 'Bosna Bank International DD Sarajevo', num: '1410010012321008' },
+        { name: 'Intesa Sanpaolo banka Sarajevo', num: '1542602004690547' },
+        { name: 'Privredna banka Sarajevo dd Sarajevo', num: '1011040053464252' },
+        { name: 'ZiraatBank Bank BH dd Sarajevo', num: '1861440310884661' },
+    ];
+    const banksCol2 = [
+        { name: 'NLB Tuzlanska banka DD Tuzla', num: '1322602004200445' },
+        { name: 'Sparkasse banka DD Sarajevo', num: '1990490086998668' },
+        { name: 'ASA Banka DD Sarajevo', num: '1346651006886807' },
+        { name: 'Union banka DD Sarajevo', num: '1020320000019213' },
+        { name: 'Nova banka AD Banja Luka', num: '5556000036056073' },
+        { name: 'Addiko Bank d.d. Sarajevo', num: '3060003143014340' },
+        { name: 'IBAN: BA393389104805286885', num: 'SWIFT: UNCRBA22' },
+    ];
+    
+    doc.setFontSize(8);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'bold');
+    doc.text('PODACI ZA PLAĆANJE:', 14, footerStartY);
+    doc.setFont('helvetica', 'normal');
+    
+    doc.setTextColor(0, 0, 0);
+    doc.text('Poziv na broj: ' + invoiceNumber, pageWidth - 14, footerStartY, { align: 'right' });
+    footerStartY += 6;
+
+    const bankFontSize = 5.5;
+    doc.setFontSize(bankFontSize);
+    const bankLineSpacing = bankFontSize * 0.8;
+    const col1X = 20;
+    const col2X = pageWidth / 2 + 10;
+    const colWidth = 75;
+
+    let bankY = footerStartY;
+    banksCol1.forEach(bank => {
+        doc.text(bank.name, col1X, bankY);
+        doc.text(bank.num, col1X + colWidth, bankY, { align: 'right' });
+        bankY += bankLineSpacing;
+    });
+
+    bankY = footerStartY;
+    banksCol2.forEach(bank => {
+        doc.text(bank.name, col2X, bankY);
+        doc.text(bank.num, col2X + colWidth, bankY, { align: 'right' });
+        bankY += bankLineSpacing;
+    });
+
+    doc.setDrawColor(220, 220, 230);
+    doc.setLineWidth(0.3);
+    doc.line(pageWidth / 2, footerStartY - 2, pageWidth / 2, bankY);
+    
+    const finalFooterY = doc.internal.pageSize.getHeight() - 12;
+    doc.setDrawColor(200, 200, 220);
+    doc.setLineWidth(0.5);
+    doc.line(14, finalFooterY, pageWidth - 14, finalFooterY);
+    
+    doc.setFontSize(7);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Faktura generisana: ${formatDate(operation.dateTime)}`, pageWidth / 2, finalFooterY + 5, { align: 'center' });
+
+    // Generate PDF buffer
+    const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
+    return pdfBuffer;
+
+  } catch (error) {
+    console.error('Error generating domestic PDF invoice:', error);
+    throw new Error(`Domestic PDF generation failed: ${error}`);
+  }
 }
 

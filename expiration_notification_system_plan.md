@@ -279,3 +279,5 @@ Ovaj sistem će omogućiti:
 - **Integraciju** sa postojećim sistemom
 - **Skalabilnost** za buduće proširenja
 
+
+
