@@ -367,3 +367,4 @@ Sistem je dizajniran da bude skalabilan, pouzdan i lako održavan.
 
 
 
+

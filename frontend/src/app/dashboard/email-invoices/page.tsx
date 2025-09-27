@@ -53,6 +53,9 @@ export default function EmailInvoicesPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedDispatch, setSelectedDispatch] = useState<EmailInvoiceDispatch | null>(null);
   const [paymentModalLoading, setPaymentModalLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   const statusCounts = useMemo(() => {
     const counts = { PENDING: 0, SENT: 0, FAILED: 0 } as Record<string, number>;
@@ -63,7 +66,12 @@ export default function EmailInvoicesPage() {
   const load = async () => {
     try {
       setLoading(true);
-      const params: any = { startDate, endDate };
+      const params: any = { 
+        startDate, 
+        endDate, 
+        page: currentPage,
+        limit: 100 // Increase limit to show more results
+      };
       if (status) params.status = status;
       if (paymentStatus) params.paymentStatus = paymentStatus;
       if (airlineFilter) params.airlineId = airlineFilter;
@@ -74,8 +82,10 @@ export default function EmailInvoicesPage() {
         params.status = 'SENT'; // Only show sent invoices in sent tab
       }
       
-      const data = await listEmailDispatches(params);
-      setRows(data);
+      const response = await listEmailDispatches(params);
+      setRows(response.dispatches);
+      setTotalPages(response.pagination.pages);
+      setTotalCount(response.pagination.total);
     } catch (e: any) {
       toast.error(e?.message || 'Greška pri učitavanju email dispatch zapisa');
     } finally {
@@ -85,7 +95,7 @@ export default function EmailInvoicesPage() {
 
   useEffect(() => { 
     load(); 
-  }, [startDate, endDate, status, paymentStatus, airlineFilter, deliveryNoteDebounced, activeTab]);
+  }, [startDate, endDate, status, paymentStatus, airlineFilter, deliveryNoteDebounced, activeTab, currentPage]);
 
   // Debounce delivery note filter
   useEffect(() => {
@@ -244,6 +254,10 @@ export default function EmailInvoicesPage() {
     } finally {
       setPaymentModalLoading(false);
     }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
   };
 
   return (
@@ -506,6 +520,7 @@ export default function EmailInvoicesPage() {
                 setDeliveryNoteFilter('');
                 setStartDate(dayjs().startOf('month').format('YYYY-MM-DD'));
                 setEndDate(dayjs().endOf('month').format('YYYY-MM-DD'));
+                setCurrentPage(1); // Reset to first page when clearing filters
               }}
               className="px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center gap-2"
             >
@@ -763,6 +778,36 @@ export default function EmailInvoicesPage() {
               </table>
             </div>
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="px-6 py-4 bg-white border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-700">
+                  Prikazuje {((currentPage - 1) * 100) + 1} do {Math.min(currentPage * 100, totalCount)} od {totalCount} zapisa
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Prethodna
+                  </button>
+                  <span className="text-sm text-gray-700">
+                    Stranica {currentPage} od {totalPages}
+                  </span>
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Sljedeća
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Financial Summary */}
         {rows.length > 0 && (

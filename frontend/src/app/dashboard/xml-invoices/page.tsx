@@ -140,6 +140,17 @@ export default function XmlInvoicesPage() {
     }
   };
 
+  const onManualYesterday = async () => {
+    try {
+      const yesterday = dayjs().subtract(1, 'day').format('YYYY-MM-DD');
+      const resp = await manualDispatchDay(yesterday);
+      toast.success(`Manualni dispatch za juče pokrenut (ukupno: ${resp?.total ?? '—'})`);
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message || 'Greška pri manualnom dispatch-u za juče');
+    }
+  };
+
   const onPrepareDay = async () => {
     try {
       const resp = await prepareDispatchDay(dayjs().format('YYYY-MM-DD'));
@@ -147,6 +158,17 @@ export default function XmlInvoicesPage() {
       await load();
     } catch (e: any) {
       toast.error(e?.message || 'Greška pri pripremi za današnji dan');
+    }
+  };
+
+  const onPrepareYesterday = async () => {
+    try {
+      const yesterday = dayjs().subtract(1, 'day').format('YYYY-MM-DD');
+      const resp = await prepareDispatchDay(yesterday);
+      toast.success(`Priprema za juče završena (ukupno: ${resp?.total ?? '—'}, pripremljeno: ${resp?.prepared ?? '—'})`);
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message || 'Greška pri pripremi za juče');
     }
   };
 
@@ -414,12 +436,26 @@ export default function XmlInvoicesPage() {
           </svg>
           Pripremi današnje (PENDING)
         </button>
+        <button onClick={onPrepareYesterday} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-600 text-white hover:bg-slate-700 transition shadow-sm">
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
+          Pripremi juče (PENDING)
+        </button>
         <button onClick={onManualDay} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-sm">
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M5 12h14"/>
             <path d="M12 5l7 7-7 7"/>
           </svg>
           Pošalji današnje
+        </button>
+        <button onClick={onManualYesterday} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition shadow-sm">
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M5 12h14"/>
+            <path d="M12 5l7 7-7 7"/>
+          </svg>
+          Pošalji juče
         </button>
         <button onClick={onRetryFailed} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition shadow-sm">
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

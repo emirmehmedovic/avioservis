@@ -70,7 +70,7 @@ export const listEmailDispatches = async (params: {
   endDate?: string;
   paymentStatus?: string;
   deliveryNote?: string;
-}): Promise<EmailInvoiceDispatch[]> => {
+}): Promise<EmailDispatchResponse> => {
   const query = new URLSearchParams();
   if (params?.startDate) query.append('startDate', params.startDate);
   if (params?.endDate) query.append('endDate', params.endDate);
@@ -82,7 +82,7 @@ export const listEmailDispatches = async (params: {
   if (params?.limit) query.append('limit', String(params.limit));
   
   const response = await fetchWithAuth<EmailDispatchResponse>(`/api/invoices/email?${query.toString()}`);
-  return response.dispatches;
+  return response;
 };
 
 export const manualDispatchEmailDay = async (date: string) => {
