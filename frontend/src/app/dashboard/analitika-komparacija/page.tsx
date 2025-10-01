@@ -913,6 +913,194 @@ function CustomAnalysisTab() {
   );
 }
 
+function PeriodComparisonTab() {
+  const [comparisonData, setComparisonData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [selection, setSelection] = useState<{
+    airlineId?: number;
+    destinationId?: string;
+    airlineName?: string;
+    destinationName?: string;
+  }>({});
+  const [periods, setPeriods] = useState<{
+    period1?: { startDate: string; endDate: string; name: string };
+    period2?: { startDate: string; endDate: string; name: string };
+  }>({});
+
+  const handlePeriodsChange = (period1: any, period2: any) => {
+    setPeriods({ period1, period2 });
+  };
+
+  const handleAnalyze = async () => {
+    if (!periods.period1 || !periods.period2) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { getPeriodComparison } = await import('@/services/analyticsApiService');
+      
+      const data = await getPeriodComparison(
+        periods.period1,
+        periods.period2,
+        selection.airlineId,
+        selection.destinationId
+      );
+      
+      setComparisonData(data);
+    } catch (error) {
+      console.error('Error loading period comparison:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Top Controls Bar */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex flex-col lg:flex-row lg:items-end gap-6">
+          {/* Period Selection Info */}
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Odabrani periodi</h3>
+            <div className="space-y-2">
+              {periods.period1 ? (
+                <div className="flex items-center gap-2 text-blue-700 bg-blue-50 px-3 py-2 rounded-md">
+                  <Calendar className="h-4 w-4" />
+                  <span className="font-medium">{periods.period1.name}</span>
+                  <span className="text-sm">({periods.period1.startDate} - {periods.period1.endDate})</span>
+                </div>
+              ) : (
+                <div className="text-gray-500 text-sm">Prvi period nije odabran</div>
+              )}
+              
+              {periods.period2 ? (
+                <div className="flex items-center gap-2 text-green-700 bg-green-50 px-3 py-2 rounded-md">
+                  <Calendar className="h-4 w-4" />
+                  <span className="font-medium">{periods.period2.name}</span>
+                  <span className="text-sm">({periods.period2.startDate} - {periods.period2.endDate})</span>
+                </div>
+              ) : (
+                <div className="text-gray-500 text-sm">Drugi period nije odabran</div>
+              )}
+            </div>
+          </div>
+
+          {/* Selection Summary */}
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Filteri</h3>
+            <div className="space-y-2">
+              {selection.airlineName ? (
+                <div className="flex items-center gap-2 text-blue-700 bg-blue-50 px-3 py-2 rounded-md">
+                  <Plane className="h-4 w-4" />
+                  <span className="font-medium">{selection.airlineName}</span>
+                </div>
+              ) : (
+                <div className="text-gray-500 text-sm">Sve aviokompanje</div>
+              )}
+              
+              {selection.destinationName ? (
+                <div className="flex items-center gap-2 text-green-700 bg-green-50 px-3 py-2 rounded-md">
+                  <MapPin className="h-4 w-4" />
+                  <span className="font-medium">{selection.destinationName}</span>
+                </div>
+              ) : (
+                <div className="text-gray-500 text-sm">Sve destinacije</div>
+              )}
+            </div>
+          </div>
+
+          {/* Action Button */}
+          <div className="flex-shrink-0">
+            <button
+              onClick={handleAnalyze}
+              disabled={(!periods.period1 || !periods.period2) || loading}
+              className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2 font-medium"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Analiziram...
+                </>
+              ) : (
+                <>
+                  <TrendingUp className="h-4 w-4" />
+                  Kompariraj
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        {/* Selector Panel */}
+        <div className="xl:col-span-1 space-y-6">
+          {/* Period Selector */}
+          <Suspense fallback={<div className="p-6 text-center">Učitavam...</div>}>
+            {React.createElement(
+              React.lazy(() => import('@/components/analytics/DualPeriodSelector')),
+              {
+                onPeriodsChange: handlePeriodsChange,
+                loading: loading
+              }
+            )}
+          </Suspense>
+
+          {/* Airline/Destination Selector */}
+          <Suspense fallback={<div className="p-6 text-center">Učitavam...</div>}>
+            {React.createElement(
+              React.lazy(() => import('@/components/analytics/AirlineDestinationSelector')),
+              {
+                onSelectionChange: setSelection,
+                onAnalyze: handleAnalyze,
+                loading: loading
+              }
+            )}
+          </Suspense>
+        </div>
+
+        {/* Results Panel */}
+        <div className="xl:col-span-3">
+          {comparisonData ? (
+            <Suspense fallback={<div className="p-6 text-center">Učitavam rezultate...</div>}>
+              {React.createElement(
+                React.lazy(() => import('@/components/analytics/PeriodComparisonAnalysis')),
+                {
+                  data: comparisonData,
+                  airlineName: selection.airlineName,
+                  destinationName: selection.destinationName
+                }
+              )}
+            </Suspense>
+          ) : (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center h-full flex items-center justify-center">
+              <div className="max-w-md mx-auto">
+                <div className="p-4 bg-gray-100 rounded-full w-20 h-20 mx-auto mb-6">
+                  <TrendingUp className="w-12 h-12 text-gray-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                  Komparacija perioda
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Odaberite dva perioda za komparaciju iz panela lijevo, zatim kliknite "Kompariraj" da vidite detaljnu analizu.
+                </p>
+                <div className="text-sm text-gray-500">
+                  <p>• Komparirajte bilo koja dva vremenska perioda</p>
+                  <p>• Sedmica za sedmicom analiza</p>
+                  <p>• Vizuelni prikaz razlika na chartu</p>
+                  <p>• Detaljni breakdown po metrikama</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AirlineDestinationTab() {
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -1171,7 +1359,7 @@ interface DateRange {
 export default function AnalitikaiKomparacijaPage() {
   const [cachedData, setCachedData] = useState<CachedAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'weekly' | 'monthly' | 'custom' | 'airline-destination'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'weekly' | 'monthly' | 'custom' | 'period-comparison' | 'airline-destination'>('overview');
   
   // Preload komponente
   useComponentPreloader();
@@ -1346,7 +1534,8 @@ export default function AnalitikaiKomparacijaPage() {
               { id: 'weekly', name: 'Sedmična analiza', icon: Calendar },
               { id: 'monthly', name: 'Mjesečna analiza', icon: PieChart },
               { id: 'custom', name: 'Prilagođena analiza', icon: Filter },
-              { id: 'airline-destination', name: 'Aviokompanija/Destinacija', icon: TrendingUp }
+              { id: 'period-comparison', name: 'Komparacija perioda', icon: TrendingUp },
+              { id: 'airline-destination', name: 'Aviokompanija/Destinacija', icon: Plane }
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -1511,15 +1700,35 @@ export default function AnalitikaiKomparacijaPage() {
               </div>
             )}
 
-            {/* Daily Trend Chart */}
+            {/* Monthly Trend Chart */}
             {cachedData.dailyTrend && cachedData.dailyTrend.length > 0 && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Sedmični trend (zadnjih 7 dana)</h3>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                    <BarChart3 className="h-6 w-6 text-blue-600" />
+                    Mjesečni trend (zadnjih 30 dana)
+                  </h3>
+                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                      <span>Litri</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <span>Prihod (BAM)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                      <span>Operacije</span>
+                    </div>
+                  </div>
+                </div>
                 <Suspense fallback={
-                  <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
+                  <div className="h-96 flex items-center justify-center bg-gradient-to-br from-gray-50 to-white rounded-lg">
                     <div className="text-center">
-                      <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-2 animate-pulse" />
-                      <p className="text-gray-500">Učitavam chart...</p>
+                      <BarChart3 className="w-16 h-16 text-gray-400 mx-auto mb-4 animate-pulse" />
+                      <p className="text-gray-500 text-lg">Učitavam mjesečni trend...</p>
+                      <p className="text-gray-400 text-sm mt-2">Analiziram podatke za zadnjih 30 dana</p>
                     </div>
                   </div>
                 }>
@@ -1527,8 +1736,11 @@ export default function AnalitikaiKomparacijaPage() {
                     React.lazy(() => import('@/components/analytics/DailyTrendChart')),
                     {
                       data: cachedData.dailyTrend,
-                      width: 800,
-                      height: 300
+                      width: '100%',
+                      height: 400,
+                      showLegend: true,
+                      showGrid: true,
+                      animate: true
                     }
                   )}
                 </Suspense>
@@ -1646,6 +1858,11 @@ export default function AnalitikaiKomparacijaPage() {
         {/* Prilagođena analiza */}
         {activeTab === 'custom' && (
           <CustomAnalysisTab />
+        )}
+
+        {/* Komparacija perioda */}
+        {activeTab === 'period-comparison' && (
+          <PeriodComparisonTab />
         )}
 
         {/* Aviokompanija/Destinacija analiza */}

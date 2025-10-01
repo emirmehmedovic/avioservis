@@ -446,3 +446,23 @@ export class AnalyticsRealTimeUpdater {
 
 // Singleton instance za real-time updates
 export const analyticsUpdater = new AnalyticsRealTimeUpdater();
+
+/**
+ * Komparacija dva perioda
+ */
+export async function getPeriodComparison(
+  period1: { startDate: string; endDate: string; name: string },
+  period2: { startDate: string; endDate: string; name: string },
+  airlineId?: number,
+  destinationId?: string
+) {
+  return apiCall(`${API_BASE_URL}/period-comparison`, {
+    method: 'POST',
+    body: JSON.stringify({
+      period1,
+      period2,
+      airlineId,
+      destinationId
+    })
+  });
+}

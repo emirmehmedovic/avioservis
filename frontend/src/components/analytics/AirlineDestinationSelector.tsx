@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { Plane, MapPin, Search, X, Loader2 } from 'lucide-react';
 
 interface Airline {
@@ -71,7 +71,7 @@ export default function AirlineDestinationSelector({
       setLoadingAirlines(true);
       const { getAirlines } = await import('@/services/analyticsApiService');
       const data = await getAirlines();
-      setAirlines(data);
+      setAirlines(data as Airline[]);
     } catch (error) {
       console.error('Error loading airlines:', error);
     } finally {
@@ -84,7 +84,7 @@ export default function AirlineDestinationSelector({
       setLoadingDestinations(true);
       const { getDestinations } = await import('@/services/analyticsApiService');
       const data = await getDestinations(airlineId);
-      setDestinations(data);
+      setDestinations(data as Destination[]);
     } catch (error) {
       console.error('Error loading destinations:', error);
     } finally {
@@ -150,10 +150,10 @@ export default function AirlineDestinationSelector({
           
           <input
             type="text"
-            placeholder="Pretraži..."
+            placeholder="Pretraži aviokompaniju..."
             value={searchAirline}
             onChange={(e) => setSearchAirline(e.target.value)}
-            className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
           />
           
           {loadingAirlines ? (
@@ -162,20 +162,23 @@ export default function AirlineDestinationSelector({
               <span className="text-xs text-gray-600">Učitavam...</span>
             </div>
           ) : (
-            <div className="max-h-24 overflow-y-auto border border-gray-200 rounded text-sm">
+            <div className="max-h-64 overflow-y-auto border border-gray-200 rounded text-sm shadow-sm">
               {filteredAirlines.map((airline) => (
                 <button
                   key={airline.id}
                   onClick={() => handleAirlineSelect(airline)}
-                  className={`w-full text-left px-2 py-1 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 ${
-                    selectedAirline?.id === airline.id ? 'bg-blue-50 text-blue-700 font-medium' : ''
+                  className={`w-full text-left px-3 py-2 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors ${
+                    selectedAirline?.id === airline.id ? 'bg-blue-50 text-blue-700 font-medium border-l-2 border-l-blue-500' : ''
                   }`}
                 >
-                  {airline.name}
+                  <div className="flex items-center gap-2">
+                    <Plane className="h-3 w-3 text-gray-400" />
+                    <span className="truncate">{airline.name}</span>
+                  </div>
                 </button>
               ))}
               {filteredAirlines.length === 0 && (
-                <div className="px-2 py-1 text-xs text-gray-500 text-center">
+                <div className="px-3 py-2 text-xs text-gray-500 text-center">
                   Nema rezultata
                 </div>
               )}
@@ -197,10 +200,10 @@ export default function AirlineDestinationSelector({
           
           <input
             type="text"
-            placeholder="Pretraži..."
+            placeholder="Pretraži destinaciju..."
             value={searchDestination}
             onChange={(e) => setSearchDestination(e.target.value)}
-            className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
           />
           
           {loadingDestinations ? (
@@ -209,23 +212,29 @@ export default function AirlineDestinationSelector({
               <span className="text-xs text-gray-600">Učitavam...</span>
             </div>
           ) : (
-            <div className="max-h-24 overflow-y-auto border border-gray-200 rounded text-sm">
+            <div className="max-h-64 overflow-y-auto border border-gray-200 rounded text-sm shadow-sm">
               {filteredDestinations.map((destination) => (
                 <button
                   key={destination.id}
                   onClick={() => handleDestinationSelect(destination)}
-                  className={`w-full text-left px-2 py-1 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 ${
-                    selectedDestination?.id === destination.id ? 'bg-green-50 text-green-700 font-medium' : ''
+                  className={`w-full text-left px-3 py-2 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors ${
+                    selectedDestination?.id === destination.id ? 'bg-green-50 text-green-700 font-medium border-l-2 border-l-green-500' : ''
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span>{destination.name}</span>
-                    <span className="text-xs text-gray-500">{destination.code}</span>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-3 w-3 text-gray-400" />
+                      <span className="truncate">{destination.name}</span>
+                    </div>
+                    <span className="text-xs text-gray-500 font-mono">{destination.code}</span>
                   </div>
+                  {destination.country && destination.country !== 'N/A' && (
+                    <div className="text-xs text-gray-400 mt-1 ml-5">{destination.country}</div>
+                  )}
                 </button>
               ))}
               {filteredDestinations.length === 0 && (
-                <div className="px-2 py-1 text-xs text-gray-500 text-center">
+                <div className="px-3 py-2 text-xs text-gray-500 text-center">
                   Nema rezultata
                 </div>
               )}

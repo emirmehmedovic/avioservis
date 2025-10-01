@@ -234,13 +234,33 @@ export default function CustomFilteredAnalysis({
 
       {/* Chart Section */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Dnevni trend</h3>
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+            <BarChart3 className="h-6 w-6 text-blue-600" />
+            Dnevni trend
+          </h3>
+          <div className="flex items-center gap-4 text-sm text-gray-600">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+              <span>Litri</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <span>Prihod (BAM)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+              <span>Operacije</span>
+            </div>
+          </div>
+        </div>
         {dailyChartData && dailyChartData.length > 0 ? (
           <Suspense fallback={
-            <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
+            <div className="h-96 flex items-center justify-center bg-gradient-to-br from-gray-50 to-white rounded-lg">
               <div className="text-center">
-                <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-2 animate-pulse" />
-                <p className="text-gray-500">Učitavam chart...</p>
+                <BarChart3 className="w-16 h-16 text-gray-400 mx-auto mb-4 animate-pulse" />
+                <p className="text-gray-500 text-lg">Učitavam chart...</p>
+                <p className="text-gray-400 text-sm mt-2">Analiziram podatke za odabrani period</p>
               </div>
             </div>
           }>
@@ -248,16 +268,20 @@ export default function CustomFilteredAnalysis({
               React.lazy(() => import('@/components/analytics/DailyTrendChart')),
               {
                 data: dailyChartData,
-                width: 800,
-                height: 300
+                width: '100%',
+                height: 400,
+                showLegend: true,
+                showGrid: true,
+                animate: true
               }
             )}
           </Suspense>
         ) : (
-          <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
+          <div className="h-96 flex items-center justify-center bg-gradient-to-br from-gray-50 to-white rounded-lg">
             <div className="text-center">
-              <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-500">Nema podataka za prikaz</p>
+              <BarChart3 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500 text-lg">Nema podataka za prikaz</p>
+              <p className="text-gray-400 text-sm mt-2">Pokušajte sa drugim datumskim opsegom</p>
             </div>
           </div>
         )}

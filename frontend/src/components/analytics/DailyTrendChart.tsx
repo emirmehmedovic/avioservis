@@ -14,29 +14,40 @@ interface DailyTrendData {
 
 interface DailyTrendChartProps {
   data: DailyTrendData[];
-  width?: number;
+  width?: number | string;
   height?: number;
+  showLegend?: boolean;
+  showGrid?: boolean;
+  animate?: boolean;
 }
 
 export default function DailyTrendChart({ 
   data, 
-  width = 800, 
-  height = 300 
+  width = '100%', 
+  height = 400,
+  showLegend = false,
+  showGrid = false,
+  animate = false
 }: DailyTrendChartProps) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!data || data.length === 0 || !svgRef.current) return;
+    if (!data || data.length === 0 || !svgRef.current || !containerRef.current) return;
 
     // Clear previous chart
     d3.select(svgRef.current).selectAll("*").remove();
 
-    const margin = { top: 20, right: 80, bottom: 40, left: 60 };
-    const innerWidth = width - margin.left - margin.right;
+    // Get container width if width is percentage
+    const containerWidth = containerRef.current.clientWidth;
+    const actualWidth = typeof width === 'string' ? containerWidth : width;
+    
+    const margin = { top: 30, right: 100, bottom: 60, left: 80 };
+    const innerWidth = actualWidth - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
     const svg = d3.select(svgRef.current)
-      .attr('width', width)
+      .attr('width', actualWidth)
       .attr('height', height);
 
     const g = svg.append('g')
@@ -120,8 +131,8 @@ export default function DailyTrendChart({
     g.append('g')
       .attr('transform', `translate(0,${innerHeight})`)
       .call(d3.axisBottom(xScale)
-        .tickFormat(d3.timeFormat('%m/%d'))
-        .ticks(data.length)
+        .tickFormat(d3.timeFormat('%m/%d') as any)
+        .ticks(Math.min(data.length, 10))
       )
       .selectAll('text')
       .style('font-size', '12px')
@@ -168,13 +179,14 @@ export default function DailyTrendChart({
           .duration(100)
           .attr('r', 6);
 
+        const dataPoint = d as any;
         tooltip
           .style('visibility', 'visible')
           .html(`
-            <div><strong>${d3.timeFormat('%d.%m.%Y')(d.parsedDate)}</strong></div>
-            <div>Litara: ${new Intl.NumberFormat('bs-BA').format(d.liters)}</div>
-            <div>Operacije: ${d.operations}</div>
-            <div>Prihod: ${new Intl.NumberFormat('bs-BA', { style: 'currency', currency: 'BAM' }).format(d.revenue)}</div>
+            <div><strong>${d3.timeFormat('%d.%m.%Y')(dataPoint.parsedDate)}</strong></div>
+            <div>Litara: ${new Intl.NumberFormat('bs-BA').format(dataPoint.liters)}</div>
+            <div>Operacije: ${dataPoint.operations}</div>
+            <div>Prihod: ${new Intl.NumberFormat('bs-BA', { style: 'currency', currency: 'BAM' }).format(dataPoint.revenue)}</div>
           `);
       })
       .on('mousemove', function(event) {
@@ -196,10 +208,10 @@ export default function DailyTrendChart({
       d3.select('body').selectAll('.tooltip').remove();
     };
 
-  }, [data, width, height]);
+  }, [data, width, height, showLegend, showGrid, animate]);
 
   return (
-    <div className="w-full overflow-x-auto" data-chart="daily-trend">
+    <div ref={containerRef} className="w-full overflow-x-auto" data-chart="daily-trend">
       <svg ref={svgRef} className="w-full h-auto" data-chart="daily-trend-svg"></svg>
     </div>
   );

@@ -638,8 +638,8 @@ export async function generateCachedAnalytics(): Promise<{
     )
   ]);
 
-  // Generate daily trend for the last 7 days
-  const dailyTrend = await generateDailyTrend(now);
+  // Generate monthly trend for the last 30 days
+  const dailyTrend = await generateMonthlyTrend(now);
 
   // Performance metrics
   const performanceMetrics = await generatePerformanceMetrics(
@@ -736,12 +736,12 @@ async function generateEnhancedComparison(currentPeriod: DateRangeFilter, previo
 }
 
 /**
- * Generiše daily trend za poslednih 7 dana
+ * Generiše monthly trend za poslednih 30 dana
  */
-async function generateDailyTrend(now: Date) {
-  const dailyTrend = [];
+async function generateMonthlyTrend(now: Date) {
+  const monthlyTrend = [];
   
-  for (let i = 6; i >= 0; i--) {
+  for (let i = 29; i >= 0; i--) {
     const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
     const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000 - 1);
@@ -753,16 +753,28 @@ async function generateDailyTrend(now: Date) {
       }
     });
     
-    dailyTrend.push({
+    // Kalkuliraj revenue u BAM
+    const revenueInBAM = dayOperations.reduce((sum, op) => {
+      const amount = Number(op.total_amount || 0);
+      const currency = op.currency || 'BAM';
+      const exchangeRate = Number(op.usd_exchange_rate || 1);
+      
+      if (currency === 'USD' && exchangeRate > 0) {
+        return sum + (amount * exchangeRate);
+      }
+      return sum + amount;
+    }, 0);
+    
+    monthlyTrend.push({
       date: date.toISOString().split('T')[0],
       liters: dayOperations.reduce((sum, op) => sum + Number(op.quantity_liters || 0), 0),
       kg: dayOperations.reduce((sum, op) => sum + Number(op.quantity_kg || 0), 0),
       operations: dayOperations.length,
-      revenue: dayOperations.reduce((sum, op) => sum + Number(op.total_amount || 0), 0)
+      revenue: revenueInBAM
     });
   }
   
-  return dailyTrend;
+  return monthlyTrend;
 }
 
 /**

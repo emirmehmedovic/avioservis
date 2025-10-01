@@ -133,4 +133,35 @@ router.post('/monthly-filtered', getMonthlyFilteredAnalysis);
  */
 router.post('/custom-filtered', getCustomFilteredAnalysis);
 
+/**
+ * POST /api/analytics/comparison/period-comparison
+ * Komparacija dva proizvoljna perioda
+ */
+router.post('/period-comparison', async (req, res) => {
+  try {
+    const { period1, period2, airlineId, destinationId } = req.body;
+    
+    // Import controller function
+    const { getPeriodComparison } = await import('../controllers/analyticsComparison.controller');
+    
+    const result = await getPeriodComparison(
+      period1,
+      period2,
+      airlineId,
+      destinationId
+    );
+    
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('Error in period comparison:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Greška pri dohvaćanju komparacije perioda'
+    });
+  }
+});
+
 export default router;

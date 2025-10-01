@@ -1282,3 +1282,176 @@ export async function getCachedAnalytics(req: Request, res: Response): Promise<v
     });
   }
 }
+
+/**
+ * Komparacija dva proizvoljna perioda
+ */
+export const getPeriodComparison = async (
+  period1: { startDate: string; endDate: string; name: string },
+  period2: { startDate: string; endDate: string; name: string },
+  airlineId?: number,
+  destinationId?: string
+) => {
+  try {
+    // Validacija datuma
+    const start1 = new Date(period1.startDate);
+    const end1 = new Date(period1.endDate);
+    const start2 = new Date(period2.startDate);
+    const end2 = new Date(period2.endDate);
+    
+    if (start1 >= end1 || start2 >= end2) {
+      throw new Error('Početni datum mora biti prije završnog datuma');
+    }
+
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+    
+    // Build filter conditions for period 1
+    let whereClause1: any = {
+      is_deleted: false,
+      dateTime: {
+        gte: start1,
+        lte: end1
+      }
+    };
+
+    // Build filter conditions for period 2
+    let whereClause2: any = {
+      is_deleted: false,
+      dateTime: {
+        gte: start2,
+        lte: end2
+      }
+    };
+
+    if (airlineId) {
+      whereClause1.airlineId = parseInt(airlineId.toString());
+      whereClause2.airlineId = parseInt(airlineId.toString());
+    }
+
+    if (destinationId) {
+      whereClause1.destination = destinationId;
+      whereClause2.destination = destinationId;
+    }
+
+    // Get operations for both periods
+    const [operations1, operations2] = await Promise.all([
+      prisma.fuelingOperation.findMany({
+        where: whereClause1,
+        include: {
+          airline: {
+            select: { name: true }
+          }
+        },
+        orderBy: {
+          dateTime: 'asc'
+        }
+      }),
+      prisma.fuelingOperation.findMany({
+        where: whereClause2,
+        include: {
+          airline: {
+            select: { name: true }
+          }
+        },
+        orderBy: {
+          dateTime: 'asc'
+        }
+      })
+    ]);
+
+    await prisma.$disconnect();
+
+    // Group by week for both periods
+    const groupByWeek = (operations: any[]) => {
+      const weeklyData = new Map();
+      
+      operations.forEach(op => {
+        const date = new Date(op.dateTime);
+        const startOfWeek = new Date(date);
+        startOfWeek.setDate(date.getDate() - date.getDay() + 1); // Monday as start of week
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        
+        const weekKey = startOfWeek.toISOString().split('T')[0];
+        
+        if (!weeklyData.has(weekKey)) {
+          weeklyData.set(weekKey, {
+            week: `Sedmica ${Math.ceil(date.getDate() / 7)}`,
+            weekStart: startOfWeek.toISOString().split('T')[0],
+            weekEnd: endOfWeek.toISOString().split('T')[0],
+            liters: 0,
+            kg: 0,
+            revenue: 0,
+            operations: 0
+          });
+        }
+        
+        const existing = weeklyData.get(weekKey);
+        existing.liters += Number(op.quantity_liters || 0);
+        existing.kg += Number(op.quantity_kg || 0);
+        existing.revenue += calculateRevenueInBAM(op);
+        existing.operations += 1;
+      });
+
+      return Array.from(weeklyData.values()).sort((a, b) => a.weekStart.localeCompare(b.weekStart));
+    };
+
+    const weeklyData1 = groupByWeek(operations1);
+    const weeklyData2 = groupByWeek(operations2);
+
+    // Calculate summaries
+    const calculateSummary = (weeklyData: any[]) => {
+      return weeklyData.reduce((acc, week) => ({
+        totalWeeks: acc.totalWeeks + 1,
+        totalLiters: acc.totalLiters + week.liters,
+        totalRevenue: acc.totalRevenue + week.revenue,
+        totalOperations: acc.totalOperations + week.operations,
+        avgWeeklyLiters: 0 // Will calculate after
+      }), { totalWeeks: 0, totalLiters: 0, totalRevenue: 0, totalOperations: 0, avgWeeklyLiters: 0 });
+    };
+
+    const summary1 = calculateSummary(weeklyData1);
+    const summary2 = calculateSummary(weeklyData2);
+
+    // Calculate averages
+    summary1.avgWeeklyLiters = summary1.totalWeeks > 0 ? summary1.totalLiters / summary1.totalWeeks : 0;
+    summary2.avgWeeklyLiters = summary2.totalWeeks > 0 ? summary2.totalLiters / summary2.totalWeeks : 0;
+
+    // Calculate growth between periods
+    const comparison = {
+      litersGrowth: summary1.totalLiters > 0 ? ((summary2.totalLiters - summary1.totalLiters) / summary1.totalLiters) * 100 : 0,
+      revenueGrowth: summary1.totalRevenue > 0 ? ((summary2.totalRevenue - summary1.totalRevenue) / summary1.totalRevenue) * 100 : 0,
+      operationsGrowth: summary1.totalOperations > 0 ? ((summary2.totalOperations - summary1.totalOperations) / summary1.totalOperations) * 100 : 0,
+      avgWeeklyGrowth: summary1.avgWeeklyLiters > 0 ? ((summary2.avgWeeklyLiters - summary1.avgWeeklyLiters) / summary1.avgWeeklyLiters) * 100 : 0
+    };
+
+    const result = {
+      period1: {
+        name: period1.name,
+        startDate: period1.startDate,
+        endDate: period1.endDate,
+        summary: summary1,
+        weeklyData: weeklyData1
+      },
+      period2: {
+        name: period2.name,
+        startDate: period2.startDate,
+        endDate: period2.endDate,
+        summary: summary2,
+        weeklyData: weeklyData2
+      },
+      comparison,
+      filters: {
+        airlineId: airlineId || null,
+        destinationId: destinationId || null
+      }
+    };
+    
+    return result;
+    
+  } catch (error) {
+    console.error('Error in getPeriodComparison:', error);
+    throw error;
+  }
+};

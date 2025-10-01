@@ -16,7 +16,7 @@ export interface ChartDataPoint {
 
 export interface ComparisonChartProps {
   data: ChartDataPoint[];
-  title: string;
+  title?: string;
   subtitle?: string;
   type?: 'line' | 'bar' | 'area';
   height?: number;
@@ -24,6 +24,10 @@ export interface ComparisonChartProps {
   loading?: boolean;
   onExport?: () => void;
   className?: string;
+  period1Label?: string;
+  period2Label?: string;
+  metricLabel?: string;
+  metricUnit?: string;
 }
 
 export default function ComparisonChart({
@@ -35,7 +39,11 @@ export default function ComparisonChart({
   showGrowth = true,
   loading = false,
   onExport,
-  className = ''
+  className = '',
+  period1Label = 'Prethodni period',
+  period2Label = 'Trenutni period',
+  metricLabel = 'Vrijednost',
+  metricUnit = ''
 }: ComparisonChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
 
@@ -131,8 +139,8 @@ export default function ComparisonChart({
 
           tooltip.html(`
             <div><strong>${d.period}</strong></div>
-            <div>Trenutni: ${formatNumber(d.current)}</div>
-            <div>Prethodni: ${formatNumber(d.previous)}</div>
+            <div>${period2Label}: ${formatNumber(d.current)}${metricUnit}</div>
+            <div>${period1Label}: ${formatNumber(d.previous)}${metricUnit}</div>
             <div>Rast: ${formatGrowth(d.growth)}</div>
           `)
             .style("left", (event.pageX + 10) + "px")
@@ -170,8 +178,8 @@ export default function ComparisonChart({
 
           tooltip.html(`
             <div><strong>${d.period}</strong></div>
-            <div>Trenutni: ${formatNumber(d.current)}</div>
-            <div>Prethodni: ${formatNumber(d.previous)}</div>
+            <div>${period2Label}: ${formatNumber(d.current)}${metricUnit}</div>
+            <div>${period1Label}: ${formatNumber(d.previous)}${metricUnit}</div>
             <div>Rast: ${formatGrowth(d.growth)}</div>
           `)
             .style("left", (event.pageX + 10) + "px")
@@ -236,8 +244,8 @@ export default function ComparisonChart({
 
           tooltip.html(`
             <div><strong>${d.period}</strong></div>
-            <div>Trenutni: ${formatNumber(d.current)}</div>
-            <div>Prethodni: ${formatNumber(d.previous)}</div>
+            <div>${period2Label}: ${formatNumber(d.current)}${metricUnit}</div>
+            <div>${period1Label}: ${formatNumber(d.previous)}${metricUnit}</div>
             <div>Rast: ${formatGrowth(d.growth)}</div>
           `)
             .style("left", (event.pageX + 10) + "px")
@@ -272,8 +280,8 @@ export default function ComparisonChart({
 
           tooltip.html(`
             <div><strong>${d.period}</strong></div>
-            <div>Trenutni: ${formatNumber(d.current)}</div>
-            <div>Prethodni: ${formatNumber(d.previous)}</div>
+            <div>${period2Label}: ${formatNumber(d.current)}${metricUnit}</div>
+            <div>${period1Label}: ${formatNumber(d.previous)}${metricUnit}</div>
             <div>Rast: ${formatGrowth(d.growth)}</div>
           `)
             .style("left", (event.pageX + 10) + "px")
@@ -332,7 +340,7 @@ export default function ComparisonChart({
       .attr("dy", "0.35em")
       .style("font-size", "12px")
       .style("fill", "#374151")
-      .text("Trenutni period");
+      .text(period2Label);
 
     legend.append("rect")
       .attr("x", 0)
@@ -347,7 +355,7 @@ export default function ComparisonChart({
       .attr("dy", "0.35em")
       .style("font-size", "12px")
       .style("fill", "#374151")
-      .text("Prethodni period");
+      .text(period1Label);
 
   }, [data, loading, type, height]);
 
@@ -442,14 +450,14 @@ export default function ComparisonChart({
         <div className="p-6 border-t border-gray-200 bg-gray-50">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center">
-              <div className="text-sm text-gray-600">Trenutni period</div>
+              <div className="text-sm text-gray-600">{period2Label}</div>
               <div className="text-xl font-semibold text-gray-900">
                 {formatNumber(totalCurrent)}
               </div>
             </div>
             
             <div className="text-center">
-              <div className="text-sm text-gray-600">Prethodni period</div>
+              <div className="text-sm text-gray-600">{period1Label}</div>
               <div className="text-xl font-semibold text-gray-900">
                 {formatNumber(totalPrevious)}
               </div>
