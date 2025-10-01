@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -38,6 +38,35 @@ export default function DualPeriodSelector({ onPeriodsChange, loading }: DualPer
     period1: '',
     period2: ''
   });
+
+  // Debounce refs for name changes
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingPeriodsRef = useRef<{ period1: PeriodRange; period2: PeriodRange } | null>(null);
+
+  // Debounced function to call onPeriodsChange
+  const debouncedOnPeriodsChange = useCallback((p1: PeriodRange, p2: PeriodRange) => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
+    pendingPeriodsRef.current = { period1: p1, period2: p2 };
+
+    debounceTimeoutRef.current = setTimeout(() => {
+      if (pendingPeriodsRef.current) {
+        onPeriodsChange(pendingPeriodsRef.current.period1, pendingPeriodsRef.current.period2);
+        pendingPeriodsRef.current = null;
+      }
+    }, 500); // 500ms debounce delay
+  }, [onPeriodsChange]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Predefined period options
   const getQuickPeriods = () => {
@@ -135,13 +164,13 @@ export default function DualPeriodSelector({ onPeriodsChange, loading }: DualPer
       const updated = { ...period1, name: name || 'Period 1' };
       setPeriod1(updated);
       if (period1.startDate && period1.endDate && period2.startDate && period2.endDate) {
-        onPeriodsChange(updated, period2);
+        debouncedOnPeriodsChange(updated, period2);
       }
     } else {
       const updated = { ...period2, name: name || 'Period 2' };
       setPeriod2(updated);
       if (period1.startDate && period1.endDate && period2.startDate && period2.endDate) {
-        onPeriodsChange(period1, updated);
+        debouncedOnPeriodsChange(period1, updated);
       }
     }
   };
