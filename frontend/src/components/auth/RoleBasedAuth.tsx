@@ -13,6 +13,7 @@ const PAGE_ACCESS_MAP: Record<string, UserRole[]> = {
   '/dashboard/fuel/projections': [UserRole.ADMIN, UserRole.KONTROLA, UserRole.FUEL_OPERATOR],
   '/dashboard/reports': [UserRole.ADMIN, UserRole.KONTROLA, UserRole.FUEL_OPERATOR],
   '/dashboard/statistics': [UserRole.ADMIN, UserRole.KONTROLA, UserRole.FUEL_OPERATOR],
+  '/dashboard/analitika-komparacija': [UserRole.ADMIN, UserRole.KONTROLA, UserRole.FUEL_OPERATOR],
   '/dashboard/financial-reports': [UserRole.ADMIN, UserRole.KONTROLA],
   '/dashboard/xml-invoices': [UserRole.ADMIN, UserRole.KONTROLA],
   '/dashboard/email-invoices': [UserRole.ADMIN, UserRole.KONTROLA],
@@ -64,24 +65,29 @@ export default function RoleBasedAuth({ children }: { children: React.ReactNode 
         const hasAccess = allowedRoles.includes(authUser.role);
         
         if (!hasAccess) {
-          // Determine where to redirect based on user role
-          let redirectPath = '/dashboard';
-          
-          switch (authUser.role) {
-            case UserRole.CARINA:
-              redirectPath = '/dashboard/customs';
-              break;
-            case UserRole.AERODROM:
-              redirectPath = '/dashboard/airport';
-              break;
-            case UserRole.KONTROLA:
-              redirectPath = '/dashboard/reports';
-              break;
-            default:
-              redirectPath = '/dashboard';
+          // Pokušaj da se vrati na prethodnu stranicu
+          if (typeof window !== 'undefined' && window.history.length > 1) {
+            window.history.back();
+          } else {
+            // Ako nema prethodnu stranicu, preusmeri na osnovu uloge korisnika
+            let redirectPath = '/dashboard';
+            
+            switch (authUser.role) {
+              case UserRole.CARINA:
+                redirectPath = '/dashboard/customs';
+                break;
+              case UserRole.AERODROM:
+                redirectPath = '/dashboard/airport';
+                break;
+              case UserRole.KONTROLA:
+                redirectPath = '/dashboard/reports';
+                break;
+              default:
+                redirectPath = '/dashboard';
+            }
+            
+            router.push(redirectPath);
           }
-          
-          router.push(redirectPath);
         }
       }
     }

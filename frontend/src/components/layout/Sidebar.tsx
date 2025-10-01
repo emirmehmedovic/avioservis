@@ -32,6 +32,7 @@ import {
   Container, // Added Container for reservoirs
   Calendar, // Added Calendar for calibration plans
   Wrench, // Added Wrench for ostala oprema
+  TrendingUp, // Added TrendingUp for analytics and comparison
 } from 'lucide-react';
 
 // Define new user roles for specific access
@@ -56,6 +57,7 @@ const baseNavItems = [
   { name: 'Izvještaji', href: '/dashboard/reports', icon: ClipboardList, roles: ['ADMIN', 'KONTROLA', 'FUEL_OPERATOR'] },
   { name: 'Finansijski izvještaji', href: '/dashboard/financial-reports', icon: DollarSign, roles: ['ADMIN', 'KONTROLA'] },
   { name: 'Statistika i projekcije', href: '/dashboard/statistics', icon: Activity, roles: ['ADMIN', 'KONTROLA', 'FUEL_OPERATOR'] },
+  { name: 'Analitika i komparacija', href: '/dashboard/analitika-komparacija', icon: TrendingUp, roles: ['ADMIN', 'KONTROLA', 'FUEL_OPERATOR'] },
   { name: 'Aktivnosti', href: '/aktivnosti', icon: FileText, roles: ['ADMIN', 'KONTROLA'] },
   { name: 'Carina', href: '/dashboard/customs', icon: ShieldCheck, roles: ['ADMIN', 'CARINA'] },
   { name: 'Aerodrom', href: '/dashboard/airport', icon: Plane, roles: ['ADMIN', 'AERODROM'] },

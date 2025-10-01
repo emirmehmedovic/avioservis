@@ -48,6 +48,7 @@ import fuelReportsTrendsRoutes from './routes/fuelReportsTrends.routes'; // Rute
 import xmlInvoiceRoutes from './routes/xmlInvoice.routes';
 import emailInvoiceRoutes from './routes/emailInvoice.routes';
 import expirationNotificationRoutes from './routes/expirationNotification.routes';
+import analyticsComparisonRoutes from './routes/analyticsComparison.routes'; // Rute za analitiku i komparaciju
 
 const app = express();
 
@@ -143,6 +144,7 @@ app.use('/api/fuel/reports', reportingLimiter, fuelReportsTrendsRoutes); // Regi
 app.use('/api/invoices/xml', xmlInvoiceRoutes);
 app.use('/api/invoices/email', emailInvoiceRoutes);
 app.use('/api/notifications/expirations', expirationNotificationRoutes);
+app.use('/api/analytics/comparison', reportingLimiter, analyticsComparisonRoutes); // Registracija ruta za analitiku i komparaciju
 
 app.get('/', (req, res) => {
   res.send('Backend radi!');

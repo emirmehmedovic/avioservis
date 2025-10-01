@@ -158,6 +158,62 @@ function calculateHerfindahlIndex(marketShares: number[]): number {
 }
 
 /**
+ * Generiše poređenje između dva perioda (sedmica-na-sedmicu)
+ */
+export async function generateWeeklyComparison(currentWeek: Date): Promise<PeriodComparisonData> {
+  // Izračunaj početak i kraj trenutne kalendarske sedmice (ISO week)
+  const currentWeekStart = getStartOfISOWeek(currentWeek);
+  const currentWeekEnd = new Date(currentWeekStart);
+  currentWeekEnd.setDate(currentWeekEnd.getDate() + 6);
+  currentWeekEnd.setHours(23, 59, 59, 999);
+  
+  // Izračunaj početak i kraj prethodne kalendarske sedmice
+  const previousWeekStart = new Date(currentWeekStart);
+  previousWeekStart.setDate(previousWeekStart.getDate() - 7);
+  const previousWeekEnd = new Date(previousWeekStart);
+  previousWeekEnd.setDate(previousWeekEnd.getDate() + 6);
+  previousWeekEnd.setHours(23, 59, 59, 999);
+
+  // Dohvati podatke za oba perioda
+  const [currentOps, previousOps] = await Promise.all([
+    prisma.fuelingOperation.findMany({
+      where: { 
+        dateTime: { gte: currentWeekStart, lte: currentWeekEnd },
+        is_deleted: false 
+      },
+      include: { airline: true }
+    }).then(ops => ops.filter(op => op.quantity_kg && op.quantity_liters)),
+    prisma.fuelingOperation.findMany({
+      where: { 
+        dateTime: { gte: previousWeekStart, lte: previousWeekEnd },
+        is_deleted: false 
+      },
+      include: { airline: true }
+    }).then(ops => ops.filter(op => op.quantity_kg && op.quantity_liters))
+  ]);
+
+  // Izračunaj statistike za oba perioda
+  const currentStats = calculatePeriodStats(currentOps, currentWeekStart, currentWeekEnd, `Sedmica ${getISOWeekNumber(currentWeek)}`);
+  const previousStats = calculatePeriodStats(previousOps, previousWeekStart, previousWeekEnd, `Sedmica ${getISOWeekNumber(previousWeekStart)}`);
+
+  // Izračunaj poređenje
+  const comparison = {
+    quantityGrowth: calculateGrowthRate(currentStats.totalQuantityLiters, previousStats.totalQuantityLiters),
+    revenueGrowth: calculateGrowthRate(currentStats.totalRevenue, previousStats.totalRevenue),
+    operationsGrowth: calculateGrowthRate(currentStats.operationsCount, previousStats.operationsCount),
+    avgSizeGrowth: calculateGrowthRate(currentStats.avgOperationSize, previousStats.avgOperationSize),
+    destinationsGrowth: calculateGrowthRate(currentStats.uniqueDestinations, previousStats.uniqueDestinations),
+    airlinesGrowth: calculateGrowthRate(currentStats.uniqueAirlines, previousStats.uniqueAirlines)
+  };
+
+  return {
+    current: currentStats,
+    previous: previousStats,
+    comparison
+  };
+}
+
+/**
  * Generiše poređenje između dva perioda (mjesec-na-mjesec)
  */
 export async function generateMonthlyComparison(currentMonth: Date): Promise<PeriodComparisonData> {
@@ -259,12 +315,14 @@ export async function generateDestinationTrendingAnalysis(
   const [currentOps, previousOps] = await Promise.all([
     prisma.fuelingOperation.findMany({
       where: {
-        dateTime: { gte: currentPeriod.startDate, lte: currentPeriod.endDate }
+        dateTime: { gte: currentPeriod.startDate, lte: currentPeriod.endDate },
+        is_deleted: false
       }
     }).then(ops => ops.filter(op => op.quantity_kg && op.quantity_liters)),
     prisma.fuelingOperation.findMany({
       where: {
-        dateTime: { gte: previousPeriod.startDate, lte: previousPeriod.endDate }
+        dateTime: { gte: previousPeriod.startDate, lte: previousPeriod.endDate },
+        is_deleted: false
       }
     }).then(ops => ops.filter(op => op.quantity_kg && op.quantity_liters))
   ]);
@@ -379,13 +437,15 @@ export async function generateAirlineTrendingAnalysis(
   const [currentOps, previousOps] = await Promise.all([
     prisma.fuelingOperation.findMany({
       where: {
-        dateTime: { gte: currentPeriod.startDate, lte: currentPeriod.endDate }
+        dateTime: { gte: currentPeriod.startDate, lte: currentPeriod.endDate },
+        is_deleted: false
       },
       include: { airline: true }
     }).then(ops => ops.filter(op => op.quantity_kg && op.quantity_liters)),
     prisma.fuelingOperation.findMany({
       where: {
-        dateTime: { gte: previousPeriod.startDate, lte: previousPeriod.endDate }
+        dateTime: { gte: previousPeriod.startDate, lte: previousPeriod.endDate },
+        is_deleted: false
       },
       include: { airline: true }
     }).then(ops => ops.filter(op => op.quantity_kg && op.quantity_liters))
@@ -532,4 +592,141 @@ function groupByAirline(operations: any[]) {
   });
   
   return groups;
+}
+
+/**
+ * Helper funkcije za kalendarske sedmice (ISO week standard)
+ */
+function getStartOfISOWeek(date: Date): Date {
+  const target = new Date(date.valueOf());
+  const dayNr = (date.getDay() + 6) % 7;
+  target.setDate(target.getDate() - dayNr);
+  target.setHours(0, 0, 0, 0);
+  return target;
+}
+
+function getISOWeekNumber(date: Date): number {
+  const target = new Date(date.valueOf());
+  const dayNr = (date.getDay() + 6) % 7;
+  target.setDate(target.getDate() - dayNr + 3);
+  const jan4 = new Date(target.getFullYear(), 0, 4);
+  const dayDiff = (target.getTime() - jan4.getTime()) / 86400000;
+  return 1 + Math.ceil(dayDiff / 7);
+}
+
+/**
+ * Generiše detaljnu komparaciju između aviokompanija
+ */
+export async function generateAirlineComparisonAnalysis(
+  currentPeriod: DateRangeFilter,
+  previousPeriod: DateRangeFilter,
+  airlineIds?: number[]
+): Promise<{
+  airlineComparisons: AirlineTrendingData[];
+  crossAirlineMetrics: {
+    marketLeader: { airlineId: number; airlineName: string; marketShare: number };
+    fastestGrowing: { airlineId: number; airlineName: string; growthRate: number };
+    mostOperations: { airlineId: number; airlineName: string; operationsCount: number };
+    highestRevenue: { airlineId: number; airlineName: string; revenue: number };
+  };
+  competitiveAnalysis: {
+    airlineId: number;
+    airlineName: string;
+    competitorComparisons: {
+      competitorId: number;
+      competitorName: string;
+      marketShareGap: number;
+      revenueGap: number;
+      operationsGap: number;
+    }[];
+  }[];
+}> {
+  
+  // Dohvati podatke za oba perioda sa airline informacijama
+  const [currentOps, previousOps] = await Promise.all([
+    prisma.fuelingOperation.findMany({
+      where: {
+        dateTime: { gte: currentPeriod.startDate, lte: currentPeriod.endDate },
+        is_deleted: false,
+        ...(airlineIds && { airlineId: { in: airlineIds } })
+      },
+      include: { airline: true }
+    }).then(ops => ops.filter(op => op.quantity_kg && op.quantity_liters)),
+    prisma.fuelingOperation.findMany({
+      where: {
+        dateTime: { gte: previousPeriod.startDate, lte: previousPeriod.endDate },
+        is_deleted: false,
+        ...(airlineIds && { airlineId: { in: airlineIds } })
+      },
+      include: { airline: true }
+    }).then(ops => ops.filter(op => op.quantity_kg && op.quantity_liters))
+  ]);
+
+  // Generiraj osnovnu airline trending analizu
+  const airlineComparisons = await generateAirlineTrendingAnalysis(currentPeriod, previousPeriod);
+  
+  // Filtriraj po airlineIds ako je specificirano
+  const filteredComparisons = airlineIds 
+    ? airlineComparisons.filter(airline => airlineIds.includes(airline.airlineId))
+    : airlineComparisons;
+
+  // Izračunaj cross-airline metrike
+  const marketLeader = filteredComparisons.reduce((leader, airline) => 
+    airline.current.marketShare > leader.current.marketShare ? airline : leader
+  );
+
+  const fastestGrowing = filteredComparisons.reduce((fastest, airline) => 
+    airline.growth.quantityGrowth > fastest.growth.quantityGrowth ? airline : fastest
+  );
+
+  const mostOperations = filteredComparisons.reduce((most, airline) => 
+    airline.current.operations > most.current.operations ? airline : most
+  );
+
+  const highestRevenue = filteredComparisons.reduce((highest, airline) => 
+    airline.current.revenue > highest.current.revenue ? airline : highest
+  );
+
+  // Generiraj competitive analizu
+  const competitiveAnalysis = filteredComparisons.map(airline => ({
+    airlineId: airline.airlineId,
+    airlineName: airline.airlineName,
+    competitorComparisons: filteredComparisons
+      .filter(competitor => competitor.airlineId !== airline.airlineId)
+      .map(competitor => ({
+        competitorId: competitor.airlineId,
+        competitorName: competitor.airlineName,
+        marketShareGap: competitor.current.marketShare - airline.current.marketShare,
+        revenueGap: competitor.current.revenue - airline.current.revenue,
+        operationsGap: competitor.current.operations - airline.current.operations
+      }))
+      .sort((a, b) => b.marketShareGap - a.marketShareGap) // Sortiranje po market share gap
+  }));
+
+  return {
+    airlineComparisons: filteredComparisons,
+    crossAirlineMetrics: {
+      marketLeader: {
+        airlineId: marketLeader.airlineId,
+        airlineName: marketLeader.airlineName,
+        marketShare: marketLeader.current.marketShare
+      },
+      fastestGrowing: {
+        airlineId: fastestGrowing.airlineId,
+        airlineName: fastestGrowing.airlineName,
+        growthRate: fastestGrowing.growth.quantityGrowth
+      },
+      mostOperations: {
+        airlineId: mostOperations.airlineId,
+        airlineName: mostOperations.airlineName,
+        operationsCount: mostOperations.current.operations
+      },
+      highestRevenue: {
+        airlineId: highestRevenue.airlineId,
+        airlineName: highestRevenue.airlineName,
+        revenue: highestRevenue.current.revenue
+      }
+    },
+    competitiveAnalysis
+  };
 } 
