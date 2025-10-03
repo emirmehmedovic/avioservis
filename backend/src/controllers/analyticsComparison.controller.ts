@@ -167,13 +167,13 @@ export async function getCustomComparison(req: Request, res: Response): Promise<
     }
     
     const currentFilter = {
-      startDate: new Date(currentPeriod.startDate),
-      endDate: new Date(currentPeriod.endDate)
+      startDate: new Date(currentPeriod.startDate + 'T00:00:00.000Z'),
+      endDate: new Date(currentPeriod.endDate + 'T23:59:59.999Z')
     };
     
     const previousFilter = {
-      startDate: new Date(previousPeriod.startDate),
-      endDate: new Date(previousPeriod.endDate)
+      startDate: new Date(previousPeriod.startDate + 'T00:00:00.000Z'),
+      endDate: new Date(previousPeriod.endDate + 'T23:59:59.999Z')
     };
     
     let result;
@@ -238,13 +238,13 @@ export async function getAirlineComparison(req: Request, res: Response): Promise
     }
     
     const currentFilter = {
-      startDate: new Date(currentPeriod.startDate),
-      endDate: new Date(currentPeriod.endDate)
+      startDate: new Date(currentPeriod.startDate + 'T00:00:00.000Z'),
+      endDate: new Date(currentPeriod.endDate + 'T23:59:59.999Z')
     };
     
     const previousFilter = {
-      startDate: new Date(previousPeriod.startDate),
-      endDate: new Date(previousPeriod.endDate)
+      startDate: new Date(previousPeriod.startDate + 'T00:00:00.000Z'),
+      endDate: new Date(previousPeriod.endDate + 'T23:59:59.999Z')
     };
     
     const result = await generateAirlineComparisonAnalysis(
@@ -290,8 +290,8 @@ export async function getWeeklyTrends(req: Request, res: Response): Promise<void
     }
     
     const filter = {
-      startDate: new Date(startDate as string),
-      endDate: new Date(endDate as string)
+      startDate: new Date((startDate as string) + 'T00:00:00.000Z'),
+      endDate: new Date((endDate as string) + 'T23:59:59.999Z')
     };
     
     const trends = await generateWeeklyTrendData(filter);
@@ -332,8 +332,8 @@ export async function getMonthlyTrends(req: Request, res: Response): Promise<voi
     }
     
     const filter = {
-      startDate: new Date(startDate as string),
-      endDate: new Date(endDate as string)
+      startDate: new Date((startDate as string) + 'T00:00:00.000Z'),
+      endDate: new Date((endDate as string) + 'T23:59:59.999Z')
     };
     
     const trends = await generateMonthlyTrendData(filter);
@@ -445,13 +445,13 @@ export async function getAnomalies(req: Request, res: Response): Promise<void> {
     }
     
     const currentFilter = {
-      startDate: new Date(currentPeriod.startDate),
-      endDate: new Date(currentPeriod.endDate)
+      startDate: new Date(currentPeriod.startDate + 'T00:00:00.000Z'),
+      endDate: new Date(currentPeriod.endDate + 'T23:59:59.999Z')
     };
     
     const previousFilter = {
-      startDate: new Date(previousPeriod.startDate),
-      endDate: new Date(previousPeriod.endDate)
+      startDate: new Date(previousPeriod.startDate + 'T00:00:00.000Z'),
+      endDate: new Date(previousPeriod.endDate + 'T23:59:59.999Z')
     };
     
     const anomalies = await detectAnomalies(currentFilter, previousFilter);
@@ -627,8 +627,8 @@ export async function getAirlineDestinationComparison(req: Request, res: Respons
       where: {
         ...whereClause,
         dateTime: {
-          gte: new Date(currentPeriod.startDate),
-          lte: new Date(currentPeriod.endDate)
+          gte: new Date(currentPeriod.startDate + 'T00:00:00.000Z'),
+          lte: new Date(currentPeriod.endDate + 'T23:59:59.999Z')
         }
       },
       include: {
@@ -643,8 +643,8 @@ export async function getAirlineDestinationComparison(req: Request, res: Respons
       where: {
         ...whereClause,
         dateTime: {
-          gte: new Date(previousPeriod.startDate),
-          lte: new Date(previousPeriod.endDate)
+          gte: new Date(previousPeriod.startDate + 'T00:00:00.000Z'),
+          lte: new Date(previousPeriod.endDate + 'T23:59:59.999Z')
         }
       },
       include: {
@@ -820,8 +820,8 @@ export async function getWeeklyFilteredAnalysis(req: Request, res: Response): Pr
     let whereClause: any = {
       is_deleted: false,
       dateTime: {
-        gte: new Date(startDate),
-        lte: new Date(endDate)
+        gte: new Date(startDate + 'T00:00:00.000Z'),
+        lte: new Date(endDate + 'T23:59:59.999Z')
       }
     };
 
@@ -950,9 +950,9 @@ export async function getCustomFilteredAnalysis(req: Request, res: Response): Pr
       return;
     }
 
-    // Parse dates
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    // Parse dates and ensure end date includes the full day
+    const start = new Date(startDate + 'T00:00:00.000Z');
+    const end = new Date(endDate + 'T23:59:59.999Z');
 
     // Calculate comparison period dates
     const periodDiff = end.getTime() - start.getTime();
@@ -1148,8 +1148,8 @@ export async function getMonthlyFilteredAnalysis(req: Request, res: Response): P
     let whereClause: any = {
       is_deleted: false,
       dateTime: {
-        gte: new Date(startDate),
-        lte: new Date(endDate)
+        gte: new Date(startDate + 'T00:00:00.000Z'),
+        lte: new Date(endDate + 'T23:59:59.999Z')
       }
     };
 
@@ -1293,11 +1293,11 @@ export const getPeriodComparison = async (
   destinationId?: string
 ) => {
   try {
-    // Validacija datuma
-    const start1 = new Date(period1.startDate);
-    const end1 = new Date(period1.endDate);
-    const start2 = new Date(period2.startDate);
-    const end2 = new Date(period2.endDate);
+    // Validacija datuma - ensure end dates include the full day
+    const start1 = new Date(period1.startDate + 'T00:00:00.000Z');
+    const end1 = new Date(period1.endDate + 'T23:59:59.999Z');
+    const start2 = new Date(period2.startDate + 'T00:00:00.000Z');
+    const end2 = new Date(period2.endDate + 'T23:59:59.999Z');
     
     if (start1 >= end1 || start2 >= end2) {
       throw new Error('Početni datum mora biti prije završnog datuma');

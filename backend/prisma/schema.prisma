@@ -22,6 +22,9 @@ model User {
   fuelReceipts          FuelReceipt[]
   fuelTransfersToTanker FuelTransferToTanker[]
   systemLogs            SystemLog[]
+  flightSchedules       FlightSchedule[]       @relation("ScheduleCreator")
+  generatedReports      Report[]       @relation("ReportGenerator")
+  reportAccesses        ReportAccess[] @relation("ReportAccessor")
 }
 
 model Company {
@@ -463,6 +466,7 @@ model Airline {
   fuelingOperations     FuelingOperation[]
   xmlInvoiceDispatches  XmlInvoiceDispatch[]
   emailInvoiceDispatches EmailInvoiceDispatch[]
+  flightSchedules       FlightSchedule[]
 }
 
 model FuelReceipt {
@@ -604,6 +608,27 @@ model Activity {
   @@index([actionType])
   @@index([resourceType, resourceId])
   @@index([timestamp])
+}
+
+model FlightSchedule {
+  id                Int      @id @default(autoincrement())
+  airlineId         Int
+  destination       String
+  flight_number     String?
+  scheduled_date    DateTime
+  expected_operations Int    @default(1) // Expected number of fueling operations
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  created_by        Int?
+  is_deleted        Boolean  @default(false)
+  airline           Airline  @relation(fields: [airlineId], references: [id])
+  creator           User?    @relation("ScheduleCreator", fields: [created_by], references: [id])
+
+  @@index([airlineId])
+  @@index([scheduled_date])
+  @@index([destination])
+  @@index([is_deleted])
 }
 
 model FuelPriceRule {
@@ -1120,4 +1145,35 @@ enum NotificationType {
   WARNING_15_DAYS    // Upozorenje 15 dana prije
   CRITICAL_7_DAYS    // Kritično 7 dana prije
   EXPIRED            // Isteklo
+}
+
+model Report {
+  id                Int      @id @default(autoincrement())
+  title             String
+  template          String   // 'daily', 'weekly', 'monthly', 'comparison'
+  period1_start     DateTime
+  period1_end       DateTime
+  period2_start     DateTime?
+  period2_end       DateTime?
+  generated_by      Int
+  generated_at      DateTime @default(now())
+  access_token      String   @unique
+  is_public         Boolean  @default(false)
+  generated_by_user User     @relation("ReportGenerator", fields: [generated_by], references: [id])
+  accesses          ReportAccess[]
+
+  @@index([generated_by])
+  @@index([access_token])
+}
+
+model ReportAccess {
+  id          Int      @id @default(autoincrement())
+  report_id   Int
+  user_id     Int?
+  accessed_at DateTime @default(now())
+  ip_address  String?
+  report      Report   @relation(fields: [report_id], references: [id], onDelete: Cascade)
+  user        User?    @relation("ReportAccessor", fields: [user_id], references: [id], onDelete: SetNull)
+
+  @@index([report_id])
 }

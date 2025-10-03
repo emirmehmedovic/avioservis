@@ -49,6 +49,8 @@ import xmlInvoiceRoutes from './routes/xmlInvoice.routes';
 import emailInvoiceRoutes from './routes/emailInvoice.routes';
 import expirationNotificationRoutes from './routes/expirationNotification.routes';
 import analyticsComparisonRoutes from './routes/analyticsComparison.routes'; // Rute za analitiku i komparaciju
+import flightScheduleRoutes from './routes/flightSchedule.routes'; // Rute za raspored letenja
+import reportRoutes from './routes/report.routes'; // Rute za izvještaje
 
 const app = express();
 
@@ -145,6 +147,8 @@ app.use('/api/invoices/xml', xmlInvoiceRoutes);
 app.use('/api/invoices/email', emailInvoiceRoutes);
 app.use('/api/notifications/expirations', expirationNotificationRoutes);
 app.use('/api/analytics/comparison', reportingLimiter, analyticsComparisonRoutes); // Registracija ruta za analitiku i komparaciju
+app.use('/api/flight-schedules', flightScheduleRoutes); // Registracija ruta za raspored letenja
+app.use('/api/reports', reportRoutes); // Registracija ruta za izvještaje
 
 app.get('/', (req, res) => {
   res.send('Backend radi!');
