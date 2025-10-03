@@ -42,12 +42,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = (data: LoginResponse) => {
+    // Postavi auth state
+    setAuthUser(data.user);
+    setAuthToken(data.token);
+    
     if (typeof window !== 'undefined') {
       localStorage.setItem('authToken', data.token);
       localStorage.setItem('authUser', JSON.stringify(data.user));
+      
+      // Provjeri da li postoji redirect URL nakon login-a
+      const redirectAfterLogin = localStorage.getItem('redirectAfterLogin');
+      console.log('🟢 CHECKING redirectAfterLogin:', redirectAfterLogin);
+      
+      if (redirectAfterLogin) {
+        console.log('🟢 FOUND redirectAfterLogin, removing from localStorage');
+        localStorage.removeItem('redirectAfterLogin');
+        
+        // Provjeri da li je redirect URL siguran (samo reports stranice)
+        if (redirectAfterLogin.startsWith('/reports/') || redirectAfterLogin.startsWith('/dashboard')) {
+          console.log('🟢 VALID redirect URL, redirecting to:', redirectAfterLogin);
+          router.push(redirectAfterLogin);
+          return;
+        } else {
+          console.warn('🟢 INVALID redirect URL:', redirectAfterLogin);
+        }
+      } else {
+        console.log('🟢 NO redirectAfterLogin found, going to dashboard');
+      }
     }
-    setAuthUser(data.user);
-    setAuthToken(data.token);
+    
+    // Default redirect
     router.push('/dashboard');
   };
 

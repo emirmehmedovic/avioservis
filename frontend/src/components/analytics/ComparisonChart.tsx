@@ -10,7 +10,7 @@ export interface ChartDataPoint {
   period: string;
   current: number;
   previous: number;
-  growth: number;
+  growth?: number;
   label?: string;
 }
 
@@ -46,14 +46,31 @@ export default function ComparisonChart({
   metricUnit = ''
 }: ComparisonChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
+  
+  console.log('Debug - ComparisonChart data:', data);
+  console.log('Debug - ComparisonChart data length:', data?.length);
+  console.log('Debug - ComparisonChart first item:', data?.[0]);
 
   useEffect(() => {
     if (!data.length || loading || !chartRef.current) return;
 
+    // Validate data for NaN values
+    const validData = data.filter(item => 
+      !isNaN(item.current) && !isNaN(item.previous) && 
+      isFinite(item.current) && isFinite(item.previous)
+    );
+    
+    if (validData.length === 0) {
+      console.log('Debug - ComparisonChart: No valid data found');
+      return;
+    }
+    
+    console.log('Debug - ComparisonChart validData:', validData);
+
     // Clear previous chart
     d3.select(chartRef.current).selectAll("*").remove();
 
-    const margin = { top: 20, right: 80, bottom: 60, left: 60 };
+    const margin = { top: 50, right: 150, bottom: 150, left: 120 };
     const containerWidth = chartRef.current.clientWidth || 800;
     const width = containerWidth - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
@@ -69,7 +86,7 @@ export default function ComparisonChart({
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
     // Parse periods and prepare data
-    const processedData = data.map((d, i) => ({
+    const processedData = validData.map((d, i) => ({
       ...d,
       index: i,
       periodDate: new Date(d.period) // Assume period is a date string
@@ -100,9 +117,10 @@ export default function ComparisonChart({
     xAxis.selectAll("text")
       .style("text-anchor", "end")
       .attr("dx", "-.8em")
-      .attr("dy", ".15em")
+      .attr("dy", "1.5em")
       .attr("transform", "rotate(-45)")
-      .style("font-size", "12px");
+      .style("font-size", "10px")
+      .style("fill", "#374151");
 
     g.append("g")
       .call(d3.axisLeft(yScale).tickFormat(d3.format(".2s")))
@@ -325,7 +343,7 @@ export default function ComparisonChart({
 
     // Legend
     const legend = g.append("g")
-      .attr("transform", `translate(${width - 120}, 20)`);
+      .attr("transform", `translate(${width - 180}, 40)`);
 
     legend.append("rect")
       .attr("x", 0)
@@ -363,12 +381,14 @@ export default function ComparisonChart({
     return new Intl.NumberFormat('bs-BA').format(Math.round(num));
   };
 
-  const formatGrowth = (growth: number): string => {
+  const formatGrowth = (growth: number | undefined): string => {
+    if (growth === undefined || isNaN(growth)) return 'N/A';
     const sign = growth > 0 ? '+' : '';
     return `${sign}${growth.toFixed(1)}%`;
   };
 
-  const getGrowthColor = (growth: number): string => {
+  const getGrowthColor = (growth: number | undefined): string => {
+    if (growth === undefined || isNaN(growth)) return 'text-gray-600';
     if (growth > 0) return 'text-green-600';
     if (growth < 0) return 'text-red-600';
     return 'text-gray-600';
@@ -481,7 +501,7 @@ export default function ComparisonChart({
               Debug: Data Points ({data.length})
             </summary>
             <div className="space-y-1 max-h-32 overflow-y-auto">
-              {data.map((point, index) => (
+              {data.map((point: any, index: number) => (
                 <div key={index} className="flex justify-between text-gray-700">
                   <span>{point.period}</span>
                   <span>

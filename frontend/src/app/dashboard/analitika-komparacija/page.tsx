@@ -22,7 +22,9 @@ import {
   ArrowDownRight,
   Minus,
   Plane,
-  MapPin
+  MapPin,
+  CalendarCheck,
+  FileText
 } from 'lucide-react';
 
 // Interfaces for API responses
@@ -1359,7 +1361,7 @@ interface DateRange {
 export default function AnalitikaiKomparacijaPage() {
   const [cachedData, setCachedData] = useState<CachedAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'weekly' | 'monthly' | 'custom' | 'period-comparison' | 'airline-destination'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'weekly' | 'monthly' | 'custom' | 'period-comparison' | 'airline-destination' | 'schedule' | 'generate-report'>('overview');
   
   // Preload komponente
   useComponentPreloader();
@@ -1528,21 +1530,23 @@ export default function AnalitikaiKomparacijaPage() {
           transition={{ delay: 0.1 }}
           className="bg-white rounded-xl shadow-sm border border-gray-200 p-2"
         >
-          <div className="flex space-x-1">
+          <div className="flex space-x-1 overflow-x-auto">
             {[
               { id: 'overview', name: 'Pregled', icon: BarChart3 },
               { id: 'weekly', name: 'Sedmična analiza', icon: Calendar },
               { id: 'monthly', name: 'Mjesečna analiza', icon: PieChart },
               { id: 'custom', name: 'Prilagođena analiza', icon: Filter },
               { id: 'period-comparison', name: 'Komparacija perioda', icon: TrendingUp },
-              { id: 'airline-destination', name: 'Aviokompanija/Destinacija', icon: Plane }
+              { id: 'airline-destination', name: 'Aviokompanija/Destinacija', icon: Plane },
+              { id: 'schedule', name: 'Raspored', icon: CalendarCheck },
+              { id: 'generate-report', name: 'Generiši izvještaj', icon: FileText }
             ].map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors whitespace-nowrap ${
                     activeTab === tab.id
                       ? 'bg-blue-100 text-blue-700 font-medium'
                       : 'text-gray-600 hover:bg-gray-100'
@@ -1868,6 +1872,26 @@ export default function AnalitikaiKomparacijaPage() {
         {/* Aviokompanija/Destinacija analiza */}
         {activeTab === 'airline-destination' && (
           <AirlineDestinationTab />
+        )}
+
+        {/* Raspored letenja */}
+        {activeTab === 'schedule' && (
+          <Suspense fallback={<div className="p-6 text-center">Učitavam raspored...</div>}>
+            {React.createElement(
+              React.lazy(() => import('@/components/analytics/ScheduleTab')),
+              {}
+            )}
+          </Suspense>
+        )}
+
+        {/* Generiši izvještaj */}
+        {activeTab === 'generate-report' && (
+          <Suspense fallback={<div className="p-6 text-center">Učitavam generiranje izvještaja...</div>}>
+            {React.createElement(
+              React.lazy(() => import('@/components/analytics/GenerateReportTab')),
+              {}
+            )}
+          </Suspense>
         )}
       </div>
     </div>

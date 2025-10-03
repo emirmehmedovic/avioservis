@@ -19,7 +19,26 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!authIsLoading && authToken && authUser) {
-      router.push('/dashboard');
+      // Provjeri da li postoji redirect URL nakon login-a
+      const redirectAfterLogin = typeof window !== 'undefined' ? localStorage.getItem('redirectAfterLogin') : null;
+      console.log('🔵 LOGIN PAGE checking redirectAfterLogin:', redirectAfterLogin);
+      
+      if (redirectAfterLogin) {
+        console.log('🔵 LOGIN PAGE found redirectAfterLogin, removing from localStorage');
+        localStorage.removeItem('redirectAfterLogin');
+        
+        // Provjeri da li je redirect URL siguran (samo reports stranice)
+        if (redirectAfterLogin.startsWith('/reports/') || redirectAfterLogin.startsWith('/dashboard')) {
+          console.log('🔵 LOGIN PAGE valid redirect URL, redirecting to:', redirectAfterLogin);
+          router.push(redirectAfterLogin);
+        } else {
+          console.warn('🔵 LOGIN PAGE invalid redirect URL:', redirectAfterLogin);
+          router.push('/dashboard');
+        }
+      } else {
+        console.log('🔵 LOGIN PAGE no redirectAfterLogin found, going to dashboard');
+        router.push('/dashboard');
+      }
     }
   }, [authToken, authIsLoading, authUser, router]);
 

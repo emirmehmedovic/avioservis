@@ -21,6 +21,7 @@ interface DualPeriodSelectorProps {
   loading?: boolean;
 }
 
+// Version: 2.0 - Fixed date calculations
 export default function DualPeriodSelector({ onPeriodsChange, loading }: DualPeriodSelectorProps) {
   const [period1, setPeriod1] = useState<PeriodRange>({
     startDate: '',
@@ -68,6 +69,11 @@ export default function DualPeriodSelector({ onPeriodsChange, loading }: DualPer
     };
   }, []);
 
+  // Helper function to format date without timezone issues
+  const formatDateLocal = (date: Date): string => {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  };
+
   // Predefined period options
   const getQuickPeriods = () => {
     const now = new Date();
@@ -78,52 +84,112 @@ export default function DualPeriodSelector({ onPeriodsChange, loading }: DualPer
       {
         label: 'Ovaj mjesec vs Prošli mjesec',
         period1: {
-          startDate: new Date(currentYear, currentMonth - 1, 1).toISOString().split('T')[0],
-          endDate: new Date(currentYear, currentMonth, 0).toISOString().split('T')[0],
+          startDate: formatDateLocal(new Date(currentYear, currentMonth - 1, 1)),
+          endDate: formatDateLocal(new Date(currentYear, currentMonth, 0)),
           name: 'Prošli mjesec'
         },
         period2: {
-          startDate: new Date(currentYear, currentMonth, 1).toISOString().split('T')[0],
-          endDate: new Date(currentYear, currentMonth + 1, 0).toISOString().split('T')[0],
+          startDate: formatDateLocal(new Date(currentYear, currentMonth, 1)),
+          endDate: formatDateLocal(new Date(currentYear, currentMonth + 1, 0)),
           name: 'Ovaj mjesec'
         }
       },
       {
         label: 'Avgust vs Septembar',
         period1: {
-          startDate: new Date(currentYear, 7, 1).toISOString().split('T')[0], // August
-          endDate: new Date(currentYear, 8, 0).toISOString().split('T')[0],
+          startDate: formatDateLocal(new Date(currentYear, 7, 1)), // August 1st
+          endDate: formatDateLocal(new Date(currentYear, 8, 0)), // Last day of August (31st)
           name: 'Avgust'
         },
         period2: {
-          startDate: new Date(currentYear, 8, 1).toISOString().split('T')[0], // September
-          endDate: new Date(currentYear, 9, 0).toISOString().split('T')[0],
+          startDate: formatDateLocal(new Date(currentYear, 8, 1)), // September 1st
+          endDate: formatDateLocal(new Date(currentYear, 9, 0)), // Last day of September (30th)
           name: 'Septembar'
         }
       },
       {
         label: 'Q3 vs Q4 (ova godina)',
         period1: {
-          startDate: new Date(currentYear, 6, 1).toISOString().split('T')[0], // Q3
-          endDate: new Date(currentYear, 9, 0).toISOString().split('T')[0],
+          startDate: formatDateLocal(new Date(currentYear, 6, 1)), // Q3 start (July 1st)
+          endDate: formatDateLocal(new Date(currentYear, 9, 0)), // Q3 end (September 30th)
           name: 'Q3'
         },
         period2: {
-          startDate: new Date(currentYear, 9, 1).toISOString().split('T')[0], // Q4
-          endDate: new Date(currentYear, 12, 0).toISOString().split('T')[0],
+          startDate: formatDateLocal(new Date(currentYear, 9, 1)), // Q4 start (October 1st)
+          endDate: formatDateLocal(new Date(currentYear, 12, 0)), // Q4 end (December 31st)
           name: 'Q4'
+        }
+      },
+      {
+        label: 'Trenutna vs Prošla sedmica',
+        period1: {
+          startDate: (() => {
+            // Prošla sedmica - 7 dana unazad od trenutne sedmice
+            const today = new Date(now);
+            const dayOfWeek = today.getDay(); // 0 = nedjelja, 1 = ponedjeljak, ..., 6 = subota
+            const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Pretvori u ponedjeljak kao početak sedmice
+            
+            const startOfThisWeek = new Date(today);
+            startOfThisWeek.setDate(today.getDate() - daysToMonday);
+            
+            const startOfLastWeek = new Date(startOfThisWeek);
+            startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
+            
+            return formatDateLocal(startOfLastWeek);
+          })(),
+          endDate: (() => {
+            const today = new Date(now);
+            const dayOfWeek = today.getDay();
+            const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            
+            const startOfThisWeek = new Date(today);
+            startOfThisWeek.setDate(today.getDate() - daysToMonday);
+            
+            const endOfLastWeek = new Date(startOfThisWeek);
+            endOfLastWeek.setDate(startOfThisWeek.getDate() - 1);
+            
+            return formatDateLocal(endOfLastWeek);
+          })(),
+          name: 'Prošla sedmica'
+        },
+        period2: {
+          startDate: (() => {
+            // Trenutna sedmica - od ponedjeljka do nedjelje
+            const today = new Date(now);
+            const dayOfWeek = today.getDay();
+            const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            
+            const startOfThisWeek = new Date(today);
+            startOfThisWeek.setDate(today.getDate() - daysToMonday);
+            
+            return formatDateLocal(startOfThisWeek);
+          })(),
+          endDate: (() => {
+            const today = new Date(now);
+            const dayOfWeek = today.getDay();
+            const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            
+            const startOfThisWeek = new Date(today);
+            startOfThisWeek.setDate(today.getDate() - daysToMonday);
+            
+            const endOfThisWeek = new Date(startOfThisWeek);
+            endOfThisWeek.setDate(startOfThisWeek.getDate() + 6);
+            
+            return formatDateLocal(endOfThisWeek);
+          })(),
+          name: 'Trenutna sedmica'
         }
       },
       {
         label: 'Ova godina vs Prošla godina (isti period)',
         period1: {
-          startDate: new Date(currentYear - 1, 0, 1).toISOString().split('T')[0],
-          endDate: new Date(currentYear - 1, currentMonth, now.getDate()).toISOString().split('T')[0],
+          startDate: formatDateLocal(new Date(currentYear - 1, 0, 1)),
+          endDate: formatDateLocal(new Date(currentYear - 1, currentMonth, now.getDate())),
           name: `${currentYear - 1}`
         },
         period2: {
-          startDate: new Date(currentYear, 0, 1).toISOString().split('T')[0],
-          endDate: now.toISOString().split('T')[0],
+          startDate: formatDateLocal(new Date(currentYear, 0, 1)),
+          endDate: formatDateLocal(now),
           name: `${currentYear}`
         }
       }
