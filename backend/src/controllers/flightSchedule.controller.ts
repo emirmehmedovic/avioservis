@@ -251,7 +251,7 @@ export const getScheduleComparison = async (req: Request, res: Response, next: N
       },
     });
 
-    // Match schedules with operations
+    // Match schedules with operations using improved smart matching
     const comparison = schedules.map((schedule) => {
       const matchingOperations = operations.filter((op) => {
         // Destination matching: support partial match (e.g., "Istanbul" matches "Istanbul Sabiha Gökçen")
@@ -263,17 +263,32 @@ export const getScheduleComparison = async (req: Request, res: Response, next: N
         
         if (!destinationMatch) return false;
 
-        // Airline matching: support partial match for cases like "Wizz Air" matching "Wizz Air Hungary LTD"
+        // Enhanced airline matching: support multiple Wizz Air subsidiaries
         const scheduleAirlineName = schedule.airline.name.toLowerCase();
         const opAirlineName = op.airline.name.toLowerCase();
         
-        // Check if either name contains the other (bidirectional partial match)
+        // Check for exact match first
+        if (scheduleAirlineName === opAirlineName || op.airlineId === schedule.airlineId) {
+          return true;
+        }
+        
+        // Check for partial match (bidirectional)
         const airlineMatch = 
           scheduleAirlineName.includes(opAirlineName) || 
-          opAirlineName.includes(scheduleAirlineName) ||
-          op.airlineId === schedule.airlineId; // Fallback to exact ID match
+          opAirlineName.includes(scheduleAirlineName);
         
-        return airlineMatch;
+        if (airlineMatch) return true;
+        
+        // Special case: Wizz Air matching logic
+        // If schedule is "Wizz Air" (or any Wizz Air subsidiary) and operation is also Wizz Air
+        const isWizzAirSchedule = scheduleAirlineName.includes('wizz') && scheduleAirlineName.includes('air');
+        const isWizzAirOperation = opAirlineName.includes('wizz') && opAirlineName.includes('air');
+        
+        if (isWizzAirSchedule && isWizzAirOperation) {
+          return true;
+        }
+        
+        return false;
       });
 
       return {
@@ -305,10 +320,10 @@ export const getScheduleComparison = async (req: Request, res: Response, next: N
       };
     });
 
-    // Also include operations without schedules (using same smart matching logic)
+    // Also include operations without schedules (using same enhanced smart matching logic)
     const unmatchedOperations = operations.filter((op) => {
       return !schedules.some((schedule) => {
-        // Same matching logic as above - partial match for both destination and airline
+        // Same enhanced matching logic as above
         const scheduleDestination = schedule.destination.toLowerCase();
         const opDestination = op.destination.toLowerCase();
         const destinationMatch = 
@@ -320,12 +335,27 @@ export const getScheduleComparison = async (req: Request, res: Response, next: N
         const scheduleAirlineName = schedule.airline.name.toLowerCase();
         const opAirlineName = op.airline.name.toLowerCase();
         
+        // Check for exact match first
+        if (scheduleAirlineName === opAirlineName || op.airlineId === schedule.airlineId) {
+          return true;
+        }
+        
+        // Check for partial match (bidirectional)
         const airlineMatch = 
           scheduleAirlineName.includes(opAirlineName) || 
-          opAirlineName.includes(scheduleAirlineName) ||
-          op.airlineId === schedule.airlineId;
+          opAirlineName.includes(scheduleAirlineName);
         
-        return airlineMatch;
+        if (airlineMatch) return true;
+        
+        // Special case: Wizz Air matching logic
+        const isWizzAirSchedule = scheduleAirlineName.includes('wizz') && scheduleAirlineName.includes('air');
+        const isWizzAirOperation = opAirlineName.includes('wizz') && opAirlineName.includes('air');
+        
+        if (isWizzAirSchedule && isWizzAirOperation) {
+          return true;
+        }
+        
+        return false;
       });
     });
 
@@ -581,7 +611,7 @@ export const getStatistics = async (req: Request, res: Response, next: NextFunct
         (op) => op.dateTime >= intervalStart && op.dateTime <= intervalEnd
       );
 
-      // Match operations with schedules using the same smart matching logic
+      // Match operations with schedules using the same enhanced smart matching logic
       const matchedOperations = new Set();
       const scheduledWithMatch = periodSchedules.map((schedule) => {
         const matching = periodOperations.filter((op) => {
@@ -598,12 +628,27 @@ export const getStatistics = async (req: Request, res: Response, next: NextFunct
           const scheduleAirlineName = schedule.airline.name.toLowerCase();
           const opAirlineName = op.airline.name.toLowerCase();
           
+          // Check for exact match first
+          if (scheduleAirlineName === opAirlineName || op.airlineId === schedule.airlineId) {
+            return true;
+          }
+          
+          // Check for partial match (bidirectional)
           const airlineMatch = 
             scheduleAirlineName.includes(opAirlineName) || 
-            opAirlineName.includes(scheduleAirlineName) ||
-            op.airlineId === schedule.airlineId;
+            opAirlineName.includes(scheduleAirlineName);
           
-          return airlineMatch;
+          if (airlineMatch) return true;
+          
+          // Special case: Wizz Air matching logic
+          const isWizzAirSchedule = scheduleAirlineName.includes('wizz') && scheduleAirlineName.includes('air');
+          const isWizzAirOperation = opAirlineName.includes('wizz') && opAirlineName.includes('air');
+          
+          if (isWizzAirSchedule && isWizzAirOperation) {
+            return true;
+          }
+          
+          return false;
         });
 
         matching.forEach((op) => matchedOperations.add(op.id));
