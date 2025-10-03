@@ -50,10 +50,39 @@ export const importSchedulesFromCSV = async (
       },
     });
 
-    const airlineMap = new Map<string, number>();
-    airlines.forEach((airline) => {
-      airlineMap.set(airline.name.toLowerCase(), airline.id);
-    });
+    // Helper function for smart airline matching
+    const findAirlineId = (searchName: string): number | null => {
+      const searchLower = searchName.toLowerCase().trim();
+      
+      // First try exact match
+      const exactMatch = airlines.find(airline => 
+        airline.name.toLowerCase() === searchLower
+      );
+      if (exactMatch) return exactMatch.id;
+      
+      // Try partial matching - search name contains airline name or vice versa
+      const partialMatch = airlines.find(airline => {
+        const airlineNameLower = airline.name.toLowerCase();
+        return airlineNameLower.includes(searchLower) || 
+               searchLower.includes(airlineNameLower);
+      });
+      if (partialMatch) return partialMatch.id;
+      
+      // Try word-by-word matching for cases like "Wizz Air" vs "Wizz Air Hungary LTD"
+      const searchWords = searchLower.split(/\s+/);
+      const wordMatch = airlines.find(airline => {
+        const airlineWords = airline.name.toLowerCase().split(/\s+/);
+        // Check if all search words are present in airline name
+        return searchWords.every(word => 
+          airlineWords.some(airlineWord => 
+            airlineWord.includes(word) || word.includes(airlineWord)
+          )
+        );
+      });
+      if (wordMatch) return wordMatch.id;
+      
+      return null;
+    };
 
     const results = {
       total: 0,
@@ -89,9 +118,9 @@ export const importSchedulesFromCSV = async (
           continue;
         }
 
-        // Find airline ID
+        // Find airline ID using smart matching
         const airlineName = row['Avio kompanija']?.trim();
-        const airlineId = airlineMap.get(airlineName.toLowerCase());
+        const airlineId = findAirlineId(airlineName);
 
         if (!airlineId) {
           results.errors.push(
@@ -280,10 +309,39 @@ export const previewCSVImport = async (
       },
     });
 
-    const airlineMap = new Map<string, number>();
-    airlines.forEach((airline) => {
-      airlineMap.set(airline.name.toLowerCase(), airline.id);
-    });
+    // Helper function for smart airline matching (same as in import function)
+    const findAirlineId = (searchName: string): number | null => {
+      const searchLower = searchName.toLowerCase().trim();
+      
+      // First try exact match
+      const exactMatch = airlines.find(airline => 
+        airline.name.toLowerCase() === searchLower
+      );
+      if (exactMatch) return exactMatch.id;
+      
+      // Try partial matching - search name contains airline name or vice versa
+      const partialMatch = airlines.find(airline => {
+        const airlineNameLower = airline.name.toLowerCase();
+        return airlineNameLower.includes(searchLower) || 
+               searchLower.includes(airlineNameLower);
+      });
+      if (partialMatch) return partialMatch.id;
+      
+      // Try word-by-word matching for cases like "Wizz Air" vs "Wizz Air Hungary LTD"
+      const searchWords = searchLower.split(/\s+/);
+      const wordMatch = airlines.find(airline => {
+        const airlineWords = airline.name.toLowerCase().split(/\s+/);
+        // Check if all search words are present in airline name
+        return searchWords.every(word => 
+          airlineWords.some(airlineWord => 
+            airlineWord.includes(word) || word.includes(airlineWord)
+          )
+        );
+      });
+      if (wordMatch) return wordMatch.id;
+      
+      return null;
+    };
 
     const preview = {
       totalRows: records.length,
@@ -312,7 +370,7 @@ export const previewCSVImport = async (
       }
 
       const airlineName = row['Avio kompanija']?.trim();
-      const airlineId = airlineMap.get(airlineName.toLowerCase());
+      const airlineId = findAirlineId(airlineName);
 
       if (!airlineId) {
         preview.missingAirlines.add(airlineName);
@@ -411,7 +469,7 @@ export const previewCSVImport = async (
       }
 
       const airlineName = row['Avio kompanija']?.trim();
-      if (!airlineMap.get(airlineName.toLowerCase())) {
+      if (!findAirlineId(airlineName)) {
         preview.missingAirlines.add(airlineName);
         preview.invalidRows++;
       } else {
