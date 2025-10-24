@@ -1,0 +1,30 @@
+# Email Configuration (SMTP)
+EMAIL_HOST=mail.hifapetrol.ba
+EMAIL_PORT=587
+EMAIL_SECURE=false
+EMAIL_USER=airport.tuzla@hifapetrol.ba
+EMAIL_PASS=Test1234
+EMAIL_FROM="HIFA-Petrol Invoices" <airport.tuzla@hifapetrol.ba>
+
+# IMAP Configuration (DISABLED to prevent CRON blocking)
+# IMAP_HOST=mail.hifapetrol.ba
+# IMAP_PORT=143
+# IMAP_SECURE=false
+# IMAP_USER=airport.tuzla@hifapetrol.ba
+# IMAP_PASS=Test1234
+
+# IMAP is disabled to prevent CRON job blocking
+# If you want to enable IMAP, set DISABLE_IMAP=false and configure IMAP credentials above
+DISABLE_IMAP=true
+
+# Database Configuration
+DATABASE_URL="postgresql://username:password@localhost:5432/avioservis"
+
+# JWT Configuration
+JWT_SECRET=your-jwt-secret-key
+
+# Timezone
+TZ=Europe/Sarajevo
+
+# Environment
+NODE_ENV=production

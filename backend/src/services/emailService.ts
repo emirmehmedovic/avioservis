@@ -96,6 +96,17 @@ export class EmailService {
   }
 
   private async saveSentEmail(mailOptions: any): Promise<void> {
+    // Check if IMAP is explicitly disabled via environment variable
+    if (process.env.DISABLE_IMAP === 'true' || process.env.IMAP_DISABLED === 'true') {
+      console.log('IMAP disabled via environment variable, skipping Sent folder save');
+      return;
+    }
+    
+    // IMAP permanently disabled to prevent CRON job blocking
+    // This prevents "Logging in is disabled on this server" errors
+    console.log('IMAP disabled to prevent CRON job blocking, skipping Sent folder save');
+    return;
+    
     if (!this.imapConfig) {
       console.log('IMAP not configured, skipping Sent folder save');
       return;
@@ -157,6 +168,20 @@ export class EmailService {
 
       imap.once('error', (err: any) => {
         console.error('IMAP connection error:', err);
+        
+        // Provide specific error analysis
+        if (err.message.includes('Logging in is disabled')) {
+          console.error('💡 IMAP Error Analysis:');
+          console.error('  - Server has disabled plaintext login for security');
+          console.error('  - May require OAuth or App Password');
+          console.error('  - Consider disabling IMAP to prevent CRON blocking');
+        } else if (err.message.includes('ECONNREFUSED')) {
+          console.error('💡 IMAP Connection Refused:');
+          console.error('  - Check if server is running');
+          console.error('  - Verify port (993 for SSL, 143 for TLS)');
+          console.error('  - Check firewall settings');
+        }
+        
         reject(err);
       });
 

@@ -16,6 +16,11 @@ export function initEmailInvoiceCron(): void {
   const tz = process.env.TZ || 'Europe/Sarajevo';
 
   cron.schedule(cronExpression, async () => {
+    const timeoutId = setTimeout(() => {
+      console.error(`[${new Date().toISOString()}] Email invoice cron job timed out after 10 minutes`);
+      process.exit(1); // Force restart if stuck
+    }, 10 * 60 * 1000); // 10 minutes timeout
+    
     try {
       console.log(`[${new Date().toISOString()}] Starting email invoice dispatch cron job...`);
       
@@ -47,6 +52,8 @@ export function initEmailInvoiceCron(): void {
       }
     } catch (error) {
       console.error(`[${new Date().toISOString()}] Email invoice cron job failed:`, error);
+    } finally {
+      clearTimeout(timeoutId);
     }
   }, {
     timezone: tz
@@ -58,6 +65,11 @@ export function initEmailInvoiceCron(): void {
   const retryCronExpression = '57 23 * * *';
   
   cron.schedule(retryCronExpression, async () => {
+    const timeoutId = setTimeout(() => {
+      console.error(`[${new Date().toISOString()}] Email invoice retry cron job timed out after 5 minutes`);
+      process.exit(1); // Force restart if stuck
+    }, 5 * 60 * 1000); // 5 minutes timeout
+    
     try {
       console.log(`[${new Date().toISOString()}] Starting email invoice retry cron job...`);
       
@@ -120,6 +132,8 @@ export function initEmailInvoiceCron(): void {
       
     } catch (error) {
       console.error(`[${new Date().toISOString()}] Email invoice retry cron job failed:`, error);
+    } finally {
+      clearTimeout(timeoutId);
     }
   }, {
     timezone: tz
