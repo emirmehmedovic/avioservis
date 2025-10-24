@@ -1,17 +1,17 @@
 # Email Configuration (SMTP)
-EMAIL_HOST=mail.hifapetrol.ba
+EMAIL_HOST=your-smtp-server.com
 EMAIL_PORT=587
 EMAIL_SECURE=false
-EMAIL_USER=airport.tuzla@hifapetrol.ba
-EMAIL_PASS=Test1234
-EMAIL_FROM="HIFA-Petrol Invoices" <airport.tuzla@hifapetrol.ba>
+EMAIL_USER=your-email@domain.com
+EMAIL_PASS=your-email-password
+EMAIL_FROM="Your Company Invoices" <your-email@domain.com>
 
 # IMAP Configuration (DISABLED to prevent CRON blocking)
-# IMAP_HOST=mail.hifapetrol.ba
+# IMAP_HOST=your-imap-server.com
 # IMAP_PORT=143
 # IMAP_SECURE=false
-# IMAP_USER=airport.tuzla@hifapetrol.ba
-# IMAP_PASS=Test1234
+# IMAP_USER=your-email@domain.com
+# IMAP_PASS=your-email-password
 
 # IMAP is disabled to prevent CRON job blocking
 # If you want to enable IMAP, set DISABLE_IMAP=false and configure IMAP credentials above
