@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectItem } from '@/components/ui/select';
 import { Button } from '@/components/ui/Button';
 import { physicalTankRetrofitService, RetrofitPreview, PhysicalTank } from '@/services/physicalTankRetrofitService';
 import { toast } from 'sonner';
@@ -158,15 +158,11 @@ const RetrofitModal: React.FC<RetrofitModalProps> = ({ isOpen, onClose, onSucces
         <div className="mb-4">
           <Label>Tip Goriva</Label>
           <Select value={selectedFuelType} onValueChange={setSelectedFuelType}>
-            <SelectTrigger>
-              <SelectValue placeholder="Odaberite tip goriva" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Svi tipovi</SelectItem>
-              <SelectItem value="Jet A-1">JET A-1</SelectItem>
-              <SelectItem value="Jet A">JET A</SelectItem>
-              <SelectItem value="AVGAS">AVGAS</SelectItem>
-            </SelectContent>
+            <SelectItem value="" disabled>Odaberite tip goriva</SelectItem>
+            <SelectItem value="all">Svi tipovi</SelectItem>
+            <SelectItem value="Jet A-1">JET A-1</SelectItem>
+            <SelectItem value="Jet A">JET A</SelectItem>
+            <SelectItem value="AVGAS">AVGAS</SelectItem>
           </Select>
         </div>
 
@@ -181,16 +177,12 @@ const RetrofitModal: React.FC<RetrofitModalProps> = ({ isOpen, onClose, onSucces
               <div className="mb-4">
                 <Label>Odaberite MRN Zapis</Label>
                 <Select value={selectedMrn} onValueChange={setSelectedMrn}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Odaberite MRN zapis" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {previewData.existing_mrn_records.map((mrn) => (
-                      <SelectItem key={mrn.customs_declaration_number} value={mrn.customs_declaration_number}>
-                        {mrn.customs_declaration_number} - {mrn.total_liters}L ({mrn.supplier_name})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                  <SelectItem value="" disabled>Odaberite MRN zapis</SelectItem>
+                  {previewData.existing_mrn_records.map((mrn) => (
+                    <SelectItem key={mrn.customs_declaration_number} value={mrn.customs_declaration_number}>
+                      {mrn.customs_declaration_number} - {mrn.total_liters}L ({mrn.supplier_name})
+                    </SelectItem>
+                  ))}
                 </Select>
               </div>
             )}
