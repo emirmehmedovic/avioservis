@@ -24,10 +24,7 @@ import {
 } from "@/components/ui/Table";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select';
 import { Input } from "@/components/ui/input";
 import FuelIntakeRecordDetailsModal, { FuelIntakeRecordWithDetails } from './FuelIntakeRecordDetailsModal';
@@ -521,7 +518,7 @@ export default function FuelIntakeDisplay() {
                       {record.fuel_type && (
                         record.fuel_type.toLowerCase() === 'jet a-1' || 
                         record.fuel_type.toLowerCase() === 'jet_a1' ||
-                        record.fuel_type === 'JET_A1'
+                        record.fuel_type === 'Jet A-1'
                       ) ? (
                         <div className="flex items-center">
                           <img 

@@ -5,76 +5,50 @@ export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElemen
   onValueChange?: (value: string) => void;
 }
 
-const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, children, onValueChange, onChange, ...props }, ref) => {
-    const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-      if (onValueChange) {
-        onValueChange(e.target.value);
-      }
-      if (onChange) {
-        onChange(e);
-      }
-    };
+export function Select({ className, children, onValueChange, onChange, ...props }: SelectProps) {
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (onValueChange) {
+      onValueChange(e.target.value);
+    }
+    if (onChange) {
+      onChange(e);
+    }
+  };
 
-    return (
-      <select
-        className={cn(
-          "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-          className
-        )}
-        ref={ref}
-        onChange={handleChange}
-        {...props}
-      >
-        {children}
-      </select>
-    );
-  }
-);
-Select.displayName = "Select";
+  return (
+    <select
+      className={cn(
+        "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+        className
+      )}
+      onChange={handleChange}
+      {...props}
+    >
+      {children}
+    </select>
+  );
+}
 
-const SelectItem = React.forwardRef<
-  HTMLOptionElement,
-  React.OptionHTMLAttributes<HTMLOptionElement>
->(({ className, children, ...props }, ref) => (
-  <option
-    className={cn("", className)}
-    ref={ref}
-    {...props}
-  >
-    {children}
-  </option>
-));
-SelectItem.displayName = "SelectItem";
+export function SelectItem({ className, children, ...props }: React.OptionHTMLAttributes<HTMLOptionElement>) {
+  return (
+    <option
+      className={cn("", className)}
+      {...props}
+    >
+      {children}
+    </option>
+  );
+}
 
 // Dummy komponente za kompatibilnost - ne kreiraju HTML elemente
-const SelectTrigger = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, children, ...props }, ref) => {
-    return null; // Ne renderira ništa
-  }
-);
-SelectTrigger.displayName = "SelectTrigger";
-
-const SelectValue = React.forwardRef<
-  HTMLSpanElement,
-  React.HTMLAttributes<HTMLSpanElement> & { placeholder?: string }
->(({ className, children, placeholder, ...props }, ref) => {
+export function SelectTrigger({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return null; // Ne renderira ništa
-});
-SelectValue.displayName = "SelectValue";
+}
 
-const SelectContent = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, children, ...props }, ref) => {
+export function SelectValue({ className, children, placeholder, ...props }: React.HTMLAttributes<HTMLSpanElement> & { placeholder?: string }) {
   return null; // Ne renderira ništa
-});
-SelectContent.displayName = "SelectContent";
+}
 
-export {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+export function SelectContent({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return null; // Ne renderira ništa
 }
