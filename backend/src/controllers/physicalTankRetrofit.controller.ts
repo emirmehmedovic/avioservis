@@ -69,6 +69,16 @@ export const getRetrofitPreview: RequestHandler = async (req, res, next): Promis
         return acc;
       }, [] as any[]);
 
+    // Sort available records by date (newest first)
+    availableRecords.sort((a, b) => new Date(b.date_added).getTime() - new Date(a.date_added).getTime());
+
+    // Debug logging
+    logger.info(`Found ${fuelIntakeRecords.length} total fuel intake records`);
+    logger.info(`Found ${distributedMrns.length} already distributed MRNs`);
+    logger.info(`Found ${availableRecords.length} available MRN records for retrofit`);
+    logger.info(`Distributed MRNs: ${Array.from(distributedMrnSet).join(', ')}`);
+    logger.info(`Available MRNs: ${availableRecords.map(r => r.customs_declaration_number).join(', ')}`);
+
     // Get physical tanks for selection
     const physicalTanks = await prisma.physicalTanks.findMany({
       where: { is_active: true },
@@ -93,36 +103,41 @@ export const getRetrofitPreview: RequestHandler = async (req, res, next): Promis
  */
 export const executeRetrofit: RequestHandler = async (req, res, next): Promise<void> => {
   try {
-    const { distributions } = req.body;
+    const { customs_declaration_number, fuel_type, distribution } = req.body;
 
-    if (!distributions || !Array.isArray(distributions) || distributions.length === 0) {
-      res.status(400).json({ message: 'distributions array is required' });
+    // Validate inputs
+    if (!customs_declaration_number || !fuel_type || !distribution || !Array.isArray(distribution) || distribution.length === 0) {
+      res.status(400).json({ 
+        message: 'Missing required fields: customs_declaration_number, fuel_type, distribution array' 
+      });
       return;
     }
+
+    logger.info(`Executing retrofit for MRN: ${customs_declaration_number}, fuel_type: ${fuel_type}`);
+    logger.info(`Distribution: ${JSON.stringify(distribution)}`);
 
     const result = await prisma.$transaction(async (tx) => {
       const results = [];
 
-      for (const distribution of distributions) {
+      for (const dist of distribution) {
         const {
-          customs_declaration_number,
-          physical_tank_id,
+          tank_id,
           quantity_liters,
           quantity_kg
-        } = distribution;
+        } = dist;
 
         // Validate inputs
-        if (!customs_declaration_number || !physical_tank_id || !quantity_liters || !quantity_kg) {
-          throw new Error('Missing required fields: customs_declaration_number, physical_tank_id, quantity_liters, quantity_kg');
+        if (!tank_id || !quantity_liters || !quantity_kg) {
+          throw new Error('Missing required fields: tank_id, quantity_liters, quantity_kg');
         }
 
         // Get the tank
         const tank = await tx.physicalTanks.findUnique({
-          where: { id: physical_tank_id }
+          where: { id: tank_id }
         });
 
         if (!tank) {
-          throw new Error(`Physical tank with ID ${physical_tank_id} not found`);
+          throw new Error(`Physical tank with ID ${tank_id} not found`);
         }
 
         // Check capacity
@@ -143,7 +158,7 @@ export const executeRetrofit: RequestHandler = async (req, res, next): Promise<v
 
         // Update tank quantities
         await tx.physicalTanks.update({
-          where: { id: physical_tank_id },
+          where: { id: tank_id },
           data: {
             current_quantity_liters: { increment: quantity_liters },
             current_quantity_kg: { increment: quantity_kg }
@@ -153,7 +168,7 @@ export const executeRetrofit: RequestHandler = async (req, res, next): Promise<v
         // Create MRN record
         const mrnRecord = await tx.physicalTankMrn.create({
           data: {
-            physical_tank_id,
+            physical_tank_id: tank_id,
             customs_declaration_number,
             quantity_liters,
             quantity_kg,
