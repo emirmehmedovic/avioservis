@@ -51,6 +51,11 @@ import expirationNotificationRoutes from './routes/expirationNotification.routes
 import analyticsComparisonRoutes from './routes/analyticsComparison.routes'; // Rute za analitiku i komparaciju
 import flightScheduleRoutes from './routes/flightSchedule.routes'; // Rute za raspored letenja
 import reportRoutes from './routes/report.routes'; // Rute za izvještaje
+import physicalTankRoutes from './routes/physicalTank.routes'; // Rute za fizičke tankove
+import physicalCisternRoutes from './routes/physicalCistern.routes'; // Rute za fizičke cisterne
+import physicalTankTransferRoutes from './routes/physicalTankTransfer.routes'; // Rute za transfere između tankova i cisterni
+import physicalTankRetrofitRoutes from './routes/physicalTankRetrofit.routes'; // Rute za retrofit funkcionalnost
+import physicalSubCisternRoutes from './routes/physicalSubCistern.routes'; // Rute za sub-cisterne
 
 const app = express();
 
@@ -149,6 +154,11 @@ app.use('/api/notifications/expirations', expirationNotificationRoutes);
 app.use('/api/analytics/comparison', reportingLimiter, analyticsComparisonRoutes); // Registracija ruta za analitiku i komparaciju
 app.use('/api/flight-schedules', flightScheduleRoutes); // Registracija ruta za raspored letenja
 app.use('/api/reports', reportRoutes); // Registracija ruta za izvještaje
+app.use('/api/physical-tanks', sensitiveOperationsLimiter, physicalTankRoutes); // Registracija ruta za fizičke tankove
+app.use('/api/physical-cisterns', sensitiveOperationsLimiter, physicalCisternRoutes); // Registracija ruta za fizičke cisterne
+app.use('/api/physical-tank-transfers', sensitiveOperationsLimiter, physicalTankTransferRoutes); // Registracija ruta za transfere između tankova i cisterni
+app.use('/api/physical-tanks/retrofit', sensitiveOperationsLimiter, physicalTankRetrofitRoutes); // Registracija ruta za retrofit funkcionalnost
+app.use('/api/physical-sub-cisterns', sensitiveOperationsLimiter, physicalSubCisternRoutes); // Registracija ruta za sub-cisterne
 
 app.get('/', (req, res) => {
   res.send('Backend radi!');

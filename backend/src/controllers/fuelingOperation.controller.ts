@@ -551,6 +551,32 @@ export const createFuelingOperation = async (req: Request, res: Response): Promi
     logger.info(`✅ Completed Fueling operation: AIRCRAFT_FUELING`);
     logger.info(`🛩️ Aircraft ${validationResult.data.aircraft_registration} fueled with ${quantity_liters}L / ${quantity_kg}kg from tank ${tank.name}`);
     
+    // Hook: Deduct fuel from physical cisterns if they exist
+    try {
+      const { deductFuelFromSubCisterns } = await import('../services/physicalSubCistern.service');
+      const { Decimal } = await import('@prisma/client/runtime/library');
+      
+      // Find the cumulative cistern (if any)
+      const cumulativeCistern = await (prisma as any).physicalCisternFuel.findFirst({
+        where: { is_cumulative: true, is_active: true }
+      });
+      
+      if (cumulativeCistern) {
+        logger.info(`🔗 Physical cistern deduction hook triggered for cistern ID: ${cumulativeCistern.id}`);
+        await deductFuelFromSubCisterns(
+          cumulativeCistern.id,
+          new Decimal(quantity_liters),
+          new Decimal(quantity_kg),
+          result.id
+        );
+      } else {
+        logger.info('ℹ️ No cumulative cistern configured, skipping physical cistern deduction');
+      }
+    } catch (hookError) {
+      // Don't fail the fueling operation if cistern deduction fails
+      logger.warn('⚠️ Physical cistern deduction failed:', (hookError as Error).message);
+    }
+    
     res.status(201).json(result);
   } catch (error) {
     logger.error('❌ Error creating fueling operation:', error);

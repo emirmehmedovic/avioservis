@@ -850,10 +850,10 @@ export default function TankManagement() {
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center">
               <TruckIcon className="h-6 w-6 mr-2" />
-              Upravljanje Tankerima
+              Upravljanje tipovima goriva (Izvoz/Domaće tržište)
             </h1>
             <p className="text-gray-300 mt-1 ml-8">
-              Upravljanje mobilnim cisternama za gorivo
+              Upravljanje tipovima goriva (Izvoz/Domaće tržište)
             </p>
           </div>
           <button
@@ -1003,13 +1003,10 @@ export default function TankManagement() {
                         )}
                       </div>
                       <div className="flex flex-col justify-between mt-2">
-                        <div className="flex justify-between">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium backdrop-blur-md bg-[#F08080]/20 border border-white/10 text-white">
+                        <div className="text-center">
+                          <h3 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">
                             {tank.name || 'Cisterna'}
-                          </span>
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium backdrop-blur-md bg-white/10 border border-white/10 text-white">
-                            ID: {tank.identifier}
-                          </span>
+                          </h3>
                         </div>
                         <div className="text-right mt-2">
                           <span className="text-sm font-bold text-white">{fillPercentage}%</span>

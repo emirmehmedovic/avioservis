@@ -392,7 +392,7 @@ const AddOperationForm: React.FC<AddOperationFormProps> = ({
             <div className="grid grid-cols-1 gap-y-6 gap-x-6 sm:grid-cols-2">
               <div>
                 <label htmlFor="tankId" className="block text-sm font-medium text-gray-700">
-                  Tanker
+                  Tip goriva
                 </label>
                 <div className="mt-1">
                   <select
@@ -403,7 +403,7 @@ const AddOperationForm: React.FC<AddOperationFormProps> = ({
                     className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300/50 rounded-lg h-11 bg-white/80 backdrop-blur-sm"
                     required
                   >
-                    <option value="">Odaberite tanker</option>
+                    <option value="">Odaberite tip goriva</option>
                     {tanks.map((tank) => {
                       // Izračunaj približne kg na osnovi litara i standardne gustoće 0.8 (ako nemamo current_kg)
                       const tankKg = tank.current_kg !== undefined ? 

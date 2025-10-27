@@ -33,6 +33,7 @@ import {
   Calendar, // Added Calendar for calibration plans
   Wrench, // Added Wrench for ostala oprema
   TrendingUp, // Added TrendingUp for analytics and comparison
+  Database, // Added Database for physical tanks
 } from 'lucide-react';
 
 // Define new user roles for specific access

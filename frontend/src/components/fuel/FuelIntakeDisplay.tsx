@@ -524,7 +524,11 @@ export default function FuelIntakeDisplay() {
                       )}
                     </TableCell>
                     <TableCell>
-                      {record.fuel_type?.toLowerCase() === 'jet a-1'.toLowerCase() ? (
+                      {record.fuel_type && (
+                        record.fuel_type.toLowerCase() === 'jet a-1' || 
+                        record.fuel_type.toLowerCase() === 'jet_a1' ||
+                        record.fuel_type === 'JET_A1'
+                      ) ? (
                         <div className="flex items-center">
                           <img 
                             src="/JET A-1.svg" 

@@ -150,6 +150,11 @@ export interface CreateFuelIntakePayload {
     // transfer_datetime will be set by backend (DEFAULT NOW() or from intake_datetime)
     // notes are optional and not currently captured in the wizard's TankDistributionData
   }>;
+  physical_tank_distributions?: Array<{
+    tank_id: number; // Corresponds to physical_tank_id in PhysicalTanks model
+    quantity_liters: number; // Quantity distributed to this physical tank
+    quantity_kg?: number; // Optional: calculated from quantity_liters and density
+  }>;
 }
 
 // --- Airline and Fuel Price Rules --- //

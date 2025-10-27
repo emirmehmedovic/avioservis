@@ -622,6 +622,7 @@ export const createFuelIntakeRecord: RequestHandler<unknown, unknown, any, unkno
     currency,
     total_price,
     tank_distributions,
+    physical_tank_distributions,
   } = req.body;
 
   if (
@@ -680,6 +681,15 @@ export const createFuelIntakeRecord: RequestHandler<unknown, unknown, any, unkno
   try {
     logger.info("Starting fuel intake operation with high isolation level transaction.");
     
+    // Normalize fuel_type for comparison (handle both display and enum formats)
+    const fuelTypeMap: Record<string, string> = {
+      'JET_A1': 'Jet A-1',
+      'DIESEL': 'Dizel',
+      'BMB95': 'Benzin BMB95',
+      'AVGAS_100LL': 'Avgas 100LL',
+    };
+    const normalizedFuelType = fuelTypeMap[fuel_type] || fuel_type;
+    
     // Prikupi ID-eve tankova za praćenje stanja prije i poslije operacije
     const tankIds = Array.isArray(tank_distributions) 
       ? tank_distributions.map(dist => parseInt(dist.tank_id)) 
@@ -727,9 +737,9 @@ export const createFuelIntakeRecord: RequestHandler<unknown, unknown, any, unkno
             throw new Error(`Tank with ID ${tankId} not found.`);
           }
           
-          if (tank.fuel_type !== fuel_type) {
-             console.error(`Transaction rollback: Tank ${tank.tank_name} (ID: ${tankId}) fuel type ${tank.fuel_type} does not match intake fuel type ${fuel_type}.`);
-            throw new Error(`Tank ${tank.tank_name} (ID: ${tankId}) is for ${tank.fuel_type}, but intake is for ${fuel_type}.`);
+          if (tank.fuel_type !== normalizedFuelType) {
+             console.error(`Transaction rollback: Tank ${tank.tank_name} (ID: ${tankId}) fuel type ${tank.fuel_type} does not match intake fuel type ${normalizedFuelType}.`);
+            throw new Error(`Tank ${tank.tank_name} (ID: ${tankId}) is for ${tank.fuel_type}, but intake is for ${normalizedFuelType}.`);
           }
 
           const newCurrentLiters = tank.current_quantity_liters + quantityLitersTransferred;
@@ -822,6 +832,88 @@ export const createFuelIntakeRecord: RequestHandler<unknown, unknown, any, unkno
             data: { current_quantity_liters: newCurrentLiters }, 
           });
           console.log("FixedStorageTanks current_quantity_liters updated.");
+        }
+      }
+
+      // Process Physical Tank Distributions
+      if (Array.isArray(physical_tank_distributions) && physical_tank_distributions.length > 0) {
+        logger.info(`Processing ${physical_tank_distributions.length} physical tank distributions`);
+        
+        const mrnNumber = customs_declaration_number || `UNTRACKED-INTAKE-${newFuelIntakeRecord.id}`;
+        const calculatedDensity = parseFloat(quantity_kg_received) / parseFloat(quantity_liters_received);
+
+        for (const dist of physical_tank_distributions) {
+          const physicalTankId = parseInt(dist.tank_id);
+          const quantityLiters = parseFloat(dist.quantity_liters);
+          const quantityKg = dist.quantity_kg ? parseFloat(dist.quantity_kg) : quantityLiters * calculatedDensity;
+
+          logger.info(`Processing physical tank ${physicalTankId}: ${quantityLiters}L / ${quantityKg.toFixed(2)}kg`);
+
+          // Find physical tank
+          const physicalTank = await tx.physicalTanks.findUnique({
+            where: { id: physicalTankId }
+          });
+
+          if (!physicalTank) {
+            throw new Error(`Physical tank with ID ${physicalTankId} not found.`);
+          }
+
+          // Compare fuel types (both frontend and physical tanks now use display format like "Jet A-1")
+          // Normalize fuel_type to display format if needed (for backward compatibility with old JET_A1 records)
+          let normalizedFuelTypeForPhysical = fuel_type;
+          if (fuel_type === 'JET_A1') {
+            normalizedFuelTypeForPhysical = 'Jet A-1';
+          } else if (fuel_type === 'JET_A') {
+            normalizedFuelTypeForPhysical = 'Jet A';
+          }
+          
+          let normalizedPhysicalTankFuelType = physicalTank.fuel_type;
+          if (physicalTank.fuel_type === 'JET_A1') {
+            normalizedPhysicalTankFuelType = 'Jet A-1';
+          } else if (physicalTank.fuel_type === 'JET_A') {
+            normalizedPhysicalTankFuelType = 'Jet A';
+          }
+          
+          if (normalizedPhysicalTankFuelType !== normalizedFuelTypeForPhysical) {
+            throw new Error(`Physical tank ${physicalTank.tank_name} is for ${normalizedPhysicalTankFuelType}, but intake is for ${normalizedFuelTypeForPhysical}.`);
+          }
+
+          // Check capacity
+          const newCurrentLiters = physicalTank.current_quantity_liters + quantityLiters;
+          const newCurrentKg = physicalTank.current_quantity_kg + quantityKg;
+
+          if (newCurrentLiters > physicalTank.capacity_liters) {
+            throw new Error(
+              `Transfer to physical tank ${physicalTank.tank_name} exceeds capacity. Current: ${physicalTank.current_quantity_liters}L, Adding: ${quantityLiters}L, Capacity: ${physicalTank.capacity_liters}L`
+            );
+          }
+
+          // Update physical tank current quantities
+          await tx.physicalTanks.update({
+            where: { id: physicalTankId },
+            data: {
+              current_quantity_liters: newCurrentLiters,
+              current_quantity_kg: newCurrentKg
+            }
+          });
+          logger.info(`Updated physical tank ${physicalTank.tank_name}: ${physicalTank.current_quantity_liters}L → ${newCurrentLiters}L`);
+
+          // Create PhysicalTankMrn record
+          await tx.physicalTankMrn.create({
+            data: {
+              physical_tank_id: physicalTankId,
+              customs_declaration_number: mrnNumber,
+              quantity_liters: quantityLiters,
+              quantity_kg: quantityKg,
+              remaining_quantity_liters: quantityLiters,
+              remaining_quantity_kg: quantityKg,
+              density_at_intake: calculatedDensity,
+              fuel_intake_record_id: newFuelIntakeRecord.id,
+              date_added: new Date(intake_datetime),
+              is_retrofitted: false
+            }
+          });
+          logger.info(`Created PhysicalTankMrn record for tank ${physicalTank.tank_name}, MRN: ${mrnNumber}`);
         }
       }
       

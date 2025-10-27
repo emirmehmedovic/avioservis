@@ -62,3 +62,4 @@ echo "📧 Email functionality:"
 echo "   ✅ Emails will still be sent via SMTP"
 echo "   ❌ Copies won't be saved to Sent folder (this is OK)"
 echo "   ✅ CRON jobs will run without blocking"
+

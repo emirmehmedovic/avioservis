@@ -304,42 +304,6 @@ export default function FixedTanksDisplay({
     return sum + (customsData.totalKg > 0 ? customsData.totalKg : (customsData.totalLiters > 0 ? customsData.totalLiters : tank.current_quantity_liters) * customsData.avgDensity);
   }, 0);
 
-  // Create three tanks with equal distribution
-  const fictitiousTanks = [
-    {
-      id: 'fictitious-1',
-      tank_name: 'TANK 1',
-      tank_identifier: 'D-8074',
-      fuel_type: 'JET A-1',
-      capacity_liters: 80000,
-      current_quantity_liters: totalRealTankFuel / 3,
-      status: 'ACTIVE' as FixedTankStatus,
-      avgDensity: 0.8,
-      currentKg: totalRealTankFuelKg / 3
-    },
-    {
-      id: 'fictitious-2',
-      tank_name: 'TANK 2',
-      tank_identifier: '17/96-108',
-      fuel_type: 'JET A-1',
-      capacity_liters: 80000,
-      current_quantity_liters: totalRealTankFuel / 3,
-      status: 'ACTIVE' as FixedTankStatus,
-      avgDensity: 0.8,
-      currentKg: totalRealTankFuelKg / 3
-    },
-    {
-      id: 'fictitious-3',
-      tank_name: 'TANK 3',
-      tank_identifier: '17/91-1767',
-      fuel_type: 'JET A-1',
-      capacity_liters: 80000,
-      current_quantity_liters: totalRealTankFuel / 3,
-      status: 'ACTIVE' as FixedTankStatus,
-      avgDensity: 0.8,
-      currentKg: totalRealTankFuelKg / 3
-    }
-  ];
 
   const getStatusBadgeClasses = (status: FixedTankStatus): string => {
     switch (status) {
@@ -511,7 +475,7 @@ export default function FixedTanksDisplay({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="backdrop-blur-md bg-[#F08080]/10 border border-white/10 p-4 rounded-lg shadow-lg relative overflow-hidden group hover:bg-[#F08080]/15 transition-all">
                   <div className="absolute top-0 right-0 w-20 h-20 bg-[#F08080] rounded-full filter blur-2xl opacity-5 -translate-y-1/2 translate-x-1/4 group-hover:opacity-10 transition-opacity"></div>
-                  <div className="text-sm font-medium text-gray-300 mb-1">Fiksni Tankovi</div>
+                  <div className="text-sm font-medium text-gray-300 mb-1">Fiksni Tankovi (Ulazi)</div>
                   <div className="text-2xl font-bold text-white mb-1">
                     {totalFuelSummary.fixedTanksTotal != null ? totalFuelSummary.fixedTanksTotal.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} L
                   </div>
@@ -521,7 +485,7 @@ export default function FixedTanksDisplay({
                 </div>
                 <div className="backdrop-blur-md bg-[#F08080]/10 border border-white/10 p-4 rounded-lg shadow-lg relative overflow-hidden group hover:bg-[#F08080]/15 transition-all">
                   <div className="absolute top-0 right-0 w-20 h-20 bg-[#F08080] rounded-full filter blur-2xl opacity-5 -translate-y-1/2 translate-x-1/4 group-hover:opacity-10 transition-opacity"></div>
-                  <div className="text-sm font-medium text-gray-300 mb-1">Mobilni Tankovi</div>
+                  <div className="text-sm font-medium text-gray-300 mb-1">Mobilni Tankovi (Spremno za operacije točenja)</div>
                   <div className="text-2xl font-bold text-white mb-1">
                     {totalFuelSummary.mobileTanksTotal != null ? totalFuelSummary.mobileTanksTotal.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} L
                   </div>
@@ -548,17 +512,48 @@ export default function FixedTanksDisplay({
           )}
         </div>
         
-        {/* Action buttons */}
-        <div className="flex justify-center gap-3 mb-4 relative z-10">
-          <div className="flex gap-2 flex-wrap">
+        {/* Filter controls */}
+        <div className="flex justify-end mt-4 bg-white/10 p-3 rounded-lg backdrop-blur-sm relative z-10">
+          {/* <div className="flex flex-col sm:flex-row gap-3 flex-1">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[200px] bg-white/20 border-white/30 text-white">
+                <SelectValue placeholder="Filtriraj po statusu" />
+              </SelectTrigger>
+              <SelectContent className="bg-white border border-gray-200 shadow-lg">
+                <SelectItem value="all" className="text-gray-800 hover:bg-[#E60026]/10 focus:bg-[#E60026]/10">Svi Statusi</SelectItem>
+                {Object.values(FixedTankStatus).map(status => (
+                  <SelectItem key={status} value={status} className="text-gray-800 hover:bg-[#E60026]/10 focus:bg-[#E60026]/10">{status}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={fuelTypeFilter} onValueChange={setFuelTypeFilter}>
+              <SelectTrigger className="w-full sm:w-[200px] bg-white/20 border-white/30 text-white">
+                <SelectValue placeholder="Filtriraj po tipu goriva" />
+              </SelectTrigger>
+              <SelectContent className="bg-white border border-gray-200 shadow-lg">
+                <SelectItem value="all" className="text-gray-800 hover:bg-[#E60026]/10 focus:bg-[#E60026]/10">Svi Tipovi Goriva</SelectItem>
+                {uniqueFuelTypes.map(fuelType => (
+                  <SelectItem key={fuelType} value={fuelType} className="text-gray-800 hover:bg-[#E60026]/10 focus:bg-[#E60026]/10">{fuelType}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div> */}
+          
+          <div className="flex items-center gap-3">
+            <span className="bg-white/20 px-3 py-2 rounded-lg text-sm h-10 flex items-center">
+              Ukupno: {filteredTanks.length} {filteredTanks.length === 1 ? 'rezervoar' : filteredTanks.length > 1 && filteredTanks.length < 5 ? 'rezervoara' : 'rezervoara'}
+            </span>
+            
+            <div className="flex gap-2">
             {showAddTankButton && (
               <Dialog open={isAddTankModalOpen} onOpenChange={setIsAddTankModalOpen}>
                 <DialogTrigger asChild>
                   <Button 
                     variant="default"
-                    className="backdrop-blur-md bg-[#F08080]/30 border border-white/20 text-white shadow-lg hover:bg-[#F08080]/40 transition-all font-medium py-2 px-4 rounded-xl flex items-center space-x-2 text-sm"
+                      className="backdrop-blur-md bg-[#F08080]/30 border border-white/20 text-white shadow-lg hover:bg-[#F08080]/40 transition-all font-medium py-2 px-4 rounded-xl flex items-center space-x-2 text-sm h-10"
                   >
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 4C11.4477 4 11 4.44772 11 5V11H5C4.44772 11 4 11.4477 4 12C4 12.5523 4.44772 13 5 13H11V19C11 19.5523 11.4477 20 12 20C12.5523 20 13 19.5523 13 19V13H19C19.5523 13 20 12.5523 20 12C20 11.4477 19.5523 11 19 11H13V5C13 4.44772 12.5523 4 12 4Z" fill="currentColor"/></svg>
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 4C11.4477 4 11 4.44772 11 5V11H5C4.44772 11 4 11.4477 4 12C4 12.5523 4.44772 13 5 13H11V19C11 19.5523 11.4477 20 12 20C12.5523 20 13 19.5523 13 19V13H19C19.5523 13 20 12.5523 20 12C20 11.4477 19.5523 11 19 11H13V5C13 4.44772 12.5523 4 12 4Z" fill="currentColor"/></svg>
                     <span>Dodaj Novi Tank</span>
                   </Button>
                 </DialogTrigger>
@@ -586,44 +581,13 @@ export default function FixedTanksDisplay({
               <Button 
                 variant="outline"
                 onClick={() => setIsTransferModalOpen(true)}
-                className="backdrop-blur-md bg-white/10 border border-white/20 text-white shadow-lg hover:bg-white/20 transition-all py-2 px-4 rounded-xl flex items-center space-x-2 text-sm"
+                  className="backdrop-blur-md bg-white/10 border border-white/20 text-white shadow-lg hover:bg-white/20 transition-all py-2 px-4 rounded-xl flex items-center space-x-2 text-sm h-10"
               >
-                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
                 <span>Pretakanje (Fiksni u Fiksni)</span>
               </Button>
             )}
           </div>
-        </div>
-        {/* Filter controls */}
-        <div className="flex flex-col sm:flex-row gap-3 mt-4 bg-white/10 p-3 rounded-lg backdrop-blur-sm relative z-10">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[200px] bg-white/20 border-white/30 text-white">
-              <SelectValue placeholder="Filtriraj po statusu" />
-            </SelectTrigger>
-            <SelectContent className="bg-white border border-gray-200 shadow-lg">
-              <SelectItem value="all" className="text-gray-800 hover:bg-[#E60026]/10 focus:bg-[#E60026]/10">Svi Statusi</SelectItem>
-              {Object.values(FixedTankStatus).map(status => (
-                <SelectItem key={status} value={status} className="text-gray-800 hover:bg-[#E60026]/10 focus:bg-[#E60026]/10">{status}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={fuelTypeFilter} onValueChange={setFuelTypeFilter}>
-            <SelectTrigger className="w-full sm:w-[200px] bg-white/20 border-white/30 text-white">
-              <SelectValue placeholder="Filtriraj po tipu goriva" />
-            </SelectTrigger>
-            <SelectContent className="bg-white border border-gray-200 shadow-lg">
-              <SelectItem value="all" className="text-gray-800 hover:bg-[#E60026]/10 focus:bg-[#E60026]/10">Svi Tipovi Goriva</SelectItem>
-              {uniqueFuelTypes.map(fuelType => (
-                <SelectItem key={fuelType} value={fuelType} className="text-gray-800 hover:bg-[#E60026]/10 focus:bg-[#E60026]/10">{fuelType}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          <div className="ml-auto flex items-center text-sm">
-            <span className="bg-white/20 px-3 py-1.5 rounded-lg">
-              Ukupno: {filteredTanks.length} {filteredTanks.length === 1 ? 'rezervoar' : filteredTanks.length > 1 && filteredTanks.length < 5 ? 'rezervoara' : 'rezervoara'}
-            </span>
           </div>
         </div>
       </div>
@@ -641,23 +605,7 @@ export default function FixedTanksDisplay({
         )}
 
         {filteredTanks.length > 0 && (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-gradient-to-r from-gray-50 to-gray-100">
-                <TableRow>
-                  <TableHead className="w-[180px] font-semibold">Naziv</TableHead>
-                  <TableHead className="font-semibold">Identifikator</TableHead>
-                  <TableHead className="font-semibold">Tip Goriva</TableHead>
-                  <TableHead className="text-right font-semibold">Kapacitet (L)</TableHead>
-                  <TableHead className="text-right font-semibold">Trenutno (L)</TableHead>
-                  <TableHead className="text-right font-semibold">Trenutno (kg)</TableHead>
-                  <TableHead className="text-right font-semibold">Gustoća</TableHead>
-                  <TableHead className="w-[150px] font-semibold">Popunjenost</TableHead>
-                  <TableHead className="font-semibold">Status</TableHead>
-                  <TableHead className="text-center font-semibold">Akcije</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+          <div className="space-y-4">
                 {filteredTanks.map((tank) => {
                   const percentage = tank.capacity_liters > 0 ? (tank.current_quantity_liters / tank.capacity_liters) * 100 : 0;
                   
@@ -671,68 +619,155 @@ export default function FixedTanksDisplay({
                     tank.current_quantity_liters * avgDensity;
                   
                   return (
-                    <TableRow key={tank.id} className="hover:bg-gray-50 transition-colors">
-                      <TableCell className="font-medium text-gray-800">{tank.tank_name}</TableCell>
-                      <TableCell>
-                        <span className="px-2 py-1 bg-gray-100 rounded text-xs font-medium text-gray-700">
-                          {tank.tank_identifier || 'N/A'}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center">
+                <div key={tank.id} className="group relative bg-white rounded-2xl shadow-lg border border-gray-200/50 hover:shadow-2xl hover:border-gray-300/50 transition-all duration-500 overflow-hidden backdrop-blur-sm">
+                  {/* Animated Background Gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-gray-50/30 via-transparent to-slate-50/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                  
+                  {/* Subtle Pattern Overlay */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-gray-400/5 to-slate-500/5 rounded-full filter blur-2xl -translate-y-1/2 translate-x-1/4 group-hover:scale-110 transition-transform duration-500"></div>
+                  
+                  {/* Card Header */}
+                  <div className="relative bg-gradient-to-r from-slate-50 via-gray-50 to-slate-100 px-6 py-5 border-b border-gray-200/60">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-5">
+                        {/* Fuel Type Icon with Enhanced Styling */}
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-br from-gray-500/10 to-slate-600/10 rounded-xl blur-sm"></div>
+                          <div className="relative bg-white/80 backdrop-blur-sm rounded-xl p-3 shadow-sm border border-white/50">
                           {tank.fuel_type.toLowerCase() === 'jet a-1'.toLowerCase() ? (
                             <img 
                               src="/JET A-1.svg" 
                               alt="JET A-1" 
-                              className="w-14 h-14 object-contain" 
+                                className="w-10 h-10 object-contain" 
                             />
                           ) : (
-                            <>
-                              <span className="w-3 h-3 rounded-full bg-[#E60026] mr-2"></span>
-                              {tank.fuel_type}
-                            </>
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
+                                <span className="text-white font-bold text-xs">FUEL</span>
+                              </div>
                           )}
                         </div>
-                      </TableCell>
-                      <TableCell className="text-right font-medium">{tank.capacity_liters.toLocaleString()}</TableCell>
-                      <TableCell className="text-right font-medium">{tank.current_quantity_liters.toLocaleString()}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="inline-flex items-center bg-gray-50 border border-gray-200 rounded px-2 py-1">
-                          <span className="font-medium">
-                            {currentKg.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                        </div>
+                        
+                        <div>
+                          <h3 className="text-xl font-bold text-gray-800 group-hover:text-gray-900 transition-colors">
+                            {tank.tank_name}
+                          </h3>
+                          <p className="text-sm text-gray-600 group-hover:text-gray-700 transition-colors">
+                            <span className="font-medium text-gray-500">ID:</span> 
+                            <span className="ml-1 font-semibold bg-gray-100 px-2 py-0.5 rounded-md text-gray-700">
+                              {tank.tank_identifier || 'N/A'}
                           </span>
-                          <span className="text-gray-500 text-xs ml-1">kg</span>
+                          </p>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-medium bg-gray-50 border border-gray-200 rounded px-2 py-1">
-                          {avgDensity.toFixed(4)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center">
-                          <div className="w-[calc(100%-40px)] mr-2 h-2.5 rounded-full overflow-hidden bg-gray-100">
-                            <div 
-                              className={`h-full rounded-full ${percentage > 80 ? 'bg-[#E60026]' : percentage > 30 ? 'bg-[#B3001F]' : 'bg-[#800014]'}`}
-                              style={{ width: `${percentage}%` }}
-                            />
+                      </div>
+                      
+                      <div className="flex items-center space-x-4">
+                        <Badge className={`${getStatusBadgeClasses(tank.status as FixedTankStatus)} px-4 py-2 text-sm font-semibold shadow-sm`}>
+                          {tank.status}
+                        </Badge>
+                        <div className="text-right">
+                          <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">Popunjenost</div>
+                          <div className="text-2xl font-bold text-gray-800 group-hover:text-gray-900 transition-colors">
+                            {percentage.toFixed(0)}%
                           </div>
-                          <span className="text-xs font-medium">{percentage.toFixed(0)}%</span>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={`${getStatusBadgeClasses(tank.status as FixedTankStatus)} px-2 py-1`}>{tank.status}</Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex justify-center space-x-2">
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card Body */}
+                  <div className="relative p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {/* Kapacitet */}
+                      <div className="group/metric relative bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-xl p-5 border border-gray-200/50 hover:shadow-md transition-all duration-300">
+                        <div className="absolute top-2 right-2 w-8 h-8 bg-gray-500/10 rounded-lg flex items-center justify-center">
+                          <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                          </svg>
+                        </div>
+                        <div className="text-sm text-gray-600 font-medium mb-2">Kapacitet</div>
+                        <div className="text-2xl font-bold text-gray-800 group-hover/metric:text-gray-900 transition-colors">
+                          {tank.capacity_liters.toLocaleString()} L
+                        </div>
+                      </div>
+
+                      {/* Trenutno (L) */}
+                      <div className="group/metric relative bg-gradient-to-br from-slate-50 to-slate-100/50 rounded-xl p-5 border border-slate-200/50 hover:shadow-md transition-all duration-300">
+                        <div className="absolute top-2 right-2 w-8 h-8 bg-slate-500/10 rounded-lg flex items-center justify-center">
+                          <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                        </div>
+                        <div className="text-sm text-slate-600 font-medium mb-2">Trenutno (L)</div>
+                        <div className="text-2xl font-bold text-gray-800 group-hover/metric:text-gray-900 transition-colors">
+                          {tank.current_quantity_liters.toLocaleString()}
+                        </div>
+                      </div>
+
+                      {/* Trenutno (kg) */}
+                      <div className="group/metric relative bg-gradient-to-br from-zinc-50 to-zinc-100/50 rounded-xl p-5 border border-zinc-200/50 hover:shadow-md transition-all duration-300">
+                        <div className="absolute top-2 right-2 w-8 h-8 bg-zinc-500/10 rounded-lg flex items-center justify-center">
+                          <svg className="w-4 h-4 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z" />
+                          </svg>
+                        </div>
+                        <div className="text-sm text-zinc-600 font-medium mb-2">Trenutno (kg)</div>
+                        <div className="text-2xl font-bold text-gray-800 group-hover/metric:text-gray-900 transition-colors">
+                          {currentKg.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                        </div>
+                      </div>
+
+                      {/* Gustoća */}
+                      <div className="group/metric relative bg-gradient-to-br from-stone-50 to-stone-100/50 rounded-xl p-5 border border-stone-200/50 hover:shadow-md transition-all duration-300">
+                        <div className="absolute top-2 right-2 w-8 h-8 bg-stone-500/10 rounded-lg flex items-center justify-center">
+                          <svg className="w-4 h-4 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                          </svg>
+                        </div>
+                        <div className="text-sm text-stone-600 font-medium mb-2">Gustoća</div>
+                        <div className="text-2xl font-bold text-gray-800 group-hover/metric:text-gray-900 transition-colors">
+                          {avgDensity.toFixed(4)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Enhanced Progress Bar */}
+                    <div className="mt-8">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-sm text-gray-600 font-medium flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                          </svg>
+                          Popunjenost rezervoara
+                        </span>
+                        <span className={`font-bold text-lg ${percentage > 80 ? 'text-gray-800' : percentage > 30 ? 'text-gray-700' : 'text-gray-600'}`}>
+                          {percentage.toFixed(0)}%
+                        </span>
+                      </div>
+                      <div className="relative w-full h-5 rounded-full overflow-hidden bg-gray-200 shadow-inner">
+                        <div 
+                          className={`h-full rounded-full transition-all duration-700 ease-out relative ${
+                            percentage > 80 ? 'bg-gradient-to-r from-gray-600 via-gray-700 to-gray-800' : 
+                            percentage > 30 ? 'bg-gradient-to-r from-gray-400 via-gray-500 to-gray-600' : 
+                            'bg-gradient-to-r from-gray-300 via-gray-400 to-gray-500'
+                          }`}
+                              style={{ width: `${percentage}%` }}
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent"></div>
+                          </div>
+                        </div>
+                    </div>
+
+                    {/* Enhanced Action Buttons */}
+                    <div className="mt-8 pt-6 border-t border-gray-200/60">
+                      <div className="flex justify-end space-x-3">
                           {showDetailsButton && (
                             <Button 
-                              variant="ghost" 
-                              size="sm"
+                            variant="outline"
                               onClick={() => handleOpenDetailsModal(tank)}
-                              className="text-[#E60026] hover:bg-[#E60026]/10 dark:text-[#E60026] dark:hover:bg-[#E60026]/20"
+                            className="group/btn text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400 hover:shadow-md transition-all duration-300 px-6 py-2"
                             >
-                              <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <svg className="w-4 h-4 mr-2 group-hover/btn:scale-110 transition-transform" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M15 12C15 13.6569 13.6569 15 12 15C10.3431 15 9 13.6569 9 12C9 10.3431 10.3431 9 12 9C13.6569 9 15 10.3431 15 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                 <path d="M2 12C2 12 5 5 12 5C19 5 22 12 22 12C22 12 19 19 12 19C5 19 2 12 2 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                               </svg>
@@ -740,175 +775,43 @@ export default function FixedTanksDisplay({
                             </Button>
                           )}
                           <Button 
-                            variant="ghost" 
-                            size="sm"
+                          variant="outline"
                             onClick={() => handleHideTank(tank)}
-                            className="text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+                          className="group/btn text-gray-600 border-gray-300 hover:bg-gray-50 hover:border-gray-400 hover:shadow-md transition-all duration-300 px-6 py-2"
                             title="Sakrij tank iz prikaza"
                           >
-                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <svg className="w-4 h-4 mr-2 group-hover/btn:scale-110 transition-transform" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <path d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
+                          Sakrij
                           </Button>
                           {authUser?.role === 'ADMIN' && (
                             <Button 
-                              variant="ghost" 
-                              size="sm"
+                            variant="outline"
                               onClick={() => handleDeleteTank(tank)}
-                              className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                            className="group/btn text-gray-600 border-gray-300 hover:bg-gray-50 hover:border-gray-400 hover:shadow-md transition-all duration-300 px-6 py-2"
                               title="Obriši tank trajno"
                             >
-                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <svg className="w-4 h-4 mr-2 group-hover/btn:scale-110 transition-transform" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                               </svg>
+                            Obriši
                             </Button>
                           )}
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-              <TableCaption className="mt-4 text-gray-500 italic font-light">
-                Lista svih fiksnih tankova goriva.
-              </TableCaption>
-            </Table>
           </div>
-        )}
-        
-        {/* Additional Tanks Section */}
-        {totalRealTankFuel > 0 && (
-          <div className="mt-8">
-            <div className="relative overflow-hidden p-6 rounded-xl shadow-lg border border-gray-100 bg-white">
-              {/* Gradient background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-slate-50 to-blue-50 z-0"></div>
-              
-              {/* Decorative elements */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/20 to-indigo-500/20 rounded-full filter blur-2xl -translate-y-1/2 translate-x-1/4 z-0"></div>
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-indigo-400/20 to-blue-500/20 rounded-full filter blur-xl translate-y-1/2 -translate-x-1/4 z-0"></div>
-              
-              <div className="relative z-10">
-                <div className="flex items-center mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-800">Stanje goriva po tankovima</h3>
-                    <p className="text-gray-600 text-sm">Pregled raspodjele ukupnog goriva</p>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {fictitiousTanks.map((tank, index) => {
-                    const percentage = tank.capacity_liters > 0 ? (tank.current_quantity_liters / tank.capacity_liters) * 100 : 0;
-                    const colors = [
-                      'from-blue-500 to-cyan-500',
-                      'from-indigo-500 to-purple-500', 
-                      'from-emerald-500 to-teal-500'
-                    ];
-                    
-                    return (
-                      <div key={tank.id} className="group relative">
-                        {/* Card with gradient border */}
-                        <div className="relative bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                          {/* Gradient border effect */}
-                          <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${colors[index]} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
-                          
-                          {/* Header */}
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center">
-                              <div className={`w-8 h-8 bg-gradient-to-br ${colors[index]} rounded-lg flex items-center justify-center mr-3 shadow-md`}>
-                                <span className="text-white font-bold text-sm">{index + 1}</span>
-                              </div>
-                              <div>
-                                <h4 className="font-bold text-gray-800 text-lg">{tank.tank_name}</h4>
-                                <p className="text-gray-500 text-xs">Identifikator</p>
-                              </div>
-                            </div>
-                            <span className={`px-3 py-1 bg-gradient-to-r ${colors[index]} text-white rounded-full text-xs font-semibold shadow-sm`}>
-                              {tank.tank_identifier}
-                            </span>
-                          </div>
-                          
-                          {/* Fuel type indicator */}
-                          <div className="flex items-center mb-4">
-                            <img 
-                              src="/JET A-1.svg" 
-                              alt="JET A-1" 
-                              className="w-8 h-8 object-contain mr-2" 
-                            />
-                            <span className="text-sm font-medium text-gray-700">{tank.fuel_type}</span>
-                          </div>
-                          
-                          {/* Stats grid */}
-                          <div className="grid grid-cols-2 gap-4 mb-4">
-                            <div className="bg-gray-50 rounded-lg p-3">
-                              <div className="text-xs text-gray-500 mb-1">Kapacitet</div>
-                              <div className="font-bold text-gray-800">{tank.capacity_liters.toLocaleString()} L</div>
-                            </div>
-                            <div className="bg-gray-50 rounded-lg p-3">
-                              <div className="text-xs text-gray-500 mb-1">Trenutno</div>
-                              <div className="font-bold text-gray-800">{tank.current_quantity_liters.toLocaleString(undefined, { maximumFractionDigits: 2 })} L</div>
-                            </div>
-                          </div>
-                          
-                          {/* Mass display */}
-                          <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-3 mb-4">
-                            <div className="text-xs text-gray-500 mb-1">Masa goriva</div>
-                            <div className="font-bold text-gray-800 text-lg">{tank.currentKg.toLocaleString(undefined, { maximumFractionDigits: 2 })} kg</div>
-                          </div>
-                          
-                          {/* Progress bar */}
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-600 font-medium">Popunjenost</span>
-                              <span className={`font-bold ${percentage > 80 ? 'text-red-600' : percentage > 30 ? 'text-orange-600' : 'text-green-600'}`}>
-                                {percentage.toFixed(0)}%
-                              </span>
-                            </div>
-                            <div className="w-full h-3 rounded-full overflow-hidden bg-gray-200 shadow-inner">
-                              <div 
-                                className={`h-full rounded-full transition-all duration-500 ease-out ${
-                                  percentage > 80 ? 'bg-gradient-to-r from-red-500 to-red-600' : 
-                                  percentage > 30 ? 'bg-gradient-to-r from-orange-500 to-orange-600' : 
-                                  'bg-gradient-to-r from-green-500 to-green-600'
-                                }`}
-                                style={{ width: `${percentage}%` }}
-                              />
-                            </div>
-                          </div>
                         </div>
                       </div>
                     );
                   })}
-                </div>
-                
-                {/* Summary card */}
-                <div className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mr-3">
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <span className="text-sm font-medium text-gray-700">
-                        Ukupno goriva: <span className="font-bold text-gray-800">{totalRealTankFuel.toLocaleString(undefined, { maximumFractionDigits: 2 })} L</span> 
-                        <span className="mx-2 text-gray-400">|</span>
-                        <span className="font-bold text-gray-800">{totalRealTankFuelKg.toLocaleString(undefined, { maximumFractionDigits: 2 })} kg</span>
-                      </span>
-                    </div>
-                    <div className="text-xs text-gray-500 bg-white/60 px-3 py-1 rounded-full">
-                      Ravnomjerno raspoređeno
-                    </div>
-                  </div>
-                </div>
-              </div>
+            
+            {/* Summary */}
+            <div className="mt-6 text-center text-gray-500 italic font-light">
+              Lista svih fiksnih tankova goriva.
             </div>
           </div>
         )}
+        
         
         {holdingTank && (
           <div className="mt-8">
@@ -1111,70 +1014,6 @@ export default function FixedTanksDisplay({
           </DialogContent>
         </Dialog>
 
-        {/* Operational Fuel Status */}
-        <div className="mt-6 relative z-10">
-          {summaryLoading ? (
-            <div className="flex items-center justify-center text-white/60 py-4">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#F08080] mr-2"></div>
-              <span className="text-sm">Računanje operativnog stanja...</span>
-            </div>
-          ) : totalFuelSummary ? (
-            <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-xl p-6 shadow-lg">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center justify-center">
-                <svg className="w-6 h-6 mr-3 text-[#E60026]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 2L2 7v10c0 5.55 3.84 9.74 9 11 5.16-1.26 9-5.45 9-11V7l-10-5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="m9 12 2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <span className="bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">Operativno stanje goriva</span>
-              </h3>
-              
-              <div className="backdrop-blur-md bg-[#F08080]/10 border border-white/10 p-6 rounded-xl shadow-lg relative overflow-hidden group hover:bg-[#F08080]/15 transition-all">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[#F08080] rounded-full filter blur-3xl opacity-5 -translate-y-1/2 translate-x-1/4 group-hover:opacity-10 transition-opacity"></div>
-                <div className="absolute bottom-0 left-0 w-24 h-24 bg-[#F08080] rounded-full filter blur-2xl opacity-5 translate-y-1/2 -translate-x-1/4 group-hover:opacity-10 transition-opacity"></div>
-                
-                <div className="text-center relative z-10">
-                  <div className="inline-flex items-center justify-center w-16 h-16 bg-white/30 border border-white/40 rounded-full mb-4">
-                    <svg className="w-8 h-8 text-gray-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
-                  
-                  <div className="text-sm font-medium text-gray-800 mb-2 uppercase tracking-wide">Dostupno za operacije</div>
-                  
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-gray-900 mb-1">
-                        {totalFuelSummary.grandTotal != null ? (totalFuelSummary.grandTotal - 6000).toLocaleString('bs-BA', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0'}
-                      </div>
-                      <div className="text-lg font-medium text-gray-700">Litara</div>
-                    </div>
-                    
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-gray-900 mb-1">
-                        {totalFuelSummary.grandTotalKg != null ? (totalFuelSummary.grandTotalKg - 4800).toLocaleString('bs-BA', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0'}
-                      </div>
-                      <div className="text-lg font-medium text-gray-700">Kilograma</div>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-4 text-xs text-gray-700 bg-white/20 rounded-lg p-3 border border-white/30">
-                    <span className="text-gray-800 font-medium">Oduzeto:</span> 6.000L (3.000L cijevi + filteri + mrtve tačke) = <span className="text-gray-900 font-bold">Realno operativno stanje</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-4 backdrop-blur-md bg-white/20 border border-white/30 rounded-lg p-4">
-                <div className="text-xs text-gray-700 leading-relaxed">
-                  <strong className="text-gray-900">Napomena:</strong> Ovo je okvirno operativno stanje, kad se mjeri stanje goriva u fiksnim rezervoarima ne može se izmjeriti stanje goriva koje se nalazi u cijevima, što je okvirno nekih 3000L, gorivo u filterima kamiona što je 500L po filteru, te mrtve tačke u cisternama. Stvarno operativno stanje je približno ovome.
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-gray-500 text-center py-4 text-sm">
-              Nije moguće izračunati operativno stanje goriva.
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );

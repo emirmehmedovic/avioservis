@@ -14,7 +14,8 @@ import {
   getFixedTankCustomsBreakdown,
   CreateFuelIntakePayload
 } from '../../lib/apiService';
-import { Trash2, UploadCloud, Edit3 } from 'lucide-react';
+import { physicalTankService, PhysicalTank } from '@/services/physicalTankService';
+import { Trash2, UploadCloud, Edit3, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 // TODO: Import necessary types: FuelIntakeRecord, FixedStorageTank, FuelType etc.
@@ -23,8 +24,9 @@ import { useRouter } from 'next/navigation';
 const STEPS = {
   DELIVERY_DETAILS: 1,
   TANK_DISTRIBUTION: 2,
-  DOCUMENT_UPLOAD: 3,
-  REVIEW_SUBMIT: 4, // Enabled Review Step
+  PHYSICAL_TANK_DISTRIBUTION: 3, // NEW: Optional step for physical tanks
+  DOCUMENT_UPLOAD: 4,
+  REVIEW_SUBMIT: 5, // Enabled Review Step
 };
 
 interface TankDistributionData {
@@ -100,20 +102,27 @@ interface IntakeFormData {
   // Step 2
   tank_distributions?: TankDistributionData[];
 
+  // Step 3 (Physical Tanks)
+  physical_tank_distributions?: TankDistributionData[];
+
   // Step 3
   document_uploads?: DocumentUploadData[]; // Added for Step 3
 }
 
 // Updated FormErrors to better handle indexed errors for tank_distributions and document_uploads
-type FormErrors = Partial<Record<keyof Omit<IntakeFormData, 'tank_distributions' | 'document_uploads'>, string>> & {
+type FormErrors = Partial<Record<keyof Omit<IntakeFormData, 'tank_distributions' | 'document_uploads' | 'physical_tank_distributions'>, string>> & {
   tank_distributions?: {
     [index: number]: Partial<Record<keyof TankDistributionData, string>>;
   };
   document_uploads?: {
     [index: number]: Partial<Record<keyof DocumentUploadData, string>>;
   };
+  physical_tank_distributions?: {
+    [index: number]: Partial<Record<keyof TankDistributionData, string>>;
+  };
   general_tank_distribution?: string; // For errors like overall quantity mismatch
   general_document_upload?: string; // For general file upload errors
+  general_physical_tank_distribution?: string; // For general physical tank distribution errors
 };
 
 // Helper to format file size
@@ -144,6 +153,12 @@ export default function NewFuelIntakeFormWizard() {
   const [tanksLoading, setTanksLoading] = useState<boolean>(false);
   const [tanksError, setTanksError] = useState<string | null>(null);
   
+  // Physical tanks state
+  const [physicalTanks, setPhysicalTanks] = useState<PhysicalTank[]>([]);
+  const [physicalTanksLoading, setPhysicalTanksLoading] = useState<boolean>(false);
+  const [physicalTanksError, setPhysicalTanksError] = useState<string | null>(null);
+  const [showPhysicalTanksStep, setShowPhysicalTanksStep] = useState<boolean>(false);
+  
   // MRN data state
   const [tankMRNDataMap, setTankMRNDataMap] = useState<Map<string, TankMRNData>>(new Map());
   const [isMRNDataLoading, setIsMRNDataLoading] = useState<boolean>(false);
@@ -169,6 +184,23 @@ export default function NewFuelIntakeFormWizard() {
       setTanksLoading(false);
     };
     fetchTanks();
+  }, []); // Empty dependency array means it runs once on mount
+
+  // Fetch physical tanks on component mount
+  useEffect(() => {
+    const fetchPhysicalTanks = async () => {
+      setPhysicalTanksLoading(true);
+      setPhysicalTanksError(null);
+      try {
+        const tanks = await physicalTankService.getAllTanks();
+        setPhysicalTanks(tanks);
+      } catch (err: any) {
+        console.error("Failed to fetch physical tanks:", err);
+        setPhysicalTanksError(err.message || "Greška pri dohvatanju fizičkih tankova.");
+      }
+      setPhysicalTanksLoading(false);
+    };
+    fetchPhysicalTanks();
   }, []); // Empty dependency array means it runs once on mount
 
   const handleInputChange = (
@@ -531,7 +563,7 @@ export default function NewFuelIntakeFormWizard() {
     }
   };
 
-  // Memoized filtered tanks for Step 2 dropdowns
+  // Memoized filtered tanks for Step 2 dropdowns (Fixed Storage Tanks)
   const filteredAvailableTanks = useMemo(() => {
     if (!availableTanks || !formData.fuel_type) return [];
     return availableTanks.filter(tank => {
@@ -544,6 +576,21 @@ export default function NewFuelIntakeFormWizard() {
       return tank.fuel_type === formData.fuel_type;
     });
   }, [availableTanks, formData.fuel_type]);
+
+  // Memoized filtered physical tanks for Step 2 dropdowns
+  const filteredPhysicalTanks = useMemo(() => {
+    if (!physicalTanks || !formData.fuel_type) {
+      return [];
+    }
+    
+    // Physical tanks now use display format (same as frontend)
+    // So we can directly compare without mapping
+    const filtered = physicalTanks.filter(tank => {
+      return tank.fuel_type === formData.fuel_type && tank.is_active;
+    });
+    
+    return filtered;
+  }, [physicalTanks, formData.fuel_type]);
 
   const getTankDisplayInfo = (tankId?: number) => {
     const tank = availableTanks.find(t => t.id === tankId);
@@ -561,6 +608,14 @@ export default function NewFuelIntakeFormWizard() {
     
     const freeCapacity = tank.capacity_liters - tank.current_quantity_liters;
     return `${tankName} (${tankIdentifier}) / ${fuelTypeName} / Kap: ${tank.capacity_liters.toFixed(0)}L / Tren: ${tank.current_quantity_liters.toFixed(0)}L / Slob: ${freeCapacity.toFixed(0)}L`;
+  };
+
+  const getPhysicalTankDisplayInfo = (tankId?: number) => {
+    const tank = physicalTanks.find(t => t.id === tankId);
+    if (!tank) return 'N/A';
+    
+    const freeCapacity = tank.capacity_liters - tank.current_quantity_liters;
+    return `${tank.tank_name} (${tank.tank_identifier}) / ${tank.fuel_type} / Kap: ${tank.capacity_liters.toFixed(0)}L / Tren: ${tank.current_quantity_liters.toFixed(0)}L / Slob: ${freeCapacity.toFixed(0)}L`;
   };
 
   const totalDistributedQuantity = useMemo(() => {
@@ -760,6 +815,39 @@ export default function NewFuelIntakeFormWizard() {
     }
   };
 
+  const validatePhysicalTankDistribution = (): boolean => {
+    const errors: FormErrors = { ...formErrors, physical_tank_distributions: {}, general_physical_tank_distribution: undefined }; 
+    let isValid = true;
+
+    // Check if any physical tank distributions exist
+    if (!formData.physical_tank_distributions || formData.physical_tank_distributions.length === 0) {
+      errors.general_physical_tank_distribution = "Morate dodati barem jedan fizički tank i unijeti količinu.";
+      isValid = false;
+      setFormErrors(errors);
+      return isValid;
+    }
+
+    // Validate each physical tank distribution
+    formData.physical_tank_distributions.forEach((dist, index) => {
+      if (!dist.tank_id) {
+        if (!errors.physical_tank_distributions) errors.physical_tank_distributions = {};
+        if (!errors.physical_tank_distributions[index]) errors.physical_tank_distributions[index] = {};
+        errors.physical_tank_distributions[index].tank_id = "Odaberite fizički tank.";
+        isValid = false;
+      }
+      
+      if (!dist.quantity_liters || dist.quantity_liters <= 0) {
+        if (!errors.physical_tank_distributions) errors.physical_tank_distributions = {};
+        if (!errors.physical_tank_distributions[index]) errors.physical_tank_distributions[index] = {};
+        errors.physical_tank_distributions[index].quantity_liters = "Količina mora biti veća od 0.";
+        isValid = false;
+      }
+    });
+
+    setFormErrors(errors);
+    return isValid;
+  };
+
   const validateStep3 = (): boolean => {
     const errors: FormErrors = { ...formErrors, document_uploads: {}, general_document_upload: undefined }; 
     let isValid = true;
@@ -800,6 +888,8 @@ export default function NewFuelIntakeFormWizard() {
       stepIsValid = validateStep1();
     } else if (currentStep === STEPS.TANK_DISTRIBUTION) {
       stepIsValid = validateStep2();
+    } else if (currentStep === STEPS.PHYSICAL_TANK_DISTRIBUTION) {
+      stepIsValid = validatePhysicalTankDistribution();
     } else if (currentStep === STEPS.DOCUMENT_UPLOAD) {
       stepIsValid = validateStep3();
     } else if (currentStep === STEPS.REVIEW_SUBMIT) {
@@ -813,6 +903,7 @@ export default function NewFuelIntakeFormWizard() {
       // Clear errors for the validated step (simplified placeholder)
       if (currentStep === STEPS.DELIVERY_DETAILS) setFormErrors(prev => ({...prev, delivery_vehicle_plate: undefined, intake_datetime: undefined, fuel_type: undefined, fuel_category: undefined, quantity_liters_received: undefined, quantity_kg_received: undefined, specific_gravity: undefined }));
       if (currentStep === STEPS.TANK_DISTRIBUTION) setFormErrors(prev => ({...prev, tank_distributions: {}, general_tank_distribution: undefined }));
+      if (currentStep === STEPS.PHYSICAL_TANK_DISTRIBUTION) setFormErrors(prev => ({...prev, physical_tank_distributions: {}, general_physical_tank_distribution: undefined }));
       if (currentStep === STEPS.DOCUMENT_UPLOAD) setFormErrors(prev => ({...prev, document_uploads: {}, general_document_upload: undefined }));
       
       const nextStep = currentStep + 1;
@@ -874,6 +965,27 @@ export default function NewFuelIntakeFormWizard() {
         return;
       }
       
+      // Map FuelType enum value to database value
+      // Frontend: FuelType.JET_A1 = 'Jet A-1'
+      // Backend: fuel_type = 'JET_A1'
+      const fuelTypeMap: Record<string, string> = {
+        'Jet A-1': 'JET_A1',
+        'Dizel': 'DIESEL',
+        'Benzin BMB95': 'BMB95',
+        'Avgas 100LL': 'AVGAS_100LL',
+      };
+      const backendFuelType = fuelTypeMap[formData.fuel_type || ''] || formData.fuel_type || 'DIESEL';
+
+      // Calculate kg for physical tank distributions
+      const physicalTankDistributionsWithKg = formData.physical_tank_distributions?.map(dist => {
+        const kg = dist.quantity_liters ? dist.quantity_liters * formData.specific_gravity! : 0;
+        return {
+          tank_id: dist.tank_id!,
+          quantity_liters: dist.quantity_liters!,
+          quantity_kg: kg,
+        };
+      });
+
       const payload: CreateFuelIntakePayload = {
         delivery_vehicle_plate: formData.delivery_vehicle_plate!,
         delivery_vehicle_driver_name: formData.delivery_vehicle_driver_name || null,
@@ -881,7 +993,7 @@ export default function NewFuelIntakeFormWizard() {
         quantity_liters_received: formData.quantity_liters_received!,
         quantity_kg_received: formData.quantity_kg_received!,
         specific_gravity: formData.specific_gravity!,
-        fuel_type: formData.fuel_type ? String(formData.fuel_type) : 'DIESEL', // Send as string, not number
+        fuel_type: backendFuelType, // Send backend format (JET_A1) not display format (Jet A-1)
         fuel_category: formData.fuel_category ? String(formData.fuel_category) : 'Domaće tržište',
         refinery_name: formData.refinery_name || null,
         supplier_name: formData.supplier_name || null,
@@ -897,6 +1009,7 @@ export default function NewFuelIntakeFormWizard() {
             tank_id: dist.tank_id!,
             quantity_liters: dist.quantity_liters!,
           })),
+        physical_tank_distributions: physicalTankDistributionsWithKg?.filter(dist => dist.tank_id && dist.quantity_liters),
       };
 
       console.log("Submitting main data:", payload);
@@ -1760,6 +1873,320 @@ export default function NewFuelIntakeFormWizard() {
               </div>
             ) : null}
 
+          </div>
+        );
+      case STEPS.PHYSICAL_TANK_DISTRIBUTION:
+        if (physicalTanksLoading) return (
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+            <p className="text-gray-600">Učitavanje fizičkih tankova...</p>
+          </div>
+        );
+        
+        if (physicalTanksError) return (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 className="text-lg font-medium text-red-800 mb-2">Greška pri učitavanju fizičkih tankova</h3>
+            <p className="text-red-600">{physicalTanksError}</p>
+            <Button 
+              onClick={() => window.location.reload()} 
+              className="mt-4 bg-red-600 hover:bg-red-700 text-white"
+            >
+              Pokušaj ponovo
+            </Button>
+          </div>
+        );
+
+        const physicalSelectedFuelType = formData.fuel_type;
+        if (!physicalSelectedFuelType) {
+          return (
+            <div>
+              <div className="flex items-center mb-6">
+                <div className="bg-blue-100 p-2 rounded-full mr-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
+                    <path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"></path>
+                    <polygon points="18 2 22 6 12 16 8 16 8 12 18 2"></polygon>
+                  </svg>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-800">Raspodjela u Fizičke Tankove</h3>
+              </div>
+              <div className="flex p-6 mb-6 text-orange-800 border-l-4 border-orange-500 bg-orange-50" role="alert">
+                <svg className="flex-shrink-0 w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"></path>
+                </svg>
+                <div>
+                  <span className="font-medium">Potreban tip goriva!</span> Molimo odaberite tip goriva u Koraku 1 da biste nastavili sa raspodjelom.
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        const physicalTanksForSelectedFuelType = filteredPhysicalTanks;
+        const currentlySelectedPhysicalTankIds = new Set(formData.physical_tank_distributions?.map(d => d.tank_id).filter(id => id !== undefined));
+
+        return (
+          <div>
+            <div className="flex items-center mb-6">
+              <div className="bg-purple-100 p-2 rounded-full mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-600">
+                  <path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"></path>
+                  <polygon points="18 2 22 6 12 16 8 16 8 12 18 2"></polygon>
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-gray-800">Raspodjela u Fizičke Tankove</h3>
+                <p className="text-sm text-gray-600 mt-1">Opcionalno: Raspodijelite gorivo u realne fizičke tankove sa MRN praćenjem</p>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded">
+              <div className="flex">
+                <svg className="flex-shrink-0 w-5 h-5 text-blue-700 mt-0.5 mr-3" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"></path>
+                </svg>
+                <div className="text-sm text-blue-700">
+                  <p className="font-medium mb-1">Obavezan korak</p>
+                  <p><strong>Unesite stvarno stanje kako je gorivo raspoređeno po kojem fizičkom tanku.</strong> Na osnovu ovih podataka biće kreirani MRN zapisi za praćenje raspodjele goriva.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Show total quantity info */}
+            {(() => {
+              const totalQuantityLiters = formData.quantity_liters_received || 0;
+              const distributedSoFar = formData.physical_tank_distributions?.reduce((sum, dist) => sum + (dist.quantity_liters || 0), 0) || 0;
+              const remaining = totalQuantityLiters - distributedSoFar;
+              return (
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-4 mb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white p-3 rounded-lg border border-green-100">
+                      <div className="text-xs text-gray-600 mb-1">Ukupno primljeno</div>
+                      <div className="text-lg font-bold text-green-700">{totalQuantityLiters.toFixed(2)} L</div>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-blue-100">
+                      <div className="text-xs text-gray-600 mb-1">Raspodijeljeno</div>
+                      <div className="text-lg font-bold text-blue-700">{distributedSoFar.toFixed(2)} L</div>
+                    </div>
+                    <div className={`bg-white p-3 rounded-lg border ${remaining < 0 ? 'border-red-100' : remaining > 0 ? 'border-orange-100' : 'border-green-100'}`}>
+                      <div className="text-xs text-gray-600 mb-1">Preostalo</div>
+                      <div className={`text-lg font-bold ${remaining < 0 ? 'text-red-700' : remaining > 0 ? 'text-orange-700' : 'text-green-700'}`}>
+                        {remaining.toFixed(2)} L
+                      </div>
+                    </div>
+                  </div>
+                  {remaining < 0 && (
+                    <div className="mt-3 flex items-center text-sm text-red-700 bg-red-50 border border-red-200 rounded p-2">
+                      <svg className="flex-shrink-0 w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/>
+                      </svg>
+                      <span>Upozorenje: Raspodijelili ste više nego što je primljeno!</span>
+                    </div>
+                  )}
+                  {remaining > 0 && remaining < totalQuantityLiters && (
+                    <div className="mt-3 flex items-center text-sm text-orange-700 bg-orange-50 border border-orange-200 rounded p-2">
+                      <svg className="flex-shrink-0 w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                      </svg>
+                      <span>Imate još {remaining.toFixed(2)} L koje treba raspodijeliti.</span>
+                    </div>
+                  )}
+                  {remaining === 0 && distributedSoFar > 0 && (
+                    <div className="mt-3 flex items-center text-sm text-green-700 bg-green-50 border border-green-200 rounded p-2">
+                      <svg className="flex-shrink-0 w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                      </svg>
+                      <span>Sve količine su uspješno raspoređene!</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Physical tank distributions */}
+            {formErrors.general_physical_tank_distribution && (
+              <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-4 rounded">
+                <div className="flex">
+                  <svg className="flex-shrink-0 w-5 h-5 text-red-700 mt-0.5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/>
+                  </svg>
+                  <div>
+                    <p className="text-sm font-medium text-red-700">{formErrors.general_physical_tank_distribution}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {formData.physical_tank_distributions && formData.physical_tank_distributions.length > 0 ? (
+                formData.physical_tank_distributions.map((distribution, index) => (
+                  <div key={index} className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+                    <div className="flex justify-between items-start mb-3">
+                      <h5 className="text-md font-medium text-gray-700">Fizički Tank #{index + 1}</h5>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => {
+                          const updated = [...(formData.physical_tank_distributions || [])];
+                          updated.splice(index, 1);
+                          setFormData({ ...formData, physical_tank_distributions: updated });
+                        }}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Odaberi Fizički Tank</Label>
+                        <Select
+                          value={distribution.tank_id?.toString() || ''}
+                          onValueChange={(value) => {
+                            const updated = [...(formData.physical_tank_distributions || [])];
+                            updated[index] = { ...updated[index], tank_id: parseInt(value) };
+                            setFormData({ ...formData, physical_tank_distributions: updated });
+                          }}
+                        >
+                          <SelectTrigger className={formErrors.physical_tank_distributions?.[index]?.tank_id ? 'border-red-500' : ''}>
+                            <SelectValue placeholder="Odaberi tank" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {physicalTanksForSelectedFuelType.length === 0 ? (
+                              <SelectItem value="no-tanks" disabled>Nema dostupnih tankova</SelectItem>
+                            ) : (
+                              physicalTanksForSelectedFuelType.map((tank) => (
+                                <SelectItem key={tank.id} value={tank.id.toString()}>
+                                  {getPhysicalTankDisplayInfo(tank.id)}
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                        {formErrors.physical_tank_distributions?.[index]?.tank_id && (
+                          <p className="text-sm text-red-600 mt-1 flex items-center">
+                            <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                            </svg>
+                            {formErrors.physical_tank_distributions[index].tank_id}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <Label>Količina (L)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={distribution.quantity_liters || ''}
+                          onChange={(e) => {
+                            const updated = [...(formData.physical_tank_distributions || [])];
+                            updated[index] = { ...updated[index], quantity_liters: parseFloat(e.target.value) || 0 };
+                            setFormData({ ...formData, physical_tank_distributions: updated });
+                          }}
+                          className={formErrors.physical_tank_distributions?.[index]?.quantity_liters ? 'border-red-500' : ''}
+                        />
+                        {formErrors.physical_tank_distributions?.[index]?.quantity_liters && (
+                          <p className="text-sm text-red-600 mt-1 flex items-center">
+                            <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                            </svg>
+                            {formErrors.physical_tank_distributions[index].quantity_liters}
+                          </p>
+                        )}
+                        {/* Capacity warning */}
+                        {(() => {
+                          if (!distribution.tank_id || !distribution.quantity_liters) return null;
+                          const selectedTank = physicalTanks.find(t => t.id === distribution.tank_id);
+                          if (!selectedTank) return null;
+                          
+                          const currentQuantity = selectedTank.current_quantity_liters;
+                          const capacity = selectedTank.capacity_liters;
+                          const freeSpace = capacity - currentQuantity;
+                          const wouldExceed = distribution.quantity_liters > freeSpace;
+                          
+                          if (!wouldExceed) return null;
+                          
+                          return (
+                            <div className="mt-2 bg-red-50 border border-red-200 rounded p-2 text-xs text-red-700">
+                              <div className="flex items-start">
+                                <svg className="w-4 h-4 mr-1 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                                </svg>
+                                <div>
+                                  <div className="font-medium">Prekoračenje kapaciteta!</div>
+                                  <div className="mt-1">
+                                    Slobodno mjesto: {freeSpace.toFixed(2)} L
+                                    <br />
+                                    Pokušavate dodati: {distribution.quantity_liters.toFixed(2)} L
+                                    <br />
+                                    Prekoračenje: {(distribution.quantity_liters - freeSpace).toFixed(2)} L
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-gray-500 mb-4">Nema dodanih fizičkih tankova</p>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setFormData({ 
+                        ...formData, 
+                        physical_tank_distributions: [{ tank_id: undefined, quantity_liters: undefined }] 
+                      });
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Dodaj Fizički Tank
+                  </Button>
+                </div>
+              )}
+
+              {/* Add Another Tank Button - shown when there are already tanks */}
+              {formData.physical_tank_distributions && formData.physical_tank_distributions.length > 0 && (
+                <div className="flex justify-center pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const updated = [...(formData.physical_tank_distributions || [])];
+                      updated.push({ tank_id: undefined, quantity_liters: undefined });
+                      setFormData({ 
+                        ...formData, 
+                        physical_tank_distributions: updated 
+                      });
+                    }}
+                    className="border-purple-300 text-purple-600 hover:bg-purple-50"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Dodaj Još Jedan Tank
+                  </Button>
+                </div>
+              )}
+
+              {/* Show total distributed if tanks are added */}
+              {formData.physical_tank_distributions && formData.physical_tank_distributions.length > 0 && (
+                <div className="mt-6 bg-purple-50 p-4 rounded-lg border border-purple-200">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-purple-700">
+                      Ukupno raspodijeljeno:
+                    </span>
+                    <span className="text-lg font-bold text-purple-800">
+                      {formData.physical_tank_distributions
+                        .reduce((sum, dist) => sum + (dist.quantity_liters || 0), 0)
+                        .toFixed(2)} L
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         );
       case STEPS.DOCUMENT_UPLOAD:

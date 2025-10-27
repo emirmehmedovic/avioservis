@@ -13,9 +13,10 @@ const AirlineManagement = dynamic(() => import('@/components/fuel/AirlineManagem
 const FixedTanksDisplay = dynamic(() => import('@/components/fuel/FixedTanksDisplay'), { ssr: false });
 const FuelIntakeDisplay = dynamic(() => import('@/components/fuel/FuelIntakeDisplay'), { ssr: false });
 const FuelPrices = dynamic(() => import('@/components/fuel/FuelPrices'), { ssr: false });
+const PhysicalTanksDisplay = dynamic(() => import('@/components/fuel/PhysicalTanksDisplay'), { ssr: false });
 
 // Define the valid category IDs as a type
-type CategoryId = 'fixed-tanks' | 'tanks' | 'fuel-intake' | 'fueling' | 'drained-fuel' | 'airlines' | 'fuel-prices';
+type CategoryId = 'fixed-tanks' | 'tanks' | 'fuel-intake' | 'fueling' | 'drained-fuel' | 'airlines' | 'fuel-prices' | 'physical-tanks';
 
 // SVG Icons for categories with proper typing
 const CategoryIcons: Record<CategoryId, React.ReactNode> = {
@@ -69,6 +70,14 @@ const CategoryIcons: Record<CategoryId, React.ReactNode> = {
       <path d="M4 19L11 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   ),
+  'physical-tanks': (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4 6H20L18 16H6L4 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M8 6V4C8 2.89543 8.89543 2 10 2H14C15.1046 2 16 2.89543 16 4V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M12 16V20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M8 20H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  ),
 };
 
 function classNames(...classes: string[]) {
@@ -93,13 +102,14 @@ export default function FuelManagement() {
   };
 
   const categories: CategoryDetails[] = [
-    { id: 'fixed-tanks', description: 'Rezervoari' },
-    { id: 'tanks', description: 'Avio Cisterne' },
-    { id: 'fuel-intake', description: 'Unos Goriva' },
-    { id: 'fueling', description: 'Operacije Točenja' },
+    { id: 'fixed-tanks', description: 'Rezervoari (Robno stanje)' },
+    { id: 'tanks', description: 'Avio Cisterne (Tip goriva)' },
+    { id: 'fuel-intake', description: 'Unos Goriva (Ulazi)' },
+    { id: 'fueling', description: 'Operacije Točenja (Izlazi)' },
     { id: 'drained-fuel', description: 'Drenirano Gorivo' },
     { id: 'airlines', description: 'Avio Kompanije' },
     { id: 'fuel-prices', description: 'Cijene Goriva' },
+    { id: 'physical-tanks', description: 'Fizički Tankovi' },
   ];
 
   return (
@@ -218,6 +228,17 @@ export default function FuelManagement() {
                     transition={{ duration: 0.3 }}
                   >
                     <FuelPrices />
+                  </motion.div>
+                </Tab.Panel>
+
+                <Tab.Panel key="physical-tanks" className="p-8 focus:outline-none">
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <PhysicalTanksDisplay />
                   </motion.div>
                 </Tab.Panel>
               </AnimatePresence>

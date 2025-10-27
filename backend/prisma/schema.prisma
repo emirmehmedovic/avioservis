@@ -297,6 +297,7 @@ model FuelIntakeRecords {
   fuel_type                    String
   supplier_name                String?
   delivery_note_number         String?
+  physical_tank_distribution   String?               // JSON array for physical tank distribution
   customs_declaration_number   String?
   createdAt                    DateTime              @default(now())
   updatedAt                    DateTime              @updatedAt
@@ -1176,4 +1177,154 @@ model ReportAccess {
   user        User?    @relation("ReportAccessor", fields: [user_id], references: [id], onDelete: SetNull)
 
   @@index([report_id])
+}
+
+// ============================================================================
+// PHYSICAL TANKS MODULE - Praćenje realnog fizičkog stanja goriva
+// ============================================================================
+
+model PhysicalTanks {
+  id                      Int                      @id @default(autoincrement())
+  tank_name               String                   @unique
+  tank_identifier         String                   @unique  // Serijski broj
+  capacity_liters         Float
+  current_quantity_liters Float                    @default(0)
+  current_quantity_kg     Float                    @default(0)
+  average_density         Float?                   // Prosječna gustoća
+  fuel_type               String
+  location_description    String?
+  display_order           Int
+  is_active               Boolean                  @default(true)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  
+  physicalTankMrn         PhysicalTankMrn[]
+  physicalTankTransfers   PhysicalTankTransfer[]
+  
+  @@index([fuel_type])
+  @@index([is_active])
+  @@index([tank_identifier])
+}
+
+model PhysicalTankMrn {
+  id                         Int            @id @default(autoincrement())
+  physical_tank_id           Int
+  customs_declaration_number String
+  quantity_liters            Decimal        @db.Decimal(12, 3)
+  quantity_kg                Decimal        @db.Decimal(12, 3)
+  remaining_quantity_liters  Decimal        @db.Decimal(12, 3)
+  remaining_quantity_kg      Decimal        @db.Decimal(12, 3)
+  density_at_intake          Decimal        @db.Decimal(8, 4)
+  date_added                 DateTime
+  fuel_intake_record_id      Int?
+  is_retrofitted             Boolean        @default(false)  // Za retrofit tracking
+  createdAt                  DateTime       @default(now())
+  updatedAt                  DateTime       @updatedAt
+  
+  physicalTank               PhysicalTanks  @relation(fields: [physical_tank_id], references: [id])
+  
+  @@index([physical_tank_id])
+  @@index([customs_declaration_number])
+  @@index([date_added])
+  @@index([is_retrofitted])
+}
+
+model PhysicalCisternFuel {
+  id                      Int                      @id @default(autoincrement())
+  cistern_identifier      String                   @unique
+  capacity_liters         Float
+  current_quantity_liters Float                    @default(0)
+  current_quantity_kg     Float                    @default(0)
+  fuel_type               String
+  is_active               Boolean                  @default(true)
+  is_cumulative           Boolean                  @default(false)  // Za kumulativne cisterne
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  
+  cisternMrn              PhysicalCisternMrn[]
+  cisternTransfers        PhysicalTankTransfer[]
+  subCisterns             PhysicalSubCistern[]     // Logičke pod-cisterne
+  
+  @@index([cistern_identifier])
+  @@index([is_active])
+}
+
+model PhysicalSubCistern {
+  id                      Int                      @id @default(autoincrement())
+  parent_cistern_id       Int
+  sub_cistern_name        String                   // "Cisterna 1", "Cisterna 2"
+  capacity_liters         Float
+  current_quantity_liters Float                    @default(0)
+  current_quantity_kg     Float                    @default(0)
+  is_active               Boolean                  @default(true)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  
+  parentCistern           PhysicalCisternFuel      @relation(fields: [parent_cistern_id], references: [id])
+  subCisternMrn           PhysicalSubCisternMrn[]
+  
+  @@index([parent_cistern_id])
+  @@index([is_active])
+}
+
+model PhysicalSubCisternMrn {
+  id                         Int                   @id @default(autoincrement())
+  sub_cistern_id             Int
+  customs_declaration_number String
+  quantity_liters            Decimal               @db.Decimal(12, 3)
+  quantity_kg                Decimal               @db.Decimal(12, 3)
+  remaining_quantity_liters  Decimal               @db.Decimal(12, 3)
+  remaining_quantity_kg      Decimal               @db.Decimal(12, 3)
+  density_at_intake          Decimal               @db.Decimal(8, 4)
+  date_added                 DateTime
+  source_cistern_mrn_id      Int?                  // Link na PhysicalCisternMrn odakle je došlo
+  createdAt                  DateTime              @default(now())
+  updatedAt                  DateTime              @updatedAt
+  
+  subCistern                 PhysicalSubCistern    @relation(fields: [sub_cistern_id], references: [id])
+  
+  @@index([sub_cistern_id])
+  @@index([customs_declaration_number])
+  @@index([date_added])
+}
+
+model PhysicalCisternMrn {
+  id                         Int                   @id @default(autoincrement())
+  cistern_id                 Int
+  customs_declaration_number String
+  quantity_liters            Decimal               @db.Decimal(12, 3)
+  quantity_kg                Decimal               @db.Decimal(12, 3)
+  remaining_quantity_liters  Decimal               @db.Decimal(12, 3)
+  remaining_quantity_kg      Decimal               @db.Decimal(12, 3)
+  density_at_intake          Decimal               @db.Decimal(8, 4)
+  date_added                 DateTime
+  source_physical_tank_id    Int?
+  createdAt                  DateTime              @default(now())
+  updatedAt                  DateTime              @updatedAt
+  
+  cistern                    PhysicalCisternFuel   @relation(fields: [cistern_id], references: [id])
+  
+  @@index([cistern_id])
+  @@index([customs_declaration_number])
+  @@index([date_added])
+}
+
+model PhysicalTankTransfer {
+  id                      Int                  @id @default(autoincrement())
+  source_physical_tank_id Int
+  target_cistern_id       Int
+  quantity_liters         Decimal              @db.Decimal(12, 3)
+  quantity_kg             Decimal              @db.Decimal(12, 3)
+  transfer_datetime       DateTime
+  notes                   String?
+  mrn_breakdown           String?              // JSON MRN breakdown
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+  
+  sourceTank              PhysicalTanks        @relation(fields: [source_physical_tank_id], references: [id])
+  targetCistern           PhysicalCisternFuel  @relation(fields: [target_cistern_id], references: [id])
+  
+  @@index([source_physical_tank_id])
+  @@index([target_cistern_id])
+  @@index([transfer_datetime])
 }
