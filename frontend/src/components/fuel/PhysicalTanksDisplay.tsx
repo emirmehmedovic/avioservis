@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectItem } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Edit, Trash2, RefreshCw, Database, FileText } from 'lucide-react';
 import { toast } from 'sonner';
@@ -1495,16 +1495,11 @@ const PhysicalTanksDisplay = () => {
                   value={createForm.fuel_type}
                   onValueChange={(value) => setCreateForm({...createForm, fuel_type: value})}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {fuelTypes.map((ft) => (
-                      <SelectItem key={ft.value} value={ft.value}>
-                        {ft.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                  {fuelTypes.map((ft) => (
+                    <SelectItem key={ft.value} value={ft.value}>
+                      {ft.label}
+                    </SelectItem>
+                  ))}
                 </Select>
               </div>
               <div>
@@ -1569,16 +1564,11 @@ const PhysicalTanksDisplay = () => {
                   value={createForm.fuel_type}
                   onValueChange={(value) => setCreateForm({...createForm, fuel_type: value})}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {fuelTypes.map((ft) => (
-                      <SelectItem key={ft.value} value={ft.value}>
-                        {ft.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                  {fuelTypes.map((ft) => (
+                    <SelectItem key={ft.value} value={ft.value}>
+                      {ft.label}
+                    </SelectItem>
+                  ))}
                 </Select>
               </div>
               <div>
@@ -1637,16 +1627,11 @@ const PhysicalTanksDisplay = () => {
                   value={createCisternForm.fuel_type}
                   onValueChange={(value) => setCreateCisternForm({...createCisternForm, fuel_type: value})}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {fuelTypes.map((ft) => (
-                      <SelectItem key={ft.value} value={ft.value}>
-                        {ft.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                  {fuelTypes.map((ft) => (
+                    <SelectItem key={ft.value} value={ft.value}>
+                      {ft.label}
+                    </SelectItem>
+                  ))}
                 </Select>
               </div>
               <div className="flex gap-2 justify-end">
@@ -1694,16 +1679,11 @@ const PhysicalTanksDisplay = () => {
                   value={createCisternForm.fuel_type}
                   onValueChange={(value) => setCreateCisternForm({...createCisternForm, fuel_type: value})}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {fuelTypes.map((ft) => (
-                      <SelectItem key={ft.value} value={ft.value}>
-                        {ft.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                  {fuelTypes.map((ft) => (
+                    <SelectItem key={ft.value} value={ft.value}>
+                      {ft.label}
+                    </SelectItem>
+                  ))}
                 </Select>
               </div>
               <div className="flex items-center gap-2">
@@ -1750,16 +1730,12 @@ const PhysicalTanksDisplay = () => {
                     setTransferForm({...transferForm, from_tank_id: parseInt(value)});
                   }}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Odaberite tank" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {tanks.map((tank) => (
-                      <SelectItem key={tank.id} value={tank.id.toString()}>
-                        {tank.tank_name} - {Number(tank.current_quantity_liters).toLocaleString()}L / {Number(tank.current_quantity_kg).toLocaleString()}kg ({tank.average_density ? Number(tank.average_density).toFixed(3) : 'N/A'} kg/L)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                  <SelectItem value="" disabled>Odaberite tank</SelectItem>
+                  {tanks.map((tank) => (
+                    <SelectItem key={tank.id} value={tank.id.toString()}>
+                      {tank.tank_name} - {Number(tank.current_quantity_liters).toLocaleString()}L / {Number(tank.current_quantity_kg).toLocaleString()}kg ({tank.average_density ? Number(tank.average_density).toFixed(3) : 'N/A'} kg/L)
+                    </SelectItem>
+                  ))}
                 </Select>
                 {transferForm.from_tank_id > 0 && (() => {
                   const selectedTank = tanks.find(t => t.id === transferForm.from_tank_id);
@@ -1790,16 +1766,12 @@ const PhysicalTanksDisplay = () => {
                       }
                     }}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Odaberite cisternu" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {cisterns.map((cistern) => (
-                      <SelectItem key={cistern.id} value={cistern.id.toString()}>
-                          {cistern.cistern_identifier} - {Number(cistern.current_quantity_liters).toLocaleString()}L / {Number(cistern.current_quantity_kg).toLocaleString()}kg
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                  <SelectItem value="" disabled>Odaberite cisternu</SelectItem>
+                  {cisterns.map((cistern) => (
+                    <SelectItem key={cistern.id} value={cistern.id.toString()}>
+                        {cistern.cistern_identifier} - {Number(cistern.current_quantity_liters).toLocaleString()}L / {Number(cistern.current_quantity_kg).toLocaleString()}kg
+                    </SelectItem>
+                  ))}
                 </Select>
               </div>
               )}
@@ -1816,16 +1788,12 @@ const PhysicalTanksDisplay = () => {
                       setTransferForm({...transferForm, to_sub_cistern_id: subCisternId});
                     }}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Odaberite cisternu" />
-                    </SelectTrigger>
-                    <SelectContent>
-                                             {availableSubCisternsForTransfer.map((subCistern) => (
-                         <SelectItem key={subCistern.id} value={subCistern.id.toString()}>
-                           {subCistern.sub_cistern_name} - Kapacitet: {Number(subCistern.capacity_liters).toLocaleString()}L, Trenutno: {Number(subCistern.current_quantity_liters).toLocaleString()}L / {Number(subCistern.current_quantity_kg).toLocaleString()}kg
-                         </SelectItem>
-                       ))}
-                    </SelectContent>
+                    <SelectItem value="" disabled>Odaberite cisternu</SelectItem>
+                    {availableSubCisternsForTransfer.map((subCistern) => (
+                      <SelectItem key={subCistern.id} value={subCistern.id.toString()}>
+                        {subCistern.sub_cistern_name} - Kapacitet: {Number(subCistern.capacity_liters).toLocaleString()}L, Trenutno: {Number(subCistern.current_quantity_liters).toLocaleString()}L / {Number(subCistern.current_quantity_kg).toLocaleString()}kg
+                      </SelectItem>
+                    ))}
                   </Select>
                 </div>
               )}
@@ -2293,19 +2261,15 @@ const PhysicalTanksDisplay = () => {
                     setSubCisternTransferForm(prev => ({ ...prev, to_sub_cistern_id: value }));
                   }}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Odaberite sub-cisternu" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subCisterns
-                      .filter(sc => sc.id !== selectedSubCisternForTransfer.id && sc.parent_cistern_id === selectedSubCisternForTransfer.parent_cistern_id)
-                      .map((subCistern) => (
-                        <SelectItem key={subCistern.id} value={subCistern.id.toString()}>
-                          {subCistern.sub_cistern_name} - 
-                          {' '}{Math.round(subCistern.current_quantity_liters).toLocaleString()}L / {Math.round(subCistern.current_quantity_kg).toLocaleString()}kg
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
+                  <SelectItem value="" disabled>Odaberite sub-cisternu</SelectItem>
+                  {subCisterns
+                    .filter(sc => sc.id !== selectedSubCisternForTransfer.id && sc.parent_cistern_id === selectedSubCisternForTransfer.parent_cistern_id)
+                    .map((subCistern) => (
+                      <SelectItem key={subCistern.id} value={subCistern.id.toString()}>
+                        {subCistern.sub_cistern_name} - 
+                        {' '}{Math.round(subCistern.current_quantity_liters).toLocaleString()}L / {Math.round(subCistern.current_quantity_kg).toLocaleString()}kg
+                      </SelectItem>
+                    ))}
                 </Select>
               </div>
 
