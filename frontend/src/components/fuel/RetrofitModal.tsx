@@ -150,114 +150,283 @@ const RetrofitModal: React.FC<RetrofitModalProps> = ({ isOpen, onClose, onSucces
   const selectedMrnData = previewData?.existing_mrn_records.find(m => m.customs_declaration_number === selectedMrn);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <h2 className="text-2xl font-bold mb-4">Retrofit - Raspodjela Goriva</h2>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[95vh] overflow-hidden border border-gray-100">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-gray-50 to-white border-b border-gray-100 px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-2xl font-semibold text-gray-900">Retrofit - Raspodjela Goriva</h2>
+                <p className="text-sm text-gray-600">Raspodijelite postojeće MRN zapise u fizičke tankove</p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+            >
+              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-8 overflow-y-auto max-h-[calc(95vh-120px)]">
 
         {/* Fuel Type Filter */}
-        <div className="mb-4">
-          <Label>Tip Goriva</Label>
-          <Select value={selectedFuelType} onValueChange={setSelectedFuelType}>
-            <SelectItem value="" disabled>Odaberite tip goriva</SelectItem>
-            <SelectItem value="all">Svi tipovi</SelectItem>
-            <SelectItem value="Jet A-1">JET A-1</SelectItem>
-            <SelectItem value="Jet A">JET A</SelectItem>
-            <SelectItem value="AVGAS">AVGAS</SelectItem>
-          </Select>
+        <div className="mb-8">
+          <div className="bg-gray-50 rounded-xl p-6 border border-gray-100">
+            <div className="flex items-center space-x-2 mb-4">
+              <div className="w-6 h-6 bg-gray-800 rounded-md flex items-center justify-center">
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
+                </svg>
+              </div>
+              <Label className="text-sm font-semibold text-gray-700">Filtriraj po tipu goriva</Label>
+            </div>
+            <Select 
+              value={selectedFuelType} 
+              onValueChange={setSelectedFuelType}
+              className="w-full bg-white border-gray-200 focus:border-gray-400 focus:ring-2 focus:ring-gray-100"
+            >
+              <SelectItem value="" disabled>Odaberite tip goriva</SelectItem>
+              <SelectItem value="all">Svi tipovi</SelectItem>
+              <SelectItem value="Jet A-1">JET A-1</SelectItem>
+              <SelectItem value="Jet A">JET A</SelectItem>
+              <SelectItem value="AVGAS">AVGAS</SelectItem>
+            </Select>
+          </div>
         </div>
 
         {loading && !previewData && (
-          <div className="text-center py-8">Učitavanje...</div>
+          <div className="flex items-center justify-center py-12">
+            <div className="flex items-center space-x-3">
+              <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
+              <span className="text-gray-600 font-medium">Učitavanje podataka...</span>
+            </div>
+          </div>
         )}
 
         {previewData && (
           <>
             {/* MRN Selection */}
             {previewData.existing_mrn_records.length > 0 && (
-              <div className="mb-4">
-                <Label>Odaberite MRN Zapis</Label>
-                <Select value={selectedMrn} onValueChange={setSelectedMrn}>
-                  <SelectItem value="" disabled>Odaberite MRN zapis</SelectItem>
-                  {previewData.existing_mrn_records.map((mrn) => (
-                    <SelectItem key={mrn.customs_declaration_number} value={mrn.customs_declaration_number}>
-                      {mrn.customs_declaration_number} - {mrn.total_liters}L ({mrn.supplier_name})
-                    </SelectItem>
-                  ))}
-                </Select>
+              <div className="mb-8">
+                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                  <div className="flex items-center space-x-2 mb-4">
+                    <div className="w-6 h-6 bg-gray-800 rounded-md flex items-center justify-center">
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <Label className="text-sm font-semibold text-gray-700">Odaberite MRN Zapis</Label>
+                  </div>
+                  <Select 
+                    value={selectedMrn} 
+                    onValueChange={setSelectedMrn}
+                    className="w-full bg-white border-gray-200 focus:border-gray-400 focus:ring-2 focus:ring-gray-100"
+                  >
+                    <SelectItem value="" disabled>Odaberite MRN zapis</SelectItem>
+                    {previewData.existing_mrn_records.map((mrn) => (
+                      <SelectItem key={mrn.customs_declaration_number} value={mrn.customs_declaration_number}>
+                        {mrn.customs_declaration_number} - {mrn.total_liters}L ({mrn.supplier_name})
+                      </SelectItem>
+                    ))}
+                  </Select>
+                </div>
               </div>
             )}
 
             {previewData.existing_mrn_records.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                Nema dostupnih MRN zapisa za raspodjelu
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Nema dostupnih MRN zapisa</h3>
+                <p className="text-gray-600">Trenutno nema MRN zapisa dostupnih za raspodjelu</p>
               </div>
             )}
 
             {/* Distribution Form */}
             {selectedMrn && selectedMrnData && (
-              <div className="space-y-4">
-                <div className="bg-blue-50 p-4 rounded">
-                  <p className="font-semibold">Informacije o MRN zapisu:</p>
-                  <p>MRN: {selectedMrnData.customs_declaration_number}</p>
-                  <p>Tip goriva: {selectedMrnData.fuel_type}</p>
-                  <p>Raspoloživo: {selectedMrnData.total_liters}L / {selectedMrnData.total_kg}kg</p>
-                  <p>Gustoća: {selectedMrnData.density_at_intake.toFixed(4)} kg/L</p>
-                </div>
-
-                <div className="space-y-2">
-                  {distributions.map((dist, index) => {
-                    const tank = previewData.physical_tanks.find(t => t.id === dist.tank_id);
-                    if (!tank) return null;
-
-                    return (
-                      <div key={dist.tank_id} className="flex gap-2 items-center">
-                        <div className="flex-1">
-                          <Label>{tank.tank_name}</Label>
-                          <Input
-                            type="number"
-                            value={dist.quantity_liters || ''}
-                            onChange={(e) => handleQuantityChange(dist.tank_id, Number(e.target.value))}
-                            placeholder="0"
-                            step="0.01"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <Label>Kilogrami (auto)</Label>
-                          <Input
-                            type="number"
-                            value={dist.quantity_kg.toFixed(3)}
-                            disabled
-                            className="bg-gray-100"
-                          />
-                        </div>
+              <div className="space-y-6">
+                {/* MRN Info Card */}
+                <div className="bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900">Informacije o MRN zapisu</h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">MRN broj:</span>
+                        <span className="text-sm font-medium text-gray-900">{selectedMrnData.customs_declaration_number}</span>
                       </div>
-                    );
-                  })}
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Tip goriva:</span>
+                        <span className="text-sm font-medium text-gray-900">{selectedMrnData.fuel_type}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Raspoloživo:</span>
+                        <span className="text-sm font-medium text-gray-900">{selectedMrnData.total_liters}L / {selectedMrnData.total_kg}kg</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Gustoća:</span>
+                        <span className="text-sm font-medium text-gray-900">{selectedMrnData.density_at_intake.toFixed(4)} kg/L</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="bg-gray-50 p-4 rounded">
-                  <p className="font-semibold">Ukupno distribuirano: {getTotalDistributed().toFixed(3)}L</p>
-                  {getTotalDistributed() < getMaxAvailable() && (
-                    <p className="text-orange-600">
-                      Preostalo za raspodjelu: {(getMaxAvailable() - getTotalDistributed()).toFixed(3)}L
-                    </p>
-                  )}
+                {/* Distribution Form */}
+                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                  <div className="flex items-center space-x-2 mb-6">
+                    <div className="w-6 h-6 bg-gray-800 rounded-md flex items-center justify-center">
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900">Raspodjela po tankovima</h3>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {distributions.map((dist, index) => {
+                      const tank = previewData.physical_tanks.find(t => t.id === dist.tank_id);
+                      if (!tank) return null;
+
+                      return (
+                        <div key={dist.tank_id} className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center">
+                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                </svg>
+                              </div>
+                              <div>
+                                <h4 className="font-medium text-gray-900">{tank.tank_name}</h4>
+                                <p className="text-xs text-gray-600">Kapacitet: {tank.capacity_liters}L</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm text-gray-600">Trenutno</p>
+                              <p className="font-medium text-gray-900">{tank.current_quantity_liters}L</p>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label className="text-sm font-medium text-gray-700 mb-2 block">Količina (litri)</Label>
+                              <Input
+                                type="number"
+                                value={dist.quantity_liters || ''}
+                                onChange={(e) => handleQuantityChange(dist.tank_id, Number(e.target.value))}
+                                placeholder="0"
+                                step="0.01"
+                                className="w-full bg-white border-gray-200 focus:border-gray-400 focus:ring-2 focus:ring-gray-100"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-sm font-medium text-gray-700 mb-2 block">Kilogrami (auto)</Label>
+                              <Input
+                                type="number"
+                                value={dist.quantity_kg.toFixed(3)}
+                                disabled
+                                className="w-full bg-gray-100 border-gray-200 text-gray-600"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Summary */}
+                <div className="bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                  <div className="flex items-center space-x-2 mb-4">
+                    <div className="w-6 h-6 bg-gray-800 rounded-md flex items-center justify-center">
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900">Sažetak raspodjele</h3>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Ukupno distribuirano:</span>
+                        <span className="text-sm font-semibold text-gray-900">{getTotalDistributed().toFixed(3)}L</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Raspoloživo:</span>
+                        <span className="text-sm font-medium text-gray-900">{getMaxAvailable().toFixed(3)}L</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {getTotalDistributed() < getMaxAvailable() && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-orange-600">Preostalo:</span>
+                          <span className="text-sm font-medium text-orange-600">
+                            {(getMaxAvailable() - getTotalDistributed()).toFixed(3)}L
+                          </span>
+                        </div>
+                      )}
+                      {getTotalDistributed() > getMaxAvailable() && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-red-600">Prekoračenje:</span>
+                          <span className="text-sm font-medium text-red-600">
+                            {(getTotalDistributed() - getMaxAvailable()).toFixed(3)}L
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
           </>
         )}
+        </div>
 
-        <div className="flex gap-2 justify-end mt-6">
-          <Button variant="outline" onClick={onClose}>
+        {/* Footer */}
+        <div className="bg-gray-50 border-t border-gray-100 px-8 py-4 flex justify-end space-x-3">
+          <Button 
+            variant="outline" 
+            onClick={onClose}
+            className="px-6 py-2 border-gray-300 text-gray-700 hover:bg-gray-50"
+          >
             Otkaži
           </Button>
           <Button
             onClick={handleExecuteRetrofit}
             disabled={loading || !selectedMrn || getTotalDistributed() === 0}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="px-6 py-2 bg-gray-900 hover:bg-gray-800 text-white disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
-            {loading ? 'Izvršavanje...' : 'Sačuvaj Raspodjelu'}
+            {loading ? (
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Izvršavanje...</span>
+              </div>
+            ) : (
+              'Sačuvaj Raspodjelu'
+            )}
           </Button>
         </div>
       </div>
