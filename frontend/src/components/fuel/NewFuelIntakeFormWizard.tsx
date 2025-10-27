@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectItem } from '@/components/ui/select';
 import { FuelType, FuelCategory, FixedStorageTank, FuelIntakeRecord } from '../../types/fuel';
 import dayjs from 'dayjs';
 import {
@@ -137,6 +137,25 @@ function formatFileSize(bytes: number): string {
 export default function NewFuelIntakeFormWizard() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(STEPS.DELIVERY_DETAILS);
+
+  // Helper function to prevent wheel scroll on number inputs
+  const handleWheel = (e: React.WheelEvent<HTMLInputElement>) => {
+    e.preventDefault();
+  };
+
+  // Helper function to prevent wheel scroll when input is focused
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.addEventListener('wheel', (wheelEvent) => {
+      wheelEvent.preventDefault();
+    }, { passive: false });
+  };
+
+  // Helper function to remove wheel listener when input loses focus
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.removeEventListener('wheel', (wheelEvent) => {
+      wheelEvent.preventDefault();
+    });
+  };
   const [formData, setFormData] = useState<Partial<IntakeFormData>>({
     tank_distributions: [{}],
     document_uploads: [],
@@ -1211,6 +1230,9 @@ export default function NewFuelIntakeFormWizard() {
                         min="0"
                         value={formData.quantity_liters_received || ''} 
                         onChange={handleInputChange}
+                        onWheel={handleWheel}
+                        onFocus={handleFocus}
+                        onBlur={handleBlur}
                         className={`mt-1 pl-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${formErrors.quantity_liters_received ? 'border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'}`}
                       />
                       <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 mt-1">
@@ -1236,6 +1258,9 @@ export default function NewFuelIntakeFormWizard() {
                         min="0"
                         value={formData.quantity_kg_received || ''} 
                         onChange={handleInputChange}
+                        onWheel={handleWheel}
+                        onFocus={handleFocus}
+                        onBlur={handleBlur}
                         className={`mt-1 pl-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${formErrors.quantity_kg_received ? 'border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'}`}
                       />
                       <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 mt-1">
@@ -1326,15 +1351,12 @@ export default function NewFuelIntakeFormWizard() {
                           handleInputChange(value, 'currency');
                         }}
                         value={formData.currency || Currency.BAM}
+                        className={`w-full mt-1 ${formErrors.currency ? 'border-red-500' : ''}`}
                       >
-                        <SelectTrigger className={`w-full mt-1 ${formErrors.currency ? 'border-red-500' : ''}`}>
-                          <SelectValue placeholder="Odaberite valutu" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.values(Currency).map(currency => (
-                            <SelectItem key={currency} value={currency}>{currency}</SelectItem>
-                          ))}
-                        </SelectContent>
+                        <SelectItem value="" disabled>Odaberite valutu</SelectItem>
+                        {Object.values(Currency).map(currency => (
+                          <SelectItem key={currency} value={currency}>{currency}</SelectItem>
+                        ))}
                       </Select>
                       {formErrors.currency && <p className="text-xs text-red-500 mt-1">{formErrors.currency}</p>}
                     </div>
@@ -1405,15 +1427,12 @@ export default function NewFuelIntakeFormWizard() {
                     name="fuel_type"
                     onValueChange={(value: string) => handleInputChange(value, 'fuel_type')}
                     value={formData.fuel_type || ''}
+                    className={`w-full mt-1 ${formErrors.fuel_type ? 'border-red-500' : ''}`}
                   >
-                    <SelectTrigger className={`w-full mt-1 ${formErrors.fuel_type ? 'border-red-500' : ''}`}>
-                      <SelectValue placeholder="Odaberite tip goriva" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.values(FuelType).map(type => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
-                      ))}
-                    </SelectContent>
+                    <SelectItem value="" disabled>Odaberite tip goriva</SelectItem>
+                    {Object.values(FuelType).map(type => (
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))}
                   </Select>
                   {formErrors.fuel_type && <p className="text-xs text-red-500 mt-1">{formErrors.fuel_type}</p>}
                 </div>
@@ -1424,15 +1443,12 @@ export default function NewFuelIntakeFormWizard() {
                     name="fuel_category"
                     onValueChange={(value: string) => handleInputChange(value, 'fuel_category')}
                     value={formData.fuel_category || FuelCategory.DOMESTIC}
+                    className={`w-full mt-1 ${formErrors.fuel_category ? 'border-red-500' : ''}`}
                   >
-                    <SelectTrigger className={`w-full mt-1 ${formErrors.fuel_category ? 'border-red-500' : ''}`}>
-                      <SelectValue placeholder="Odaberite kategoriju" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.values(FuelCategory).map(category => (
-                        <SelectItem key={category} value={category}>{category}</SelectItem>
-                      ))}
-                    </SelectContent>
+                    <SelectItem value="" disabled>Odaberite kategoriju</SelectItem>
+                    {Object.values(FuelCategory).map(category => (
+                      <SelectItem key={category} value={category}>{category}</SelectItem>
+                    ))}
                   </Select>
                   {formErrors.fuel_category && <p className="text-xs text-red-500 mt-1">{formErrors.fuel_category}</p>}
                 </div>
@@ -1781,18 +1797,15 @@ export default function NewFuelIntakeFormWizard() {
                           name={`tank_id_${index}`}
                           value={distribution.tank_id?.toString() || ''}
                           onValueChange={(value: string) => handleTankDistributionChange(index, 'tank_id', value)}
+                          className={`w-full mt-1 ${tankError ? 'border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'}`}
                         >
-                          <SelectTrigger className={`w-full mt-1 ${tankError ? 'border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'}`}>
-                            <SelectValue placeholder="Odaberite fiksni tank..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {selectableTanks.length === 0 && !currentTankId && <SelectItem value="no-tanks" disabled>Nema dostupnih tankova ovog tipa ili su svi već odabrani.</SelectItem>}
-                            {selectableTanks.map(tank => (
-                              <SelectItem key={tank.id} value={tank.id.toString()}>
-                                {getTankDisplayInfo(tank.id)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
+                          <SelectItem value="" disabled>Odaberite fiksni tank...</SelectItem>
+                          {selectableTanks.length === 0 && !currentTankId && <SelectItem value="no-tanks" disabled>Nema dostupnih tankova ovog tipa ili su svi već odabrani.</SelectItem>}
+                          {selectableTanks.map(tank => (
+                            <SelectItem key={tank.id} value={tank.id.toString()}>
+                              {getTankDisplayInfo(tank.id)}
+                            </SelectItem>
+                          ))}
                         </Select>
                         {tankError && (
                           <p className="text-xs text-red-500 mt-1 flex items-center">
@@ -1818,6 +1831,9 @@ export default function NewFuelIntakeFormWizard() {
                             type="number"
                             value={distribution.quantity_liters === undefined ? '' : distribution.quantity_liters}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleTankDistributionChange(index, 'quantity_liters', e.target.value)}
+                            onWheel={handleWheel}
+                            onFocus={handleFocus}
+                            onBlur={handleBlur}
                             placeholder="npr. 500"
                             step="0.01"
                             className={`mt-1 pl-9 ${qtyError ? 'border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'}`}
@@ -2048,21 +2064,18 @@ export default function NewFuelIntakeFormWizard() {
                             updated[index] = { ...updated[index], tank_id: parseInt(value) };
                             setFormData({ ...formData, physical_tank_distributions: updated });
                           }}
+                          className={formErrors.physical_tank_distributions?.[index]?.tank_id ? 'border-red-500' : ''}
                         >
-                          <SelectTrigger className={formErrors.physical_tank_distributions?.[index]?.tank_id ? 'border-red-500' : ''}>
-                            <SelectValue placeholder="Odaberi tank" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {physicalTanksForSelectedFuelType.length === 0 ? (
-                              <SelectItem value="no-tanks" disabled>Nema dostupnih tankova</SelectItem>
-                            ) : (
-                              physicalTanksForSelectedFuelType.map((tank) => (
-                                <SelectItem key={tank.id} value={tank.id.toString()}>
-                                  {getPhysicalTankDisplayInfo(tank.id)}
-                                </SelectItem>
-                              ))
-                            )}
-                          </SelectContent>
+                          <SelectItem value="" disabled>Odaberi tank</SelectItem>
+                          {physicalTanksForSelectedFuelType.length === 0 ? (
+                            <SelectItem value="no-tanks" disabled>Nema dostupnih tankova</SelectItem>
+                          ) : (
+                            physicalTanksForSelectedFuelType.map((tank) => (
+                              <SelectItem key={tank.id} value={tank.id.toString()}>
+                                {getPhysicalTankDisplayInfo(tank.id)}
+                              </SelectItem>
+                            ))
+                          )}
                         </Select>
                         {formErrors.physical_tank_distributions?.[index]?.tank_id && (
                           <p className="text-sm text-red-600 mt-1 flex items-center">
@@ -2085,6 +2098,9 @@ export default function NewFuelIntakeFormWizard() {
                             updated[index] = { ...updated[index], quantity_liters: parseFloat(e.target.value) || 0 };
                             setFormData({ ...formData, physical_tank_distributions: updated });
                           }}
+                          onWheel={handleWheel}
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
                           className={formErrors.physical_tank_distributions?.[index]?.quantity_liters ? 'border-red-500' : ''}
                         />
                         {formErrors.physical_tank_distributions?.[index]?.quantity_liters && (
