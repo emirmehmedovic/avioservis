@@ -159,7 +159,7 @@ const RetrofitModal: React.FC<RetrofitModalProps> = ({ isOpen, onClose, onSucces
           <Label>Tip Goriva</Label>
           <Select value={selectedFuelType} onValueChange={setSelectedFuelType}>
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue placeholder="Odaberite tip goriva" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Svi tipovi</SelectItem>
@@ -182,7 +182,7 @@ const RetrofitModal: React.FC<RetrofitModalProps> = ({ isOpen, onClose, onSucces
                 <Label>Odaberite MRN Zapis</Label>
                 <Select value={selectedMrn} onValueChange={setSelectedMrn}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Odaberite MRN zapis" />
                   </SelectTrigger>
                   <SelectContent>
                     {previewData.existing_mrn_records.map((mrn) => (

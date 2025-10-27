@@ -386,16 +386,13 @@ export default function FuelIntakeDisplay() {
               <Select 
                 value={filters.fuel_type || 'all'} 
                 onValueChange={(value: string) => handleFilterChange('fuel_type', value)}
+                className="w-full sm:w-[200px] bg-white/20 border-white/30 text-white"
+                id="fuelTypeFilter"
               >
-                <SelectTrigger className="w-full sm:w-[200px] bg-white/20 border-white/30 text-white" id="fuelTypeFilter">
-                  <SelectValue placeholder="Svi tipovi goriva" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Svi Tipovi Goriva</SelectItem>
-                  {Object.values(FuelType).map(type => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                  ))}
-                </SelectContent>
+                <SelectItem value="all">Svi Tipovi Goriva</SelectItem>
+                {Object.values(FuelType).map(type => (
+                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                ))}
               </Select>
             </div>
             <div>
@@ -403,16 +400,13 @@ export default function FuelIntakeDisplay() {
               <Select 
                 value={filters.fuel_category || 'all'} 
                 onValueChange={(value: string) => handleFilterChange('fuel_category', value)}
+                className="w-full sm:w-[200px] bg-white/20 border-white/30 text-white"
+                id="categoryFilter"
               >
-                <SelectTrigger className="w-full sm:w-[200px] bg-white/20 border-white/30 text-white" id="categoryFilter">
-                  <SelectValue placeholder="Sve kategorije" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Sve Kategorije</SelectItem>
-                  {Object.values(FuelCategory).map(category => (
-                    <SelectItem key={category} value={category}>{category}</SelectItem>
-                  ))}
-                </SelectContent>
+                <SelectItem value="all">Sve Kategorije</SelectItem>
+                {Object.values(FuelCategory).map(category => (
+                  <SelectItem key={category} value={category}>{category}</SelectItem>
+                ))}
               </Select>
             </div>
             <div>
