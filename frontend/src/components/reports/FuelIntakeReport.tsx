@@ -1786,9 +1786,22 @@ const FuelIntakeReport: React.FC = () => {
                             </td>
                             <td className="px-2 py-2 break-words text-xs text-gray-700 dark:text-gray-300">
                               {record.customs_declaration_number && mrnBalances[record.customs_declaration_number] ? 
-                                <span className={`font-medium ${mrnBalances[record.customs_declaration_number].remainingFuel > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                  {typeof mrnBalances[record.customs_declaration_number].remainingFuel === 'number' ? mrnBalances[record.customs_declaration_number].remainingFuel.toLocaleString('hr-HR', { maximumFractionDigits: 1 }) : '0'} L / 
-                                  {typeof mrnBalances[record.customs_declaration_number].remainingFuelKg === 'number' ? Math.round(mrnBalances[record.customs_declaration_number].remainingFuelKg).toString() : '0'} KG
+                                <span className={`font-medium ${
+                                  mrnBalances[record.customs_declaration_number].remainingFuel > 0 
+                                    ? 'text-green-600 dark:text-green-400' 
+                                    : mrnBalances[record.customs_declaration_number].remainingFuel === 0
+                                    ? 'text-gray-600 dark:text-gray-400'
+                                    : 'text-red-600 dark:text-red-400'
+                                }`}>
+                                  {typeof mrnBalances[record.customs_declaration_number].remainingFuel === 'number' 
+                                    ? Math.round(mrnBalances[record.customs_declaration_number].remainingFuel).toLocaleString('hr-HR') 
+                                    : '0'} L / 
+                                  {typeof mrnBalances[record.customs_declaration_number].remainingFuelKg === 'number' 
+                                    ? Math.round(mrnBalances[record.customs_declaration_number].remainingFuelKg).toLocaleString('hr-HR')
+                                    : '0'} KG
+                                  {mrnBalances[record.customs_declaration_number].remainingFuel <= 0 && (
+                                    <span className="ml-1 text-xs">(depleted)</span>
+                                  )}
                                 </span> : 
                                 'N/A'
                               }

@@ -4,6 +4,7 @@ import { initPaymentStatusCron } from './paymentStatusCron';
 import { initEmailInvoiceCron } from './emailInvoiceCron';
 import { initEmailPaymentStatusCron } from './emailPaymentStatusCron';
 import { initExpirationNotificationCron } from './expirationNotificationCron';
+import { initTestCron } from './testCron';
 
 import { logger } from '../utils/logger';
 
@@ -21,7 +22,8 @@ export function initAllCronJobs(): void {
   initEmailPaymentStatusCron(); // Automatsko ažuriranje payment statusa (Email)
   initExpirationNotificationCron(); // Automatska provera datuma isteka
   
-
+  // Test cron - za dijagnostiku (00:15 + svake 2 minute)
+  initTestCron();
 
   // Ovdje se mogu dodati inicijalizacije drugih cron poslova
 
