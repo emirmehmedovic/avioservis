@@ -130,10 +130,19 @@ export function initFuelSyncCronJobs(config?: Partial<FuelSyncCronConfig>): void
     
     logger.info(`Zakazivanje dnevne provjere konzistentnosti goriva: ${dailyCronExpression}`);
     
-    dailyCheckJob = cron.schedule(dailyCronExpression, () => {
-      runDailyConsistencyCheck().catch(error => {
+    dailyCheckJob = cron.schedule(dailyCronExpression, async () => {
+      const timeoutId = setTimeout(() => {
+        logger.error("Fuel consistency check cron job timed out after 10 minutes");
+        process.exit(1);
+      }, 10 * 60 * 1000);
+      
+      try {
+        await runDailyConsistencyCheck();
+      } catch (error) {
         logger.error("Greška u dnevnom cron poslu za provjeru konzistentnosti:", error);
-      });
+      } finally {
+        clearTimeout(timeoutId);
+      }
     });
   }
   
@@ -146,10 +155,19 @@ export function initFuelSyncCronJobs(config?: Partial<FuelSyncCronConfig>): void
     
     logger.info(`Zakazivanje sedmične pune sinhronizacije goriva: ${weeklyCronExpression}`);
     
-    weeklyFullSyncJob = cron.schedule(weeklyCronExpression, () => {
-      runWeeklyFullSync().catch(error => {
+    weeklyFullSyncJob = cron.schedule(weeklyCronExpression, async () => {
+      const timeoutId = setTimeout(() => {
+        logger.error("Fuel weekly sync cron job timed out after 15 minutes");
+        process.exit(1);
+      }, 15 * 60 * 1000);
+      
+      try {
+        await runWeeklyFullSync();
+      } catch (error) {
         logger.error("Greška u sedmičnom cron poslu za punu sinhronizaciju:", error);
-      });
+      } finally {
+        clearTimeout(timeoutId);
+      }
     });
   }
 }

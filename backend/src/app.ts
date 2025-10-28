@@ -9,7 +9,8 @@ import {
   sensitiveOperationsLimiter,
   reportingLimiter,
 } from './middleware/rateLimit';
-import { initAllCronJobs } from './cron';
+// NOTE: Cron jobs are now run in a separate process (cron.ts) for better isolation
+// import { initAllCronJobs } from './cron';
 
 import authRoutes from './routes/auth';
 import companyRoutes from './routes/company';
@@ -63,7 +64,7 @@ const app = express();
 // This is important for express-rate-limit to correctly identify client IPs
 app.set('trust proxy', 1);
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 3001;
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -181,13 +182,16 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  
-  // Inicijalizacija cron poslova nakon što se server uspješno pokrene
-  try {
-    initAllCronJobs();
-    console.log('Cron poslovi za periodičnu sinhronizaciju goriva uspješno inicijalzirani.');
-  } catch (error) {
-    console.error('Greška prilikom inicijalizacije cron poslova:', error);
-  }
+  console.log(`Server pokrenut na http://localhost:${PORT}`);
+  console.log('');
+  console.log('═══════════════════════════════════════════════════');
+  console.log('HIFA Petrol API Server - Aktivan');
+  console.log('═══════════════════════════════════════════════════');
+  console.log('');
+  console.log('Port:', PORT);
+  console.log('Okruzenje:', process.env.NODE_ENV || 'development');
+  console.log('');
+  console.log('NAPOMENA: Cron poslovi rade u odvojenom procesu');
+  console.log('Za pregled cron logova: pm2 logs avioservis-cron');
+  console.log('');
 });

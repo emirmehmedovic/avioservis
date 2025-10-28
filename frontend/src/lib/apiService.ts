@@ -803,7 +803,7 @@ export const createMrnTransfer = async (
 // --- Fuel Intake API --- //
 
 // Payload for creating a new Fuel Intake Record
-// This matches the backend expectation: FuelIntakeRecord data + FixedTankTransfers array
+// This matches the backend expectation: FuelIntakeRecord data + FixedTankTransfers array + PhysicalTankDistributions
 export interface CreateFuelIntakePayload {
   delivery_vehicle_plate: string;
   delivery_vehicle_driver_name?: string | null;
@@ -825,6 +825,11 @@ export interface CreateFuelIntakePayload {
     quantity_liters: number; // Corresponds to quantity_liters_transferred
     // transfer_datetime will be set by backend (DEFAULT NOW() or from intake_datetime)
     // notes are optional and not currently captured in the wizard's TankDistributionData
+  }>;
+  physical_tank_distributions?: Array<{
+    tank_id: number; // Corresponds to physical_tank_id in PhysicalTanks model
+    quantity_liters: number; // Quantity distributed to this physical tank
+    quantity_kg?: number; // Optional: calculated from quantity_liters and density
   }>;
 }
 

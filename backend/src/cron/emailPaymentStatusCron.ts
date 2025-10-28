@@ -1,8 +1,7 @@
 import cron from 'node-cron';
-import { PrismaClient, EmailDispatchStatus, PaymentStatus } from '@prisma/client';
+import { EmailDispatchStatus, PaymentStatus } from '@prisma/client';
 import dayjs from 'dayjs';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 /**
  * Function to update expired and overdue email invoices
@@ -66,12 +65,19 @@ export function initEmailPaymentStatusCron(): void {
   const tz = process.env.TZ || 'Europe/Sarajevo';
 
   cron.schedule(cronExpression, async () => {
+    const timeoutId = setTimeout(() => {
+      console.error(`[${new Date().toISOString()}] Email payment status cron job timed out after 5 minutes`);
+      process.exit(1); // Force restart if stuck
+    }, 5 * 60 * 1000); // 5 minutes timeout
+    
     try {
       console.log(`[${new Date().toISOString()}] Starting email payment status update cron job...`);
       const result = await updateExpiredAndOverdueEmailInvoices();
       console.log(`[${new Date().toISOString()}] Email payment status cron job completed: ${result.overdueCount} overdue, ${result.expiredCount} expired`);
     } catch (error) {
       console.error(`[${new Date().toISOString()}] Email payment status cron job failed:`, error);
+    } finally {
+      clearTimeout(timeoutId);
     }
   }, {
     timezone: tz

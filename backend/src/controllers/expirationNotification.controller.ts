@@ -1,8 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient, NotificationType } from '@prisma/client';
+import { NotificationType } from '@prisma/client';
 import { z } from 'zod';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 // Validation schemas
 const markAsReadSchema = z.object({

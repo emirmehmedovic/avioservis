@@ -1,14 +1,13 @@
-import { PrismaClient, XmlDispatchStatus } from '@prisma/client';
+import { XmlDispatchStatus } from '@prisma/client';
 import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs';
 import dayjs from 'dayjs';
 import { FtpClientService, buildFtpConfigFromEnv } from './ftpClient';
 import { generateXMLInvoiceBackend } from './xmlInvoiceBuilder';
+import { prisma } from '../lib/prisma';
 // NOTE: PDF generation imports removed - PDFs are now sent via email
 // import { generatePDFInvoiceBuffer, buildPDFInvoiceFileName, FuelingOperationForPDF } from './pdfInvoiceGenerator';
-
-const prisma = new PrismaClient();
 
 const WIZZ_TARGETS = new Set([
   'WIZZ AIR HUNGARY LTD',
@@ -108,9 +107,9 @@ export async function dispatchOneOperation(opId: number, force = false) {
   // const pdfFileName = buildPDFInvoiceFileName(op as unknown as FuelingOperationForPDF);
   // const pdfLocalPath = getLocalArchivePath(new Date(op.dateTime), pdfFileName);
 
-  // Ensure local dir and save XML
-  fs.mkdirSync(path.dirname(xmlLocalPath), { recursive: true });
-  fs.writeFileSync(xmlLocalPath, xml, 'utf-8');
+  // Ensure local dir and save XML (async)
+  await fs.promises.mkdir(path.dirname(xmlLocalPath), { recursive: true });
+  await fs.promises.writeFile(xmlLocalPath, xml, 'utf-8');
   // NOTE: PDF local save removed - PDFs are now sent via email instead
 
   // FTP upload or graceful fail if credentials missing

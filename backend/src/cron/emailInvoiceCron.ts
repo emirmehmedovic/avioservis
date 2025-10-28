@@ -3,12 +3,11 @@ import dayjs from 'dayjs';
 import timezone from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
 import { dispatchEmailRange, dispatchOneEmailOperation } from '../services/emailInvoiceDispatch.service';
-import { PrismaClient, EmailDispatchStatus } from '@prisma/client';
+import { EmailDispatchStatus } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
-
-const prisma = new PrismaClient();
 
 export function initEmailInvoiceCron(): void {
   // Run at 23:50 every day (10 minutes before XML invoice cron)

@@ -1,4 +1,4 @@
-import { PrismaClient, EmailDispatchStatus } from '@prisma/client';
+import { EmailDispatchStatus } from '@prisma/client';
 import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs';
@@ -9,8 +9,7 @@ dayjs.extend(isSameOrBefore);
 import { EmailService, buildEmailConfigFromEnv, buildImapConfigFromEnv, buildEmailSubject, buildEmailBody, getAirlineEmailFromContact } from './emailService';
 import { generatePDFInvoiceBuffer, buildPDFInvoiceFileName, FuelingOperationForPDF } from './pdfInvoiceGenerator';
 import { PDFDocument } from 'pdf-lib';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 function computeSha256(buffer: Buffer): string {
   return crypto.createHash('sha256').update(buffer).digest('hex');
@@ -71,8 +70,9 @@ async function mergeInvoiceWithDocuments(invoicePdfBuffer: Buffer, operation: an
             
             console.log(`🔍 Final document path: ${fullDocumentPath}`);
             
-            if (fs.existsSync(fullDocumentPath)) {
-              const docBuffer = fs.readFileSync(fullDocumentPath);
+            try {
+              await fs.promises.access(fullDocumentPath);
+              const docBuffer = await fs.promises.readFile(fullDocumentPath);
               console.log(`📖 Document loaded: ${docBuffer.length} bytes`);
               
               // Load and merge the PDF document
@@ -81,7 +81,7 @@ async function mergeInvoiceWithDocuments(invoicePdfBuffer: Buffer, operation: an
               attachedPages.forEach((page) => mergedPdf.addPage(page));
               
               console.log(`✅ Document merged: ${doc.originalFilename} (${attachedPages.length} pages)`);
-            } else {
+            } catch (accessError) {
               console.warn(`⚠️ Document file not found: ${fullDocumentPath}`);
               console.warn(`🔍 Attempting alternative paths...`);
               
@@ -92,22 +92,26 @@ async function mergeInvoiceWithDocuments(invoicePdfBuffer: Buffer, operation: an
               console.log(`🔍 Alt path 1: ${altPath1}`);
               console.log(`🔍 Alt path 2: ${altPath2}`);
               
-              if (fs.existsSync(altPath1)) {
-                const docBuffer = fs.readFileSync(altPath1);
+              try {
+                await fs.promises.access(altPath1);
+                const docBuffer = await fs.promises.readFile(altPath1);
                 console.log(`📖 Document loaded from alt path 1: ${docBuffer.length} bytes`);
                 const attachedPdf = await PDFDocument.load(docBuffer);
                 const attachedPages = await mergedPdf.copyPages(attachedPdf, attachedPdf.getPageIndices());
                 attachedPages.forEach((page) => mergedPdf.addPage(page));
                 console.log(`✅ Document merged: ${doc.originalFilename} (${attachedPages.length} pages)`);
-              } else if (fs.existsSync(altPath2)) {
-                const docBuffer = fs.readFileSync(altPath2);
-                console.log(`📖 Document loaded from alt path 2: ${docBuffer.length} bytes`);
-                const attachedPdf = await PDFDocument.load(docBuffer);
-                const attachedPages = await mergedPdf.copyPages(attachedPdf, attachedPdf.getPageIndices());
-                attachedPages.forEach((page) => mergedPdf.addPage(page));
-                console.log(`✅ Document merged: ${doc.originalFilename} (${attachedPages.length} pages)`);
-              } else {
-                console.error(`❌ ALL PATHS FAILED for document: ${doc.originalFilename}`);
+              } catch {
+                try {
+                  await fs.promises.access(altPath2);
+                  const docBuffer = await fs.promises.readFile(altPath2);
+                  console.log(`📖 Document loaded from alt path 2: ${docBuffer.length} bytes`);
+                  const attachedPdf = await PDFDocument.load(docBuffer);
+                  const attachedPages = await mergedPdf.copyPages(attachedPdf, attachedPdf.getPageIndices());
+                  attachedPages.forEach((page) => mergedPdf.addPage(page));
+                  console.log(`✅ Document merged: ${doc.originalFilename} (${attachedPages.length} pages)`);
+                } catch {
+                  console.error(`❌ ALL PATHS FAILED for document: ${doc.originalFilename}`);
+                }
               }
             }
           } else {
@@ -221,9 +225,9 @@ export async function dispatchOneEmailOperation(opId: number, force = false) {
   const pdfLocalPath = getLocalArchivePath(new Date(op.dateTime), pdfFileName);
   const sha = computeSha256(mergedPdfBuffer);
 
-  // Ensure local dir and save merged PDF
-  fs.mkdirSync(path.dirname(pdfLocalPath), { recursive: true });
-  fs.writeFileSync(pdfLocalPath, mergedPdfBuffer);
+  // Ensure local dir and save merged PDF (async)
+  await fs.promises.mkdir(path.dirname(pdfLocalPath), { recursive: true });
+  await fs.promises.writeFile(pdfLocalPath, mergedPdfBuffer);
 
   // Build email content
   const emailSubject = buildEmailSubject(op);
@@ -398,9 +402,9 @@ export async function prepareOneEmailOperation(opId: number) {
   const pdfLocalPath = getLocalArchivePath(new Date(op.dateTime), pdfFileName);
   const sha = computeSha256(mergedPdfBuffer);
 
-  // Save merged PDF locally
-  fs.mkdirSync(path.dirname(pdfLocalPath), { recursive: true });
-  fs.writeFileSync(pdfLocalPath, mergedPdfBuffer);
+  // Save merged PDF locally (async)
+  await fs.promises.mkdir(path.dirname(pdfLocalPath), { recursive: true });
+  await fs.promises.writeFile(pdfLocalPath, mergedPdfBuffer);
 
   const emailSubject = buildEmailSubject(op);
   const emailBody = buildEmailBody(op);

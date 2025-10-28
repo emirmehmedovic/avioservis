@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import { checkVehicleExpirationDates } from '../controllers/expirationNotification.controller';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 // Cron job to check expiration dates daily at 8:00 AM
 export const checkExpirationDatesJob = async () => {

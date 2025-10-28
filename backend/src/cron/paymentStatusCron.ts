@@ -1,9 +1,8 @@
 import cron from 'node-cron';
-import { PrismaClient, XmlDispatchStatus, PaymentStatus } from '@prisma/client';
+import { XmlDispatchStatus, PaymentStatus } from '@prisma/client';
 import dayjs from 'dayjs';
 import { logger } from '../utils/logger';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 /**
  * Function to update expired and overdue invoices
@@ -64,12 +63,19 @@ const updateExpiredAndOverdueInvoices = async () => {
 export function initPaymentStatusCron(): void {
   // Run every day at 06:00 to update payment statuses
   cron.schedule('0 6 * * *', async () => {
+    const timeoutId = setTimeout(() => {
+      logger.error('Payment status cron job timed out after 5 minutes');
+      process.exit(1); // Force restart if stuck
+    }, 5 * 60 * 1000); // 5 minutes timeout
+    
     try {
       logger.info('Starting payment status update cron job...');
       const result = await updateExpiredAndOverdueInvoices();
       logger.info(`Payment status cron job completed: ${result.overdueCount} overdue, ${result.expiredCount} expired`);
     } catch (error) {
       logger.error('Payment status cron job failed:', error);
+    } finally {
+      clearTimeout(timeoutId);
     }
   }, {
     timezone: 'Europe/Sarajevo'
