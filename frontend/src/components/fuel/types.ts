@@ -156,4 +156,5 @@ export interface FuelingOperationFormData {
   notes: string;
   tip_saobracaja: string;
   delivery_note_number: string;
+  payment_method?: string; // Način plaćanja (VIRMAN, POS_APARAT, GOTOVINA)
 }

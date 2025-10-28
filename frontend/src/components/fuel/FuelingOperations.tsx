@@ -67,9 +67,9 @@ export default function FuelingOperations() {
   const [selectedOperationForDetails, setSelectedOperationForDetails] = useState<ExtendedFuelingOperation | null>(null);
   const [selectedOperationForEdit, setSelectedOperationForEdit] = useState<ExtendedFuelingOperation | null>(null);
   
-  // State for filters
-  const [startDate, setStartDate] = useState<string | null>(null);
-  const [endDate, setEndDate] = useState<string | null>(null);
+  // State for filters - default to last 7 days
+  const [startDate, setStartDate] = useState<string | null>(() => dayjs().subtract(7, 'day').format('YYYY-MM-DD'));
+  const [endDate, setEndDate] = useState<string | null>(() => dayjs().format('YYYY-MM-DD'));
   const [selectedAirline, setSelectedAirline] = useState<string>('');
   const [selectedDestination, setSelectedDestination] = useState<string>('');
   const [selectedTank, setSelectedTank] = useState<string>('');
@@ -187,10 +187,6 @@ export default function FuelingOperations() {
   useEffect(() => {
     if (hasInitialized.current) return;
     hasInitialized.current = true;
-    const today = dayjs().format('YYYY-MM-DD');
-    const firstDayOfMonth = dayjs().startOf('month').format('YYYY-MM-DD');
-    setStartDate(firstDayOfMonth); // Prvi dan trenutnog mjeseca
-    setEndDate(today); // Danas
     loadTanks();
     loadAirlines();
     // eslint-disable-next-line react-hooks/exhaustive-deps
