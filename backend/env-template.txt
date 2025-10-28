@@ -28,3 +28,8 @@ TZ=Europe/Sarajevo
 
 # Environment
 NODE_ENV=production
+
+# Logging Level (debug | info | warn | error)
+# Default: 'warn' for production, 'debug' for development
+# Recommended for production: 'warn' (only warnings and errors)
+LOG_LEVEL=warn

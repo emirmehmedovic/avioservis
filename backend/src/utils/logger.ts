@@ -19,7 +19,7 @@ const LOG_LEVELS: Record<LogLevel, number> = {
 
 const DEFAULT_OPTIONS: LoggerOptions = {
   enableConsole: true,
-  minLevel: process.env.NODE_ENV === 'production' ? 'info' : 'debug'
+  minLevel: (process.env.LOG_LEVEL as LogLevel) || (process.env.NODE_ENV === 'production' ? 'warn' : 'debug')
 };
 
 /**
