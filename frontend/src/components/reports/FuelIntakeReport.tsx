@@ -1586,7 +1586,7 @@ const FuelIntakeReport: React.FC = () => {
                   <label htmlFor="fuelTypeFilterReport" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Tip Goriva:</label>
                   <Select
                     value={filters.fuel_type}
-                    onValueChange={(value: FuelType | 'all') => handleFilterChange('fuel_type', value)}
+                    onValueChange={(value: string) => handleFilterChange('fuel_type', value as FuelType | 'all')}
                   >
                     <SelectTrigger id="fuelTypeFilterReport" className="bg-gray-50 dark:bg-gray-900">
                       <SelectValue placeholder="Svi tipovi" />
@@ -1956,6 +1956,126 @@ const FuelIntakeReport: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Statistika viškova i manjkova po MRN-ovima */}
+        {records.length > 0 && Object.keys(mrnBalances).length > 0 && (() => {
+          // Izračunaj ukupne viškove i manjkove samo za depleted MRN-ove (količina <= 0)
+          // Viškovi i manjkovi se mjere samo u litrima
+          let totalSurplusLiters = 0;
+          let totalDeficitLiters = 0;
+          let depletedCount = 0;
+
+          Object.values(mrnBalances).forEach(balance => {
+            // Uzimamo u obzir samo MRN-ove koji su depleted (remainingFuel <= 0)
+            if (balance.remainingFuel <= 0) {
+              depletedCount++;
+              if (balance.remainingFuel === 0) {
+                // Potpuno potrošeno - nema ni viška ni manjka
+                // Ne dodajemo ništa
+              } else if (balance.remainingFuel < 0) {
+                // Manjak - potrošeno više nego što je bilo
+                totalDeficitLiters += Math.abs(balance.remainingFuel);
+              }
+            }
+          });
+
+          const netDifferenceLiters = totalSurplusLiters - totalDeficitLiters;
+          
+          // Prikazujemo sekciju samo ako ima depleted MRN-ova
+          if (depletedCount === 0) {
+            return null;
+          }
+
+          return (
+            <div className="mt-6 mb-6">
+              <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    Stanje Potrošenih MRN - Viškovi i Manjkovi
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Analiza {depletedCount} {depletedCount === 1 ? 'potrošenog MRN-a' : 'potrošenih MRN-ova'} (stanje ≤ 0)
+                  </p>
+                </div>
+                <div className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Ukupni višak */}
+                    <div className="bg-white dark:bg-gray-800 border border-green-200 dark:border-green-800 rounded-lg shadow-sm p-6">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
+                          <svg className="w-6 h-6 text-green-600 dark:text-green-400" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 4V20M12 4L8 8M12 4L16 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Ukupan Višak</p>
+                          <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+                            {Math.round(totalSurplusLiters).toLocaleString('bs-BA')} L
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Ukupni manjak */}
+                    <div className="bg-white dark:bg-gray-800 border border-red-200 dark:border-red-800 rounded-lg shadow-sm p-6">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
+                          <svg className="w-6 h-6 text-red-600 dark:text-red-400" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 20V4M12 20L8 16M12 20L16 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Ukupan Manjak</p>
+                          <p className="text-3xl font-bold text-red-600 dark:text-red-400">
+                            {Math.round(totalDeficitLiters).toLocaleString('bs-BA')} L
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Neto razlika */}
+                    <div className={`bg-white dark:bg-gray-800 border ${netDifferenceLiters >= 0 ? 'border-blue-200 dark:border-blue-800' : 'border-orange-200 dark:border-orange-800'} rounded-lg shadow-sm p-6`}>
+                      <div className="flex items-center space-x-3">
+                        <div className={`p-3 ${netDifferenceLiters >= 0 ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-orange-100 dark:bg-orange-900/30'} rounded-full`}>
+                          <svg className={`w-6 h-6 ${netDifferenceLiters >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'}`} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15M9 5C9 6.10457 9.89543 7 11 7H13C14.1046 7 15 6.10457 15 5M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5M12 12H15M12 16H15M9 12H9.01M9 16H9.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Neto Razlika</p>
+                          <p className={`text-3xl font-bold ${netDifferenceLiters >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                            {netDifferenceLiters >= 0 ? '+' : ''}{Math.round(netDifferenceLiters).toLocaleString('bs-BA')} L
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Dodatna napomena */}
+                  <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <div className="flex items-start">
+                      <svg className="w-5 h-5 text-blue-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div className="text-sm text-blue-800 dark:text-blue-200">
+                        <p className="font-medium mb-1">Napomena o izračunu:</p>
+                        <ul className="list-disc list-inside space-y-1 text-xs">
+                          <li>Prikazani su samo <strong>potrošeni MRN-ovi</strong> (preostala količina ≤ 0)</li>
+                          <li>MRN sa stanjem 0 je potpuno potrošen bez odstupanja</li>
+                          <li>Manjak (negativno stanje) nastaje kada je iskorišteno više goriva nego što je evidentirano u MRN-u</li>
+                          <li>Neto razlika pokazuje ukupan balans svih potrošenih MRN-ova</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
