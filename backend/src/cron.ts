@@ -17,7 +17,7 @@
  */
 
 import 'dotenv/config';
-import { initAllCronJobs } from './cron';
+import { initAllCronJobs } from './cron/index';
 import { disconnectPrisma, prisma } from './lib/prisma';
 import { logger } from './utils/logger';
 
