@@ -128,18 +128,18 @@ export function initFuelSyncCronJobs(config?: Partial<FuelSyncCronConfig>): void
   if (currentConfig.enableDailyCheck) {
     const dailyCronExpression = createCronExpression(currentConfig.dailyCheckTime);
     
-    logger.info(`Zakazivanje dnevne provjere konzistentnosti goriva: ${dailyCronExpression}`);
+    console.log(`Zakazivanje dnevne provjere konzistentnosti goriva: ${dailyCronExpression}`);
     
     dailyCheckJob = cron.schedule(dailyCronExpression, async () => {
       const timeoutId = setTimeout(() => {
-        logger.error("Fuel consistency check cron job timed out after 10 minutes");
+        console.error("Fuel consistency check cron job timed out after 10 minutes");
         process.exit(1);
       }, 10 * 60 * 1000);
       
       try {
         await runDailyConsistencyCheck();
       } catch (error) {
-        logger.error("Greška u dnevnom cron poslu za provjeru konzistentnosti:", error);
+        console.error("Greška u dnevnom cron poslu za provjeru konzistentnosti:", error);
       } finally {
         clearTimeout(timeoutId);
       }
@@ -153,18 +153,18 @@ export function initFuelSyncCronJobs(config?: Partial<FuelSyncCronConfig>): void
       currentConfig.weeklyFullSyncDay
     );
     
-    logger.info(`Zakazivanje sedmične pune sinhronizacije goriva: ${weeklyCronExpression}`);
+    console.log(`Zakazivanje sedmične pune sinhronizacije goriva: ${weeklyCronExpression}`);
     
     weeklyFullSyncJob = cron.schedule(weeklyCronExpression, async () => {
       const timeoutId = setTimeout(() => {
-        logger.error("Fuel weekly sync cron job timed out after 15 minutes");
+        console.error("Fuel weekly sync cron job timed out after 15 minutes");
         process.exit(1);
       }, 15 * 60 * 1000);
       
       try {
         await runWeeklyFullSync();
       } catch (error) {
-        logger.error("Greška u sedmičnom cron poslu za punu sinhronizaciju:", error);
+        console.error("Greška u sedmičnom cron poslu za punu sinhronizaciju:", error);
       } finally {
         clearTimeout(timeoutId);
       }

@@ -64,16 +64,16 @@ export function initPaymentStatusCron(): void {
   // Run every day at 06:00 to update payment statuses
   cron.schedule('0 6 * * *', async () => {
     const timeoutId = setTimeout(() => {
-      logger.error('Payment status cron job timed out after 5 minutes');
+      console.error('Payment status cron job timed out after 5 minutes');
       process.exit(1); // Force restart if stuck
     }, 5 * 60 * 1000); // 5 minutes timeout
     
     try {
-      logger.info('Starting payment status update cron job...');
+      console.log('Starting payment status update cron job...');
       const result = await updateExpiredAndOverdueInvoices();
-      logger.info(`Payment status cron job completed: ${result.overdueCount} overdue, ${result.expiredCount} expired`);
+      console.log(`Payment status cron job completed: ${result.overdueCount} overdue, ${result.expiredCount} expired`);
     } catch (error) {
-      logger.error('Payment status cron job failed:', error);
+      console.error('Payment status cron job failed:', error);
     } finally {
       clearTimeout(timeoutId);
     }
@@ -81,7 +81,7 @@ export function initPaymentStatusCron(): void {
     timezone: 'Europe/Sarajevo'
   });
 
-  logger.info('Payment status cron job scheduled: daily at 06:00 (Europe/Sarajevo)');
+  console.log('Payment status cron job scheduled: daily at 06:00 (Europe/Sarajevo)');
 }
 
 // Export the function for manual triggering

@@ -6,13 +6,11 @@ import { initEmailPaymentStatusCron } from './emailPaymentStatusCron';
 import { initExpirationNotificationCron } from './expirationNotificationCron';
 import { initTestCron } from './testCron';
 
-import { logger } from '../utils/logger';
-
 /**
  * Inicijalizacija svih cron poslova
  */
 export function initAllCronJobs(): void {
-  logger.info("Inicijalizacija cron poslova...");
+  console.log("Inicijalizacija cron poslova...");
 
   // Inicijalizacija cron poslova za sinhronizaciju goriva
   initFuelSyncCronJobs();
@@ -27,5 +25,5 @@ export function initAllCronJobs(): void {
 
   // Ovdje se mogu dodati inicijalizacije drugih cron poslova
 
-  logger.info("Svi cron poslovi uspješno inicijalizirani.");
+  console.log("Svi cron poslovi uspješno inicijalizirani.");
 }

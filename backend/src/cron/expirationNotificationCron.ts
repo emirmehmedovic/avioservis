@@ -7,21 +7,21 @@ import { logger } from '../utils/logger';
  * Pokreće se svakog dana u 05:00
  */
 export function initExpirationNotificationCron(): void {
-  logger.info("Inicijalizacija cron posla za provjeru datuma isteka...");
+  console.log("Inicijalizacija cron posla za provjeru datuma isteka...");
 
   // Pokretanje svakog dana u 05:00
   cron.schedule('0 5 * * *', async () => {
     const timeoutId = setTimeout(() => {
-      logger.error("❌ Expiration notification cron job timed out after 10 minutes");
+      console.error("❌ Expiration notification cron job timed out after 10 minutes");
       process.exit(1); // Force restart if stuck
     }, 10 * 60 * 1000); // 10 minutes timeout
     
-    logger.info("🔔 Pokretanje cron posla za provjeru datuma isteka...");
+    console.log("🔔 Pokretanje cron posla za provjeru datuma isteka...");
     try {
       await checkExpirationDatesJob();
-      logger.info("✅ Cron posao za provjeru datuma isteka usjpešno završen");
+      console.log("✅ Cron posao za provjeru datuma isteka usjpešno završen");
     } catch (error) {
-      logger.error("❌ Greška u cron poslu za provjeru datuma isteka:", error);
+      console.error("❌ Greška u cron poslu za provjeru datuma isteka:", error);
     } finally {
       clearTimeout(timeoutId);
     }
@@ -33,16 +33,16 @@ export function initExpirationNotificationCron(): void {
   if (process.env.NODE_ENV === 'development') {
     cron.schedule('0 * * * *', async () => {
       const timeoutId = setTimeout(() => {
-        logger.error("❌ [DEV] Expiration notification test cron job timed out after 10 minutes");
+        console.error("❌ [DEV] Expiration notification test cron job timed out after 10 minutes");
         process.exit(1);
       }, 10 * 60 * 1000);
       
-      logger.info("🔔 [DEV] Pokretanje test cron posla za provjeru datuma isteka...");
+      console.log("🔔 [DEV] Pokretanje test cron posla za provjeru datuma isteka...");
       try {
         await checkExpirationDatesJob();
-        logger.info("✅ [DEV] Test cron posao za provjeru datuma isteka uspješno završen");
+        console.log("✅ [DEV] Test cron posao za provjeru datuma isteka uspješno završen");
       } catch (error) {
-        logger.error("❌ [DEV] Greška u test cron poslu za provjeru datuma isteka:", error);
+        console.error("❌ [DEV] Greška u test cron poslu za provjeru datuma isteka:", error);
       } finally {
         clearTimeout(timeoutId);
       }
@@ -51,5 +51,5 @@ export function initExpirationNotificationCron(): void {
     });
   }
 
-  logger.info("✅ Cron posao za provjeru datuma isteka uspješno inicijalizovan");
+  console.log("✅ Cron posao za provjeru datuma isteka uspješno inicijalizovan");
 }
