@@ -10,10 +10,13 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 
 export function initEmailInvoiceCron(): void {
-  // Run at 23:50 every day (10 minutes before XML invoice cron)
-  const cronExpression = '50 23 * * *';
+  // TEMPORARY TEST: Changed to 00:10 for testing (will process YESTERDAY's operations)
+  // PRODUCTION: Should be '50 23 * * *' (23:50)
+  const cronExpression = '10 0 * * *';
   const tz = process.env.TZ || 'Europe/Sarajevo';
 
+  // NOTE: Removed timezone parameter - testing if it's causing issues with 23:50 schedule
+  // System is already set to Europe/Sarajevo timezone
   cron.schedule(cronExpression, async () => {
     console.log('🔥🔥🔥 EMAIL CRON CALLBACK TRIGGERED! 🔥🔥🔥');
     console.log(`Time: ${new Date().toISOString()}`);
@@ -27,14 +30,23 @@ export function initEmailInvoiceCron(): void {
     try {
       console.log(`[${new Date().toISOString()}] Starting email invoice dispatch cron job...`);
       
-      // Process today's operations
-      const today = dayjs().tz(tz).toDate();
-      const result = await dispatchEmailRange(today, today);
+      // Process operations for the correct day
+      // If cron runs after midnight (00:00-05:59), process YESTERDAY's operations
+      // If cron runs before midnight (06:00-23:59), process TODAY's operations
+      const now = dayjs().tz(tz);
+      const currentHour = now.hour();
+      const targetDate = (currentHour >= 0 && currentHour < 6) 
+        ? now.subtract(1, 'day').toDate()  // After midnight → yesterday
+        : now.toDate();                     // Before midnight → today
+      
+      console.log(`[${new Date().toISOString()}] Processing operations for date: ${dayjs(targetDate).format('YYYY-MM-DD')} (current hour: ${currentHour})`);
+      
+      const result = await dispatchEmailRange(targetDate, targetDate);
       
       console.log(`[${new Date().toISOString()}] Email invoice dispatch completed:`, {
         daysProcessed: result.daysProcessed,
         totalOperations: result.total,
-        date: dayjs(today).format('YYYY-MM-DD')
+        date: dayjs(targetDate).format('YYYY-MM-DD')
       });
 
       // Log summary for each day processed
@@ -58,11 +70,9 @@ export function initEmailInvoiceCron(): void {
     } finally {
       clearTimeout(timeoutId);
     }
-  }, {
-    timezone: tz
-  });
+  }); // Removed timezone parameter
 
-  console.log(`Email invoice cron job scheduled: ${cronExpression} (timezone: ${tz})`);
+  console.log(`Email invoice cron job scheduled: ${cronExpression} (NO timezone param - using system timezone)`);
 
   // Retry failed emails at 23:57 (7 minutes after main cron)
   const retryCronExpression = '57 23 * * *';
@@ -138,11 +148,9 @@ export function initEmailInvoiceCron(): void {
     } finally {
       clearTimeout(timeoutId);
     }
-  }, {
-    timezone: tz
-  });
+  }); // Removed timezone parameter
 
-  console.log(`Email invoice retry cron job scheduled: ${retryCronExpression} (timezone: ${tz})`);
+  console.log(`Email invoice retry cron job scheduled: ${retryCronExpression} (NO timezone param - using system timezone)`);
 }
 
 // Function to manually trigger email dispatch for a specific date
