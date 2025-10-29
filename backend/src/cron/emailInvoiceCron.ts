@@ -15,6 +15,10 @@ export function initEmailInvoiceCron(): void {
   const tz = process.env.TZ || 'Europe/Sarajevo';
 
   cron.schedule(cronExpression, async () => {
+    console.log('🔥🔥🔥 EMAIL CRON CALLBACK TRIGGERED! 🔥🔥🔥');
+    console.log(`Time: ${new Date().toISOString()}`);
+    console.log(`Local: ${new Date().toLocaleString('sr-Latn-BA', { timeZone: tz })}`);
+    
     const timeoutId = setTimeout(() => {
       console.error(`[${new Date().toISOString()}] Email invoice cron job timed out after 10 minutes`);
       process.exit(1); // Force restart if stuck

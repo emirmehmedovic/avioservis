@@ -12,6 +12,10 @@ export function initWizzXmlInvoiceCron(): void {
   console.log(`Zakazivanje Wizz XML invoice crona: ${cronExpr} TZ=${tz}`);
 
   job = cron.schedule(cronExpr, async () => {
+    console.log('🔥🔥🔥 XML CRON CALLBACK TRIGGERED! 🔥🔥🔥');
+    console.log(`Time: ${new Date().toISOString()}`);
+    console.log(`Local: ${new Date().toLocaleString('sr-Latn-BA', { timeZone: tz })}`);
+    
     const timeoutId = setTimeout(() => {
       console.error(`Wizz XML invoice cron timed out after 15 minutes`);
       process.exit(1); // Force restart if stuck
