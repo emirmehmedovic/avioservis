@@ -10,13 +10,13 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 
 export function initEmailInvoiceCron(): void {
-  // TEMPORARY TEST: Changed to 00:10 for testing (will process YESTERDAY's operations)
-  // PRODUCTION: Should be '50 23 * * *' (23:50)
+  // Run at 00:10 every day (processes YESTERDAY's operations)
+  // NOTE: Scheduled after midnight to process the completed previous day's operations
+  // This avoids timezone issues with 23:50 scheduling and ensures all operations are finalized
   const cronExpression = '10 0 * * *';
   const tz = process.env.TZ || 'Europe/Sarajevo';
 
-  // NOTE: Removed timezone parameter - testing if it's causing issues with 23:50 schedule
-  // System is already set to Europe/Sarajevo timezone
+  // NOTE: Timezone parameter removed - system timezone (Europe/Sarajevo) is used
   cron.schedule(cronExpression, async () => {
     console.log('🔥🔥🔥 EMAIL CRON CALLBACK TRIGGERED! 🔥🔥🔥');
     console.log(`Time: ${new Date().toISOString()}`);
@@ -74,8 +74,8 @@ export function initEmailInvoiceCron(): void {
 
   console.log(`Email invoice cron job scheduled: ${cronExpression} (NO timezone param - using system timezone)`);
 
-  // Retry failed emails at 23:57 (7 minutes after main cron)
-  const retryCronExpression = '57 23 * * *';
+  // Retry failed emails at 00:20 (10 minutes after main cron)
+  const retryCronExpression = '20 0 * * *';
   
   cron.schedule(retryCronExpression, async () => {
     const timeoutId = setTimeout(() => {

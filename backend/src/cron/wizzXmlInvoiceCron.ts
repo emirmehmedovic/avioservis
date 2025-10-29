@@ -6,9 +6,10 @@ let job: { stop: () => void } | null = null;
 
 export function initWizzXmlInvoiceCron(): void {
   if (job) job.stop();
-  // TEMPORARY TEST: Changed to 00:12 for testing (will process YESTERDAY's operations)
-  // PRODUCTION: Should be '55 23 * * *' (23:55)
-  const cronExpr = '12 0 * * *';
+  // Run at 00:15 every day (processes YESTERDAY's operations, 5 minutes after email dispatch)
+  // NOTE: Scheduled after midnight to process the completed previous day's operations
+  // This avoids timezone issues with 23:55 scheduling and ensures all operations are finalized
+  const cronExpr = '15 0 * * *';
   const tz = process.env.TZ || 'Europe/Sarajevo';
 
   console.log(`Zakazivanje Wizz XML invoice crona: ${cronExpr} TZ=${tz}`);
@@ -44,9 +45,9 @@ export function initWizzXmlInvoiceCron(): void {
     } finally {
       clearTimeout(timeoutId);
     }
-  }); // Removed timezone parameter - testing if it's causing issues with 23:55 schedule
+  }); // Timezone parameter removed - system timezone (Europe/Sarajevo) is used
   
-  console.log(`✅ Wizz XML invoice cron initialized WITHOUT timezone param (using system timezone)`);
+  console.log(`✅ Wizz XML invoice cron initialized (using system timezone)`);
 }
 
 
