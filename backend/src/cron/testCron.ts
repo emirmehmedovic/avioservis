@@ -18,6 +18,23 @@ dayjs.extend(timezone);
 export function initTestCron(): void {
   const tz = process.env.TZ || 'Europe/Sarajevo';
 
+  // URGENT TEST - 00:02 (za 4 minuta)
+  const urgentTestExpression = '2 0 * * *';
+  console.log(`🚨 URGENT test cron scheduled for 00:02: ${urgentTestExpression} (timezone: ${tz})`);
+  
+  cron.schedule(urgentTestExpression, async () => {
+    const now = new Date();
+    console.log('');
+    console.log('🚨🚨🚨 URGENT TEST (00:02) - Testing if cron.schedule WORKS 🚨🚨🚨');
+    console.log(`Time: ${now.toISOString()}`);
+    console.log(`Local: ${now.toLocaleString('sr-Latn-BA', { timeZone: tz })}`);
+    console.log('If you see this, node-cron IS working!');
+    console.log('🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨');
+    console.log('');
+  }, {
+    timezone: tz
+  });
+
   // Test cron za večeras - 00:45 (testira EMAIL dispatch funkciju)
   const emailTestExpression = '45 0 * * *';
   console.log(`🧪 Email dispatch test cron scheduled for 00:45: ${emailTestExpression} (timezone: ${tz})`);
