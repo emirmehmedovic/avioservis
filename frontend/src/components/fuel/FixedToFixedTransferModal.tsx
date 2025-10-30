@@ -6,9 +6,7 @@ import { Button } from "@/components/ui/Button";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+// Select imports removed - using native HTML select elements
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -227,34 +225,40 @@ export default function FixedToFixedTransferModal({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="sourceTank" className="text-white/90 font-medium">Izvorni Tank</Label>
-            <Select value={sourceTankId} onValueChange={setSourceTankId} required>
-              <SelectTrigger id="sourceTank" className="bg-white/10 border-white/20 text-white focus:border-[#E60026]/70 focus:ring-[#E60026]/20">
-                <SelectValue placeholder="Odaberite izvorni tank" />
-              </SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200 text-gray-900">
-                {availableTanks.map(tank => (
-                        <SelectItem key={tank.id} value={tank.id.toString()} disabled={tank.id.toString() === destinationTankId} className="text-gray-900 hover:bg-gray-100 focus:bg-[#E60026]/20 focus:text-white">
-                    {tank.tank_name} ({tank.tank_identifier}) - {tank.fuel_type} ({tank.current_quantity_liters.toLocaleString()} L)
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <select
+              id="sourceTank"
+              name="sourceTank"
+              value={sourceTankId}
+              onChange={(e) => setSourceTankId(e.target.value)}
+              className="w-full h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required
+            >
+              <option value="">Odaberite izvorni tank</option>
+              {availableTanks.map(tank => (
+                <option key={tank.id} value={tank.id.toString()} disabled={tank.id.toString() === destinationTankId}>
+                  {tank.tank_name} ({tank.tank_identifier}) - {tank.fuel_type} ({tank.current_quantity_liters.toLocaleString()} L)
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="destinationTank" className="text-white/90 font-medium">Odredišni Tank</Label>
-            <Select value={destinationTankId} onValueChange={setDestinationTankId} required>
-              <SelectTrigger id="destinationTank" className="bg-white/10 border-white/20 text-white focus:border-[#E60026]/70 focus:ring-[#E60026]/20">
-                <SelectValue placeholder="Odaberite odredišni tank" />
-              </SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200 text-gray-900">
-                {availableTanks.map(tank => (
-                        <SelectItem key={tank.id} value={tank.id.toString()} disabled={tank.id.toString() === sourceTankId} className="text-gray-900 hover:bg-gray-100 focus:bg-[#E60026]/20 focus:text-white">
-                    {tank.tank_name} ({tank.tank_identifier}) - {tank.fuel_type} (Slobodno: {(tank.capacity_liters - tank.current_quantity_liters).toLocaleString()} L)
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <select
+              id="destinationTank"
+              name="destinationTank"
+              value={destinationTankId}
+              onChange={(e) => setDestinationTankId(e.target.value)}
+              className="w-full h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required
+            >
+              <option value="">Odaberite odredišni tank</option>
+              {availableTanks.map(tank => (
+                <option key={tank.id} value={tank.id.toString()} disabled={tank.id.toString() === sourceTankId}>
+                  {tank.tank_name} ({tank.tank_identifier}) - {tank.fuel_type} (Slobodno: {(tank.capacity_liters - tank.current_quantity_liters).toLocaleString()} L)
+                </option>
+              ))}
+            </select>
                 </div>
           </div>
 
@@ -278,34 +282,40 @@ export default function FixedToFixedTransferModal({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="sourceTankMrn" className="text-white/90 font-medium">Izvorni Tank</Label>
-                  <Select value={sourceTankId} onValueChange={setSourceTankId} required>
-                    <SelectTrigger id="sourceTankMrn" className="bg-white/10 border-white/20 text-white focus:border-[#E60026]/70 focus:ring-[#E60026]/20">
-                      <SelectValue placeholder="Odaberite izvorni tank" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200 text-gray-900">
-                      {availableTanks.map(tank => (
-                        <SelectItem key={tank.id} value={tank.id.toString()} disabled={tank.id.toString() === destinationTankId} className="text-gray-900 hover:bg-gray-100 focus:bg-[#E60026]/20 focus:text-white">
-                          {tank.tank_name} ({tank.tank_identifier}) - {tank.fuel_type} ({tank.current_quantity_liters.toLocaleString()} L)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <select
+                    id="sourceTankMrn"
+                    name="sourceTankMrn"
+                    value={sourceTankId}
+                    onChange={(e) => setSourceTankId(e.target.value)}
+                    className="w-full h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  >
+                    <option value="">Odaberite izvorni tank</option>
+                    {availableTanks.map(tank => (
+                      <option key={tank.id} value={tank.id.toString()} disabled={tank.id.toString() === destinationTankId}>
+                        {tank.tank_name} ({tank.tank_identifier}) - {tank.fuel_type} ({tank.current_quantity_liters.toLocaleString()} L)
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="destinationTankMrn" className="text-white/90 font-medium">Odredišni Tank</Label>
-                  <Select value={destinationTankId} onValueChange={setDestinationTankId} required>
-                    <SelectTrigger id="destinationTankMrn" className="bg-white/10 border-white/20 text-white focus:border-[#E60026]/70 focus:ring-[#E60026]/20">
-                      <SelectValue placeholder="Odaberite odredišni tank" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200 text-gray-900">
-                      {availableTanks.map(tank => (
-                        <SelectItem key={tank.id} value={tank.id.toString()} disabled={tank.id.toString() === sourceTankId} className="text-gray-900 hover:bg-gray-100 focus:bg-[#E60026]/20 focus:text-white">
-                          {tank.tank_name} ({tank.tank_identifier}) - {tank.fuel_type} (Slobodno: {(tank.capacity_liters - tank.current_quantity_liters).toLocaleString()} L)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <select
+                    id="destinationTankMrn"
+                    name="destinationTankMrn"
+                    value={destinationTankId}
+                    onChange={(e) => setDestinationTankId(e.target.value)}
+                    className="w-full h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  >
+                    <option value="">Odaberite odredišni tank</option>
+                    {availableTanks.map(tank => (
+                      <option key={tank.id} value={tank.id.toString()} disabled={tank.id.toString() === sourceTankId}>
+                        {tank.tank_name} ({tank.tank_identifier}) - {tank.fuel_type} (Slobodno: {(tank.capacity_liters - tank.current_quantity_liters).toLocaleString()} L)
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

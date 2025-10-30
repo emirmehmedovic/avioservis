@@ -1235,6 +1235,7 @@ model PhysicalCisternFuel {
   capacity_liters         Float
   current_quantity_liters Float                    @default(0)
   current_quantity_kg     Float                    @default(0)
+  average_density         Float?                   // Prosječna gustoća (kg/L)
   fuel_type               String
   is_active               Boolean                  @default(true)
   is_cumulative           Boolean                  @default(false)  // Za kumulativne cisterne

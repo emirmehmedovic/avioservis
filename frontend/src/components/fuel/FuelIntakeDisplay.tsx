@@ -22,10 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/Table";
-import {
-  Select,
-  SelectItem,
-} from '@/components/ui/select';
+// Select imports removed - using native HTML select elements
 import { Input } from "@/components/ui/input";
 import FuelIntakeRecordDetailsModal, { FuelIntakeRecordWithDetails } from './FuelIntakeRecordDetailsModal';
 import EditFuelIntakeModal from './components/EditFuelIntakeModal';
@@ -380,31 +377,33 @@ export default function FuelIntakeDisplay() {
             </div>
             <div>
               <label htmlFor="fuelTypeFilter" className="block text-sm font-medium text-white mb-1">Tip Goriva:</label>
-              <Select 
-                value={filters.fuel_type || 'all'} 
-                onValueChange={(value: string) => handleFilterChange('fuel_type', value)}
-                className="w-full sm:w-[200px] bg-white/20 border-white/30 text-white"
+              <select
                 id="fuelTypeFilter"
+                name="fuelTypeFilter"
+                value={filters.fuel_type || 'all'}
+                onChange={(e) => handleFilterChange('fuel_type', e.target.value)}
+                className="w-full sm:w-[200px] h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <SelectItem value="all">Svi Tipovi Goriva</SelectItem>
+                <option value="all">Svi Tipovi Goriva</option>
                 {Object.values(FuelType).map(type => (
-                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                  <option key={type} value={type}>{type}</option>
                 ))}
-              </Select>
+              </select>
             </div>
             <div>
               <label htmlFor="categoryFilter" className="block text-sm font-medium text-white mb-1">Kategorija:</label>
-              <Select 
-                value={filters.fuel_category || 'all'} 
-                onValueChange={(value: string) => handleFilterChange('fuel_category', value)}
-                className="w-full sm:w-[200px] bg-white/20 border-white/30 text-white"
+              <select
                 id="categoryFilter"
+                name="categoryFilter"
+                value={filters.fuel_category || 'all'}
+                onChange={(e) => handleFilterChange('fuel_category', e.target.value)}
+                className="w-full sm:w-[200px] h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <SelectItem value="all">Sve Kategorije</SelectItem>
+                <option value="all">Sve Kategorije</option>
                 {Object.values(FuelCategory).map(category => (
-                  <SelectItem key={category} value={category}>{category}</SelectItem>
+                  <option key={category} value={category}>{category}</option>
                 ))}
-              </Select>
+              </select>
             </div>
             <div>
               <label htmlFor="refineryFilter" className="block text-sm font-medium text-white mb-1">Rafinerija:</label>

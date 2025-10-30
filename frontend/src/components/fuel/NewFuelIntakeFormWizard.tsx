@@ -1320,22 +1320,19 @@ export default function NewFuelIntakeFormWizard() {
                     
                     <div>
                       <Label htmlFor="currency" className="text-gray-700">Valuta</Label>
-                      <Select 
+                      <select
+                        id="currency"
                         name="currency"
-                        onValueChange={(value: string) => {
-                          handleInputChange(value, 'currency');
-                        }}
+                        onChange={(e) => handleInputChange(e.target.value, 'currency')}
                         value={formData.currency || Currency.BAM}
+                        className={`w-full mt-1 h-10 px-3 py-2 text-sm bg-white text-gray-900 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${formErrors.currency ? 'border-red-500' : 'border-gray-300'}`}
+                        required
                       >
-                        <SelectTrigger className={`w-full mt-1 ${formErrors.currency ? 'border-red-500' : ''}`}>
-                          <SelectValue placeholder="Odaberite valutu" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.values(Currency).map(currency => (
-                            <SelectItem key={currency} value={currency}>{currency}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        <option value="">Odaberite valutu</option>
+                        {Object.values(Currency).map(currency => (
+                          <option key={currency} value={currency}>{currency}</option>
+                        ))}
+                      </select>
                       {formErrors.currency && <p className="text-xs text-red-500 mt-1">{formErrors.currency}</p>}
                     </div>
                     
@@ -1401,39 +1398,37 @@ export default function NewFuelIntakeFormWizard() {
                 
                 <div className="mt-4">
                   <Label htmlFor="fuel_type" className="text-gray-700">Tip goriva</Label>
-                  <Select 
+                  <select
+                    id="fuel_type"
                     name="fuel_type"
-                    onValueChange={(value: string) => handleInputChange(value, 'fuel_type')}
+                    onChange={(e) => handleInputChange(e.target.value, 'fuel_type')}
                     value={formData.fuel_type || ''}
+                    className={`w-full mt-1 h-10 px-3 py-2 text-sm bg-white text-gray-900 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${formErrors.fuel_type ? 'border-red-500' : 'border-gray-300'}`}
+                    required
                   >
-                    <SelectTrigger className={`w-full mt-1 ${formErrors.fuel_type ? 'border-red-500' : ''}`}>
-                      <SelectValue placeholder="Odaberite tip goriva" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.values(FuelType).map(type => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <option value="">Odaberite tip goriva</option>
+                    {Object.values(FuelType).map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
                   {formErrors.fuel_type && <p className="text-xs text-red-500 mt-1">{formErrors.fuel_type}</p>}
                 </div>
                 
                 <div className="mt-4">
                   <Label htmlFor="fuel_category" className="text-gray-700">Kategorija</Label>
-                  <Select 
+                  <select
+                    id="fuel_category"
                     name="fuel_category"
-                    onValueChange={(value: string) => handleInputChange(value, 'fuel_category')}
+                    onChange={(e) => handleInputChange(e.target.value, 'fuel_category')}
                     value={formData.fuel_category || FuelCategory.DOMESTIC}
+                    className={`w-full mt-1 h-10 px-3 py-2 text-sm bg-white text-gray-900 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${formErrors.fuel_category ? 'border-red-500' : 'border-gray-300'}`}
+                    required
                   >
-                    <SelectTrigger className={`w-full mt-1 ${formErrors.fuel_category ? 'border-red-500' : ''}`}>
-                      <SelectValue placeholder="Odaberite kategoriju" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.values(FuelCategory).map(category => (
-                        <SelectItem key={category} value={category}>{category}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <option value="">Odaberite kategoriju</option>
+                    {Object.values(FuelCategory).map(category => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
+                  </select>
                   {formErrors.fuel_category && <p className="text-xs text-red-500 mt-1">{formErrors.fuel_category}</p>}
                 </div>
               </div>
@@ -1777,23 +1772,22 @@ export default function NewFuelIntakeFormWizard() {
                             Najnoviji MRN datum: <span className="font-medium ml-1">{tankMRNDataMap.get(distribution.tank_id.toString())?.newestMRNDateString}</span>
                           </div>
                         )}
-                        <Select
+                        <select
+                          id={`tank_id_${index}`}
                           name={`tank_id_${index}`}
                           value={distribution.tank_id?.toString() || ''}
-                          onValueChange={(value: string) => handleTankDistributionChange(index, 'tank_id', value)}
+                          onChange={(e) => handleTankDistributionChange(index, 'tank_id', e.target.value)}
+                          className={`w-full mt-1 h-10 px-3 py-2 text-sm bg-white text-gray-900 border rounded-md shadow-sm focus:outline-none focus:ring-2 ${tankError ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
+                          required
                         >
-                          <SelectTrigger className={`w-full mt-1 ${tankError ? 'border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'}`}>
-                            <SelectValue placeholder="Odaberite fiksni tank..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {selectableTanks.length === 0 && !currentTankId && <SelectItem value="no-tanks" disabled>Nema dostupnih tankova ovog tipa ili su svi već odabrani.</SelectItem>}
-                            {selectableTanks.map(tank => (
-                              <SelectItem key={tank.id} value={tank.id.toString()}>
-                                {getTankDisplayInfo(tank.id)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          <option value="">Odaberite fiksni tank...</option>
+                          {selectableTanks.length === 0 && !currentTankId && <option value="no-tanks" disabled>Nema dostupnih tankova ovog tipa ili su svi već odabrani.</option>}
+                          {selectableTanks.map(tank => (
+                            <option key={tank.id} value={tank.id.toString()}>
+                              {getTankDisplayInfo(tank.id)}
+                            </option>
+                          ))}
+                        </select>
                         {tankError && (
                           <p className="text-xs text-red-500 mt-1 flex items-center">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -2041,29 +2035,29 @@ export default function NewFuelIntakeFormWizard() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label>Odaberi Fizički Tank</Label>
-                        <Select
+                        <select
+                          id={`physical_tank_${index}`}
+                          name={`physical_tank_${index}`}
                           value={distribution.tank_id?.toString() || ''}
-                          onValueChange={(value) => {
+                          onChange={(e) => {
                             const updated = [...(formData.physical_tank_distributions || [])];
-                            updated[index] = { ...updated[index], tank_id: parseInt(value) };
+                            updated[index] = { ...updated[index], tank_id: parseInt(e.target.value) };
                             setFormData({ ...formData, physical_tank_distributions: updated });
                           }}
+                          className={`w-full mt-1 h-10 px-3 py-2 text-sm bg-white text-gray-900 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${formErrors.physical_tank_distributions?.[index]?.tank_id ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'}`}
+                          required
                         >
-                          <SelectTrigger className={formErrors.physical_tank_distributions?.[index]?.tank_id ? 'border-red-500' : ''}>
-                            <SelectValue placeholder="Odaberi tank" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {physicalTanksForSelectedFuelType.length === 0 ? (
-                              <SelectItem value="no-tanks" disabled>Nema dostupnih tankova</SelectItem>
-                            ) : (
-                              physicalTanksForSelectedFuelType.map((tank) => (
-                                <SelectItem key={tank.id} value={tank.id.toString()}>
-                                  {getPhysicalTankDisplayInfo(tank.id)}
-                                </SelectItem>
-                              ))
-                            )}
-                          </SelectContent>
-                        </Select>
+                          <option value="">Odaberi tank</option>
+                          {physicalTanksForSelectedFuelType.length === 0 ? (
+                            <option value="no-tanks" disabled>Nema dostupnih tankova</option>
+                          ) : (
+                            physicalTanksForSelectedFuelType.map((tank) => (
+                              <option key={tank.id} value={tank.id.toString()}>
+                                {getPhysicalTankDisplayInfo(tank.id)}
+                              </option>
+                            ))
+                          )}
+                        </select>
                         {formErrors.physical_tank_distributions?.[index]?.tank_id && (
                           <p className="text-sm text-red-600 mt-1 flex items-center">
                             <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">

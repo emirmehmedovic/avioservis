@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+// Select imports removed - using native HTML select elements
 import { FixedTankStatus, FuelType, FixedStorageTank } from '@/types/fuel';
 import { createFixedTank } from '@/lib/apiService';
 import { Card } from '@/components/ui/Card';
@@ -179,44 +179,40 @@ const NewFixedTankForm: React.FC<NewFixedTankFormProps> = ({ onSubmitSuccess, on
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="fuel_type" className="text-white/90 font-medium">Tip Goriva</Label>
-              <Select 
-                name="fuel_type" 
-                value={formData.fuel_type} 
-                onValueChange={(value: string) => handleSelectChange('fuel_type', value as FuelType)} 
+              <select
+                id="fuel_type"
+                name="fuel_type"
+                value={formData.fuel_type}
+                onChange={(e) => handleSelectChange('fuel_type', e.target.value as FuelType)}
+                className="w-full h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               >
-                <SelectTrigger className="bg-white/10 border-white/20 text-white focus:border-[#E60026]/70 focus:ring-[#E60026]/20">
-                  <SelectValue placeholder="Odaberite tip goriva" />
-                </SelectTrigger>
-                <SelectContent className="bg-black/90 border-white/20 text-white">
-                  {Object.values(FuelType).map(type => (
-                    <SelectItem key={type} value={type} className="focus:bg-[#E60026]/20 focus:text-white">
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <option value="">Odaberite tip goriva</option>
+                {Object.values(FuelType).map(type => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="status" className="text-white/90 font-medium">Status</Label>
-              <Select 
-                name="status" 
-                value={formData.status} 
-                onValueChange={(value: string) => handleSelectChange('status', value as FixedTankStatus)} 
+              <select
+                id="status"
+                name="status"
+                value={formData.status}
+                onChange={(e) => handleSelectChange('status', e.target.value as FixedTankStatus)}
+                className="w-full h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               >
-                <SelectTrigger className="bg-white/10 border-white/20 text-white focus:border-[#E60026]/70 focus:ring-[#E60026]/20">
-                  <SelectValue placeholder="Odaberite status" />
-                </SelectTrigger>
-                <SelectContent className="bg-black/90 border-white/20 text-white">
-                  {Object.values(FixedTankStatus).map(s => (
-                    <SelectItem key={s} value={s} className="focus:bg-[#E60026]/20 focus:text-white">
-                      {s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <option value="">Odaberite status</option>
+                {Object.values(FixedTankStatus).map(s => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
             </div>
             
             <div className="space-y-2">

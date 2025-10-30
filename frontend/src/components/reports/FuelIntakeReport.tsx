@@ -13,13 +13,7 @@ import {
 } from '@/components/ui/Table';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+// Removed Radix UI Select - using native HTML select instead
 import { FuelIntakeRecord, FuelType, FuelIntakeDocument } from '@/types/fuel';
 
 // Defines the structure for a single MRN transaction, including legacy fields for backward compatibility.
@@ -1415,6 +1409,39 @@ const FuelIntakeReport: React.FC = () => {
     toast.success('PDF izvještaj uspješno generisan.');
   };
 
+  // Refinery normalization function - moved outside for reusability
+  const normalizeRefinery = (refinery: string | null | undefined): string => {
+    if (!refinery) return 'Nepoznata rafinerija';
+    
+    const normalized = refinery.trim().toUpperCase().replace(/[\s_-]+/g, ' ');
+    
+    // HIFA PETROL mapping
+    if (normalized.includes('HIFA')) {
+      return 'HIFA PETROL';
+    }
+    
+    // KOPAR mapping
+    if (normalized.includes('KOPAR')) {
+      return 'KOPAR';
+    }
+    
+    // NIS PANČEVO mapping (sve varijacije)
+    if (normalized.includes('NIS') || normalized.includes('PANCEVO') || normalized.includes('PANČEVO')) {
+      return 'NIS PANČEVO';
+    }
+    
+    // INA RIJEKA mapping
+    if (normalized.includes('INA')) {
+      return 'INA RIJEKA';
+    }
+    
+    // Return original if no match (capitalize first letter of each word)
+    return refinery
+      .split(/[\s_-]+/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
   const handleExportAllToPdf = () => {
     if (records.length === 0) {
       toast.error('Nema podataka za izvoz u PDF.');
@@ -1440,7 +1467,7 @@ const FuelIntakeReport: React.FC = () => {
     doc.text(dateRangeText, 14, 32);
 
     const tableData = records.map(record => [
-      formatDateForReport(record.intake_datetime), // Use dd.mm.yyyy format
+      formatDateForReport(record.intake_datetime),
       record.customs_declaration_number || 'N/A',
       record.fuel_type,
       record.fuel_category || 'Domaće tržište',
@@ -1459,7 +1486,6 @@ const FuelIntakeReport: React.FC = () => {
     const totalLiters = records.reduce((sum, record) => sum + (record.quantity_liters_received || 0), 0);
     const totalKg = records.reduce((sum, record) => sum + (parseFloat(record.quantity_kg_received) || 0), 0);
     const averageDensity = totalLiters > 0 ? totalKg / totalLiters : 0;
-    const totalPrice = records.reduce((sum, record) => sum + (record.total_price || 0), 0);
 
     autoTable(doc, {
       startY: 40,
@@ -1469,46 +1495,281 @@ const FuelIntakeReport: React.FC = () => {
       headStyles: { fillColor: [22, 160, 133], font: FONT_NAME, fontStyle: 'bold', fontSize: 10 }, 
       styles: { font: FONT_NAME, fontSize: 9 },
       didDrawPage: function(data: any) {
-        // Add footer with total information
-        doc.setFont(FONT_NAME, 'bold');
-        doc.setFontSize(10);
-        
-        // Display totals in the footer
-        const footerY = doc.internal.pageSize.height - 20;
-        doc.text(`Ukupno Litara: ${totalLiters.toLocaleString('bs-BA')} L`, data.settings.margin.left, footerY - 12);
-        doc.text(`Ukupno Kilograma: ${Math.round(totalKg).toString()} kg`, data.settings.margin.left, footerY - 8);
-        doc.text(`Prosječna Gustoća: ${averageDensity.toLocaleString('bs-BA', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} kg/L`, data.settings.margin.left, footerY - 4);
-        
-        // Add total price if there are records with price information
-        if (totalPrice > 0) {
-          // Find the most common currency
-          const currencyCounts: Record<string, number> = {};
-          records.forEach(record => {
-            if (record.currency) {
-              currencyCounts[record.currency] = (currencyCounts[record.currency] || 0) + 1;
-            }
-          });
-          let mostCommonCurrency = '';
-          let maxCount = 0;
-          for (const currency in currencyCounts) {
-            if (currencyCounts[currency] > maxCount) {
-              maxCount = currencyCounts[currency];
-              mostCommonCurrency = currency;
-            }
-          }
-          
-          doc.text(`Ukupna Cijena: ${totalPrice.toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${mostCommonCurrency}`, data.settings.margin.left, footerY);
-        }
-        
-        // Add page number
+        // Add page number at bottom
         doc.setFont(FONT_NAME, 'normal');
         doc.setFontSize(8);
+        const footerY = doc.internal.pageSize.height - 10;
         doc.text(`Stranica ${data.pageNumber}`, doc.internal.pageSize.width - 20, footerY);
       }
     });
 
+    // ============================================================
+    // NOVA STRANICA: ANALITIKA PO RAFINERIJAMA
+    // ============================================================
+    doc.addPage();
+    
+    // Calculate refinery analytics
+    const refineryAnalytics: Record<string, {
+      totalLiters: number;
+      totalKg: number;
+      totalCostByCurrency: Record<string, number>;
+      totalWeightedPrice: number;
+      totalKgForPrice: number;
+      count: number;
+      mrnSet: Set<string>;
+    }> = {};
+
+    records.forEach(record => {
+      const refinery = normalizeRefinery(record.refinery_name);
+      
+      if (!refineryAnalytics[refinery]) {
+        refineryAnalytics[refinery] = {
+          totalLiters: 0,
+          totalKg: 0,
+          totalCostByCurrency: {},
+          totalWeightedPrice: 0,
+          totalKgForPrice: 0,
+          count: 0,
+          mrnSet: new Set()
+        };
+      }
+      
+      refineryAnalytics[refinery].totalLiters += record.quantity_liters_received || 0;
+      const kg = parseFloat(record.quantity_kg_received || '0');
+      refineryAnalytics[refinery].totalKg += kg;
+      refineryAnalytics[refinery].count++;
+      
+      // MRN tracking
+      if (record.customs_declaration_number) {
+        refineryAnalytics[refinery].mrnSet.add(record.customs_declaration_number);
+      }
+      
+      // Price tracking - fixed logic
+      if (typeof record.price_per_kg === 'number' && kg > 0) {
+        refineryAnalytics[refinery].totalWeightedPrice += (record.price_per_kg * kg);
+        refineryAnalytics[refinery].totalKgForPrice += kg;
+        
+        // Total cost by currency
+        if (record.currency) {
+          if (!refineryAnalytics[refinery].totalCostByCurrency[record.currency]) {
+            refineryAnalytics[refinery].totalCostByCurrency[record.currency] = 0;
+          }
+          if (typeof record.total_price === 'number') {
+            refineryAnalytics[refinery].totalCostByCurrency[record.currency] += record.total_price;
+          }
+        }
+      }
+    });
+
+    // Convert to array and sort by total liters (descending)
+    const refineryArray = Object.entries(refineryAnalytics)
+      .map(([name, data]) => ({
+        name,
+        ...data,
+        avgPricePerKg: data.totalKgForPrice > 0 ? data.totalWeightedPrice / data.totalKgForPrice : 0
+      }))
+      .sort((a, b) => b.totalLiters - a.totalLiters);
+
+    // Create refinery table data
+    const refineryTableData = refineryArray.map(refinery => {
+      const bamCost = refinery.totalCostByCurrency['BAM'] || 0;
+      const eurCost = refinery.totalCostByCurrency['EUR'] || 0;
+      const usdCost = refinery.totalCostByCurrency['USD'] || 0;
+      
+      return [
+        refinery.name,
+        refinery.totalLiters.toLocaleString('bs-BA', { maximumFractionDigits: 0 }),
+        Math.round(refinery.totalKg).toLocaleString('bs-BA'),
+        bamCost > 0 ? bamCost.toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-',
+        eurCost > 0 ? eurCost.toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-',
+        usdCost > 0 ? usdCost.toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-',
+        refinery.avgPricePerKg > 0 ? refinery.avgPricePerKg.toLocaleString('bs-BA', { minimumFractionDigits: 3, maximumFractionDigits: 3 }) : '-',
+        refinery.count.toString()
+      ];
+    });
+
+    // Header for refinery analytics
+    doc.setFontSize(16);
+    doc.setFont(FONT_NAME, 'bold');
+    doc.text('Analitika Po Rafinerijama', doc.internal.pageSize.width / 2, 20, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.setFont(FONT_NAME, 'normal');
+    doc.text(dateRangeText, doc.internal.pageSize.width / 2, 28, { align: 'center' });
+
+    autoTable(doc, {
+      startY: 35,
+      head: [['Rafinerija', 'Litara', 'KG', 'Trošak BAM', 'Trošak EUR', 'Trošak USD', 'Prosj. Cijena/KG', 'Br. Isporuka']],
+      body: refineryTableData,
+      theme: 'grid',
+      headStyles: { 
+        fillColor: [41, 128, 185], 
+        font: FONT_NAME, 
+        fontStyle: 'bold', 
+        fontSize: 10,
+        halign: 'center'
+      },
+      styles: { 
+        font: FONT_NAME, 
+        fontSize: 9 
+      },
+      columnStyles: {
+        0: { cellWidth: 50 }, // Rafinerija
+        1: { halign: 'right', cellWidth: 25 }, // Litara
+        2: { halign: 'right', cellWidth: 25 }, // KG
+        3: { halign: 'right', cellWidth: 30 }, // BAM
+        4: { halign: 'right', cellWidth: 30 }, // EUR
+        5: { halign: 'right', cellWidth: 30 }, // USD
+        6: { halign: 'right', cellWidth: 28 }, // Prosj. Cijena
+        7: { halign: 'center', cellWidth: 22 }  // Br. Isporuka
+      },
+      didDrawPage: function(data: any) {
+        doc.setFont(FONT_NAME, 'normal');
+        doc.setFontSize(8);
+        const footerY = doc.internal.pageSize.height - 10;
+        doc.text(`Stranica ${data.pageNumber}`, doc.internal.pageSize.width - 20, footerY);
+      }
+    });
+
+    // ============================================================
+    // NOVA STRANICA: UKUPAN SAŽETAK (SUMMARY)
+    // ============================================================
+    doc.addPage();
+    
+    // Calculate weighted average price per kg - FIXED
+    const totalWeightedPrice = records.reduce((sum, record) => {
+      if (typeof record.price_per_kg === 'number' && record.quantity_kg_received) {
+        const kg = parseFloat(record.quantity_kg_received);
+        if (!isNaN(kg) && kg > 0) {
+          return sum + (record.price_per_kg * kg);
+        }
+      }
+      return sum;
+    }, 0);
+
+    const totalKgForPricing = records.reduce((sum, record) => {
+      if (typeof record.price_per_kg === 'number' && record.quantity_kg_received) {
+        const kg = parseFloat(record.quantity_kg_received);
+        if (!isNaN(kg) && kg > 0) {
+          return sum + kg;
+        }
+      }
+      return sum;
+    }, 0);
+
+    const averagePricePerKg = totalKgForPricing > 0 ? totalWeightedPrice / totalKgForPricing : 0;
+
+    // Calculate total costs by currency
+    const totalCostByCurrency: Record<string, number> = {};
+    records.forEach(record => {
+      if (record.currency && typeof record.total_price === 'number') {
+        if (!totalCostByCurrency[record.currency]) {
+          totalCostByCurrency[record.currency] = 0;
+        }
+        totalCostByCurrency[record.currency] += record.total_price;
+      }
+    });
+
+    // Count unique MRNs and refineries
+    const uniqueMrns = new Set<string>();
+    const uniqueRefineries = new Set<string>();
+    records.forEach(record => {
+      if (record.customs_declaration_number) {
+        uniqueMrns.add(record.customs_declaration_number);
+      }
+      if (record.refinery_name) {
+        uniqueRefineries.add(normalizeRefinery(record.refinery_name));
+      }
+    });
+
+    // Header for summary
+    doc.setFontSize(18);
+    doc.setFont(FONT_NAME, 'bold');
+    doc.text('Ukupan Sažetak', doc.internal.pageSize.width / 2, 25, { align: 'center' });
+    
+    doc.setFontSize(11);
+    doc.setFont(FONT_NAME, 'normal');
+    doc.text(dateRangeText, doc.internal.pageSize.width / 2, 33, { align: 'center' });
+
+    let yPos = 50;
+
+    // Section 1: Količine
+    doc.setFillColor(240, 240, 240);
+    doc.rect(30, yPos, doc.internal.pageSize.width - 60, 10, 'F');
+    doc.setFontSize(12);
+    doc.setFont(FONT_NAME, 'bold');
+    doc.text('Podaci o Količinama', 35, yPos + 7);
+    yPos += 15;
+
+    const quantityData = [
+      ['Ukupno Litara', totalLiters.toLocaleString('bs-BA', { maximumFractionDigits: 1 }) + ' L'],
+      ['Ukupno Kilograma', Math.round(totalKg).toLocaleString('bs-BA') + ' kg'],
+      ['Prosječna Gustoća', averageDensity.toLocaleString('bs-BA', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + ' kg/L'],
+      ['Broj Zapisa', records.length.toString()],
+      ['Broj Različitih MRN-ova', uniqueMrns.size.toString()],
+      ['Broj Rafinerija', uniqueRefineries.size.toString()]
+    ];
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [],
+      body: quantityData,
+      theme: 'grid',
+      styles: { font: FONT_NAME, fontSize: 10, cellPadding: 4 },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 80 },
+        1: { cellWidth: 'auto', halign: 'right' }
+      },
+      margin: { left: 50, right: 50 }
+    });
+
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+
+    // Section 2: Cijena
+    doc.setFillColor(240, 240, 240);
+    doc.rect(30, yPos, doc.internal.pageSize.width - 60, 10, 'F');
+    doc.setFontSize(12);
+    doc.setFont(FONT_NAME, 'bold');
+    doc.text('Podaci o Cijenama i Troškovima', 35, yPos + 7);
+    yPos += 15;
+
+    const priceData = [
+      ['Prosječna Cijena po KG', averagePricePerKg > 0 
+        ? averagePricePerKg.toLocaleString('bs-BA', { minimumFractionDigits: 3, maximumFractionDigits: 3 })
+        : 'N/A'],
+      ['Ukupan Trošak (BAM)', totalCostByCurrency['BAM'] 
+        ? totalCostByCurrency['BAM'].toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' BAM'
+        : '-'],
+      ['Ukupan Trošak (EUR)', totalCostByCurrency['EUR'] 
+        ? totalCostByCurrency['EUR'].toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' EUR'
+        : '-'],
+      ['Ukupan Trošak (USD)', totalCostByCurrency['USD'] 
+        ? totalCostByCurrency['USD'].toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' USD'
+        : '-']
+    ];
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [],
+      body: priceData,
+      theme: 'grid',
+      styles: { font: FONT_NAME, fontSize: 10, cellPadding: 4 },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 80 },
+        1: { cellWidth: 'auto', halign: 'right' }
+      },
+      margin: { left: 50, right: 50 }
+    });
+
+    // Footer
+    const footerY = doc.internal.pageSize.height - 20;
+    doc.setFontSize(8);
+    doc.setFont(FONT_NAME, 'normal');
+    doc.text(`Izvještaj generisan: ${formatDateTimeForReport(new Date())}`, 14, footerY);
+    doc.text(`Stranica ${(doc as any).internal.getNumberOfPages()}`, doc.internal.pageSize.width - 20, footerY);
+
     doc.save(`Izvjestaj_Ulaz_Goriva_${new Date().toISOString().split('T')[0]}.pdf`);
-    toast.success('PDF izvještaj uspješno generisan sa ukupnim količinama.');
+    toast.success('PDF izvještaj uspješno generisan sa kompletnom analitikom.');
   };
 
   return (
@@ -1584,37 +1845,31 @@ const FuelIntakeReport: React.FC = () => {
                 
                 <div className="space-y-2">
                   <label htmlFor="fuelTypeFilterReport" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Tip Goriva:</label>
-                  <Select
+                  <select
+                    id="fuelTypeFilterReport"
                     value={filters.fuel_type}
-                    onValueChange={(value: string) => handleFilterChange('fuel_type', value as FuelType | 'all')}
+                    onChange={(e) => handleFilterChange('fuel_type', e.target.value as FuelType | 'all')}
+                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <SelectTrigger id="fuelTypeFilterReport" className="bg-gray-50 dark:bg-gray-900">
-                      <SelectValue placeholder="Svi tipovi" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Svi tipovi</SelectItem>
-                      {Object.values(FuelType).map(type => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <option value="all">Svi tipovi</option>
+                    {Object.values(FuelType).map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
                 </div>
                 
                 <div className="space-y-2">
                   <label htmlFor="categoryFilterReport" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Kategorija:</label>
-                  <Select
+                  <select
+                    id="categoryFilterReport"
                     value={filters.fuel_category}
-                    onValueChange={(value: string) => handleFilterChange('fuel_category', value)}
+                    onChange={(e) => handleFilterChange('fuel_category', e.target.value)}
+                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <SelectTrigger id="categoryFilterReport" className="bg-gray-50 dark:bg-gray-900">
-                      <SelectValue placeholder="Sve kategorije" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Sve kategorije</SelectItem>
-                      <SelectItem value="Izvoz">Izvoz</SelectItem>
-                      <SelectItem value="Domaće tržište">Domaće tržište</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <option value="all">Sve kategorije</option>
+                    <option value="Izvoz">Izvoz</option>
+                    <option value="Domaće tržište">Domaće tržište</option>
+                  </select>
                 </div>
                 
                 <div className="space-y-2">

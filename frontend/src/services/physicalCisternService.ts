@@ -107,6 +107,13 @@ class PhysicalCisternService {
       body: JSON.stringify(updateData),
     });
   }
+
+  // Recalculate density for all cumulative cisterns
+  async recalculateDensity(): Promise<{ message: string; updatedCount: number }> {
+    return fetchWithAuth<{ message: string; updatedCount: number }>(`${this.baseUrl}/recalculate-density`, {
+      method: 'POST',
+    });
+  }
 }
 
 export const physicalCisternService = new PhysicalCisternService();

@@ -273,6 +273,8 @@ export const updatePhysicalTank: RequestHandler = async (req, res, next): Promis
 
     const {
       tank_name,
+      tank_identifier,
+      capacity_liters,
       location_description,
       display_order,
       is_active,
@@ -304,8 +306,34 @@ export const updatePhysicalTank: RequestHandler = async (req, res, next): Promis
       }
     }
 
+    // Provjeri da li novi identifikator već postoji (ako se mijenja)
+    if (tank_identifier && tank_identifier !== existingTank.tank_identifier) {
+      const duplicateIdentifier = await prisma.physicalTanks.findFirst({
+        where: {
+          tank_identifier: tank_identifier,
+          id: { not: tankId }
+        }
+      });
+
+      if (duplicateIdentifier) {
+        res.status(400).json({ message: `Tank sa identifikatorom "${tank_identifier}" već postoji` });
+        return;
+      }
+    }
+
+    // Validacija kapaciteta ako se mijenja
+    if (capacity_liters !== undefined) {
+      const parsedCapacity = Number(capacity_liters);
+      if (isNaN(parsedCapacity) || parsedCapacity <= 0) {
+        res.status(400).json({ message: 'Capacity must be a positive number' });
+        return;
+      }
+    }
+
     const updateData: any = {};
     if (tank_name !== undefined) updateData.tank_name = tank_name;
+    if (tank_identifier !== undefined) updateData.tank_identifier = tank_identifier;
+    if (capacity_liters !== undefined) updateData.capacity_liters = Number(capacity_liters);
     if (location_description !== undefined) updateData.location_description = location_description;
     if (display_order !== undefined) updateData.display_order = display_order;
     if (is_active !== undefined) updateData.is_active = is_active;

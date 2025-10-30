@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+// Select imports removed - using native HTML select elements
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -523,7 +523,7 @@ const DrainedFuelOperations: React.FC = () => {
         return;
       }
       
-      const availableCapacity = tank.capacity_liters - tank.current_quantity_liters;
+      const availableCapacity = (tank.capacity_liters || 0) - (tank.current_quantity_liters || 0);
       if (availableCapacity < quantityToReturn) {
         toast.error(`Nedovoljno kapaciteta u rezervoaru. Dostupno: ${availableCapacity.toLocaleString()} L`);
         return;
@@ -535,7 +535,7 @@ const DrainedFuelOperations: React.FC = () => {
         return;
       }
       
-      const availableCapacity = tank.capacity_liters - tank.current_liters;
+      const availableCapacity = (tank.capacity_liters || 0) - (tank.current_liters || 0);
       if (availableCapacity < quantityToReturn) {
         toast.error(`Nedovoljno kapaciteta u cisterni. Dostupno: ${availableCapacity.toLocaleString()} L`);
         return;
@@ -903,42 +903,42 @@ const DrainedFuelOperations: React.FC = () => {
                 <TabsContent value="fixed" className="mt-4">
                   <div className="space-y-2">
                     <Label htmlFor="sourceId">Odaberite rezervoar</Label>
-                    <Select 
-                      value={formData.sourceId.toString()} 
-                      onValueChange={(value) => handleSelectChange('sourceId', value)}
+                    <select
+                      id="sourceId"
+                      name="sourceId"
+                      value={formData.sourceId.toString()}
+                      onChange={(e) => handleSelectChange('sourceId', e.target.value)}
+                      className="w-full h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Odaberite rezervoar" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {fixedTanks.map((tank) => (
-                          <SelectItem key={tank.id} value={tank.id.toString()}>
-                            {tank.tank_name} ({tank.tank_identifier}) - {tank.current_quantity_liters.toLocaleString('bs-BA')} L
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <option value="">Odaberite rezervoar</option>
+                      {fixedTanks.map((tank) => (
+                        <option key={tank.id} value={tank.id.toString()}>
+                          {tank.tank_name} ({tank.tank_identifier}) - {(tank.current_quantity_liters || 0).toLocaleString('bs-BA')} L
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </TabsContent>
                 
                 <TabsContent value="mobile" className="mt-4">
                   <div className="space-y-2">
-                    <Label htmlFor="sourceId">Odaberite cisternu</Label>
-                    <Select 
-                      value={formData.sourceId.toString()} 
-                      onValueChange={(value) => handleSelectChange('sourceId', value)}
+                    <Label htmlFor="sourceIdMobile">Odaberite cisternu</Label>
+                    <select
+                      id="sourceIdMobile"
+                      name="sourceIdMobile"
+                      value={formData.sourceId.toString()}
+                      onChange={(e) => handleSelectChange('sourceId', e.target.value)}
+                      className="w-full h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Odaberite cisternu" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {mobileTanks.map((tank) => (
-                          <SelectItem key={tank.id} value={tank.id.toString()}>
-                            {tank.name} ({tank.identifier}) - {tank.current_liters.toLocaleString()} L
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <option value="">Odaberite cisternu</option>
+                      {mobileTanks.map((tank) => (
+                        <option key={tank.id} value={tank.id.toString()}>
+                          {tank.name} ({tank.identifier}) - {(tank.current_liters || 0).toLocaleString()} L
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </TabsContent>
               </Tabs>
@@ -960,8 +960,8 @@ const DrainedFuelOperations: React.FC = () => {
                   <div>
                     <span className="text-gray-500">Trenutna količina:</span>{' '}
                     {formData.sourceType === 'fixed' 
-                      ? (selectedSource as FixedTank).current_quantity_liters.toLocaleString() 
-                      : (selectedSource as MobileTank).current_liters.toLocaleString()
+                      ? ((selectedSource as FixedTank)?.current_quantity_liters || 0).toLocaleString() 
+                      : ((selectedSource as MobileTank)?.current_liters || 0).toLocaleString()
                     } L
                   </div>
                 </div>
@@ -1150,7 +1150,7 @@ const DrainedFuelOperations: React.FC = () => {
                   <span className="text-amber-700">Tip izvora:</span> {selectedDrainRecord.sourceType === 'fixed' ? 'Fiksni rezervoar' : 'Mobilna cisterna'}
                 </div>
                 <div>
-                  <span className="text-amber-700">Količina:</span> {selectedDrainRecord.quantityLiters.toLocaleString()} L
+                  <span className="text-amber-700">Količina:</span> {(selectedDrainRecord.quantityLiters || 0).toLocaleString()} L
                 </div>
                 <div>
                   <span className="text-amber-700">Datum:</span> {format(new Date(selectedDrainRecord.dateTime), 'dd.MM.yyyy HH:mm')}
@@ -1210,42 +1210,42 @@ const DrainedFuelOperations: React.FC = () => {
                 <TabsContent value="fixed" className="mt-4">
                   <div className="space-y-2">
                     <Label htmlFor="destinationId">Odaberite rezervoar</Label>
-                    <Select 
-                      value={reverseFormData.destinationId.toString()} 
-                      onValueChange={(value) => handleSelectChange('destinationId', value)}
+                    <select
+                      id="destinationId"
+                      name="destinationId"
+                      value={reverseFormData.destinationId.toString()}
+                      onChange={(e) => handleSelectChange('destinationId', e.target.value)}
+                      className="w-full h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Odaberite rezervoar" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {fixedTanks.map((tank) => (
-                          <SelectItem key={tank.id} value={tank.id.toString()}>
-                            {tank.tank_name} ({tank.tank_identifier}) - {tank.current_quantity_liters.toLocaleString('bs-BA')}/{tank.capacity_liters.toLocaleString('bs-BA')} L
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <option value="">Odaberite rezervoar</option>
+                      {fixedTanks.map((tank) => (
+                        <option key={tank.id} value={tank.id.toString()}>
+                          {tank.tank_name} ({tank.tank_identifier}) - {(tank.current_quantity_liters || 0).toLocaleString('bs-BA')}/{(tank.capacity_liters || 0).toLocaleString('bs-BA')} L
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </TabsContent>
                 
                 <TabsContent value="mobile" className="mt-4">
                   <div className="space-y-2">
-                    <Label htmlFor="destinationId">Odaberite cisternu</Label>
-                    <Select 
-                      value={reverseFormData.destinationId.toString()} 
-                      onValueChange={(value) => handleSelectChange('destinationId', value)}
+                    <Label htmlFor="destinationIdMobile">Odaberite cisternu</Label>
+                    <select
+                      id="destinationIdMobile"
+                      name="destinationIdMobile"
+                      value={reverseFormData.destinationId.toString()}
+                      onChange={(e) => handleSelectChange('destinationId', e.target.value)}
+                      className="w-full h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Odaberite cisternu" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {mobileTanks.map((tank) => (
-                          <SelectItem key={tank.id} value={tank.id.toString()}>
-                            {tank.name} ({tank.identifier}) - {tank.current_liters.toLocaleString()}/{tank.capacity_liters.toLocaleString()} L
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <option value="">Odaberite cisternu</option>
+                      {mobileTanks.map((tank) => (
+                        <option key={tank.id} value={tank.id.toString()}>
+                          {tank.name} ({tank.identifier}) - {(tank.current_liters || 0).toLocaleString()}/{(tank.capacity_liters || 0).toLocaleString()} L
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </TabsContent>
               </Tabs>
@@ -1267,8 +1267,8 @@ const DrainedFuelOperations: React.FC = () => {
                   <div>
                     <span className="text-gray-500">Raspoloživi kapacitet:</span>{' '}
                     {reverseFormData.destinationType === 'fixed' 
-                      ? ((selectedDestination as FixedTank).capacity_liters - (selectedDestination as FixedTank).current_quantity_liters).toLocaleString() 
-                      : ((selectedDestination as MobileTank).capacity_liters - (selectedDestination as MobileTank).current_liters).toLocaleString()
+                      ? (((selectedDestination as FixedTank)?.capacity_liters || 0) - ((selectedDestination as FixedTank)?.current_quantity_liters || 0)).toLocaleString() 
+                      : (((selectedDestination as MobileTank)?.capacity_liters || 0) - ((selectedDestination as MobileTank)?.current_liters || 0)).toLocaleString()
                     } L
                   </div>
                 </div>

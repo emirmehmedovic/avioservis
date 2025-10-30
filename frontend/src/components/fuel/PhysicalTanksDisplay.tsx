@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectItem } from '@/components/ui/select';
+// Select imports removed - using native HTML select elements
 import { Badge } from '@/components/ui/badge';
 import { Plus, Edit, Trash2, RefreshCw, Database, FileText } from 'lucide-react';
 import { toast } from 'sonner';
@@ -112,6 +112,20 @@ const PhysicalTanksDisplay = () => {
     }
   };
 
+  const recalculateCisternDensity = async () => {
+    try {
+      setLoading(true);
+      await physicalCisternService.recalculateDensity();
+      toast.success('Gustoća kumulativnih cisterni uspješno ažurirana');
+      await fetchTanks();
+    } catch (error) {
+      console.error('Error recalculating density:', error);
+      toast.error('Greška pri ažuriranju gustoće');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const createTank = async (tankData: CreateTankData) => {
     try {
       await physicalTankService.createTank(tankData);
@@ -124,7 +138,7 @@ const PhysicalTanksDisplay = () => {
         fuel_type: 'Jet A-1',
         location_description: ''
       });
-      fetchTanks();
+      await fetchTanks();
     } catch (error) {
       console.error('Error creating tank:', error);
       toast.error('Greška pri kreiranju tanka');
@@ -137,7 +151,8 @@ const PhysicalTanksDisplay = () => {
       toast.success('Tank uspješno ažuriran');
       setShowEditModal(false);
       setEditingTank(null);
-      fetchTanks();
+      // Force a fresh fetch of all data
+      await fetchTanks();
     } catch (error) {
       console.error('Error updating tank:', error);
       toast.error('Greška pri ažuriranju tanka');
@@ -152,7 +167,7 @@ const PhysicalTanksDisplay = () => {
     try {
       await physicalTankService.deleteTank(id);
       toast.success('Tank uspješno obrisan');
-      fetchTanks();
+      await fetchTanks();
     } catch (error) {
       console.error('Error deleting tank:', error);
       toast.error('Greška pri brisanju tanka');
@@ -171,7 +186,7 @@ const PhysicalTanksDisplay = () => {
         fuel_type: 'Jet A-1',
         is_active: true
       });
-      fetchTanks();
+      await fetchTanks();
     } catch (error) {
       console.error('Error creating cistern:', error);
       toast.error('Greška pri kreiranju cisterne');
@@ -184,7 +199,8 @@ const PhysicalTanksDisplay = () => {
       toast.success('Cisterna uspješno ažurirana');
       setShowEditCisternModal(false);
       setEditingCistern(null);
-      fetchTanks();
+      // Force a fresh fetch of all data
+      await fetchTanks();
     } catch (error) {
       console.error('Error updating cistern:', error);
       toast.error('Greška pri ažuriranju cisterne');
@@ -199,7 +215,7 @@ const PhysicalTanksDisplay = () => {
     try {
       await physicalCisternService.deleteCistern(id);
       toast.success('Cisterna uspješno obrisana');
-      fetchTanks();
+      await fetchTanks();
     } catch (error) {
       console.error('Error deleting cistern:', error);
       toast.error('Greška pri brisanju cisterne');
@@ -223,7 +239,7 @@ const PhysicalTanksDisplay = () => {
       setSelectedCisternForTransfer(null);
       setAvailableSubCisternsForTransfer([]);
       setSelectedSubCisternId(null);
-      fetchTanks();
+      await fetchTanks();
     } catch (error) {
       console.error('Error creating transfer:', error);
       toast.error('Greška pri kreiranju transfera');
@@ -261,7 +277,7 @@ const PhysicalTanksDisplay = () => {
     try {
       await physicalTankTransferService.deleteTransfer(id);
       toast.success('Transfer uspješno obrisan');
-      fetchTanks();
+      await fetchTanks();
     } catch (error) {
       console.error('Error deleting transfer:', error);
       toast.error('Greška pri brisanju transfera');
@@ -467,7 +483,7 @@ const PhysicalTanksDisplay = () => {
       setSelectedCisternForConfig(null);
       setNewSubCisterns([]);
       await fetchSubCisterns(selectedCisternForConfig.id);
-      fetchTanks();
+      await fetchTanks();
     } catch (error: any) {
       console.error('Error creating sub-cisterns:', error);
       toast.error(error.message || 'Greška pri kreiranju sub-cisterni');
@@ -520,6 +536,114 @@ const PhysicalTanksDisplay = () => {
     return Math.round((current / capacity) * 100);
   };
 
+  // Calculate summary statistics for tanks AND cisterns
+  const tanksSummary = React.useMemo(() => {
+    // Calculate totals from physical tanks
+    const tanksLiters = tanks.reduce((sum, tank) => sum + (tank.current_quantity_liters || 0), 0);
+    const tanksKg = tanks.reduce((sum, tank) => sum + (tank.current_quantity_kg || 0), 0);
+    const tanksCapacity = tanks.reduce((sum, tank) => sum + (tank.capacity_liters || 0), 0);
+    
+    // Calculate totals from cisterns
+    const cisternsLiters = cisterns.reduce((sum, cistern) => sum + (cistern.current_quantity_liters || 0), 0);
+    const cisternsKg = cisterns.reduce((sum, cistern) => sum + (cistern.current_quantity_kg || 0), 0);
+    const cisternsCapacity = cisterns.reduce((sum, cistern) => sum + (cistern.capacity_liters || 0), 0);
+    
+    // Combined totals
+    const totalLiters = tanksLiters + cisternsLiters;
+    const totalKg = tanksKg + cisternsKg;
+    const totalCapacity = tanksCapacity + cisternsCapacity;
+    
+    // Calculate weighted average density
+    // For each tank/cistern, use its average_density weighted by its current quantity
+    let weightedDensitySum = 0;
+    let totalLitersForDensity = 0;
+    
+    tanks.forEach(tank => {
+      if (tank.current_quantity_liters > 0 && tank.average_density) {
+        weightedDensitySum += tank.average_density * tank.current_quantity_liters;
+        totalLitersForDensity += tank.current_quantity_liters;
+      }
+    });
+    
+    cisterns.forEach(cistern => {
+      if (cistern.current_quantity_liters > 0 && cistern.average_density) {
+        weightedDensitySum += cistern.average_density * cistern.current_quantity_liters;
+        totalLitersForDensity += cistern.current_quantity_liters;
+      }
+    });
+    
+    // Use weighted average if available, otherwise fall back to simple calculation
+    let averageDensity = 0;
+    if (totalLitersForDensity > 0) {
+      averageDensity = weightedDensitySum / totalLitersForDensity;
+    } else if (totalLiters > 0 && totalKg > 0) {
+      // Fallback: simple calculation from totals
+      averageDensity = totalKg / totalLiters;
+    }
+    
+    const fillPercentage = totalCapacity > 0 ? (totalLiters / totalCapacity) * 100 : 0;
+    
+    // Debug logging
+    console.log('Tank Summary Debug:', {
+      tanksLiters,
+      tanksKg,
+      cisternsLiters,
+      cisternsKg,
+      totalLiters,
+      totalKg,
+      averageDensity,
+      weightedDensitySum,
+      totalLitersForDensity,
+      simpleDensity: totalLiters > 0 ? totalKg / totalLiters : 0
+    });
+    
+    return {
+      totalLiters,
+      totalKg,
+      totalCapacity,
+      averageDensity,
+      fillPercentage,
+      tanksCount: tanks.filter(t => t.is_active).length,
+      cisternsCount: cisterns.filter(c => c.is_active).length
+    };
+  }, [tanks, cisterns]);
+
+  // Calculate summary statistics ONLY for physical tanks (not cisterns)
+  const onlyTanksSummary = React.useMemo(() => {
+    const totalLiters = tanks.reduce((sum, tank) => sum + (tank.current_quantity_liters || 0), 0);
+    const totalKg = tanks.reduce((sum, tank) => sum + (tank.current_quantity_kg || 0), 0);
+    const totalCapacity = tanks.reduce((sum, tank) => sum + (tank.capacity_liters || 0), 0);
+    
+    // Calculate weighted average density for tanks only
+    let weightedDensitySum = 0;
+    let totalLitersForDensity = 0;
+    
+    tanks.forEach(tank => {
+      if (tank.current_quantity_liters > 0 && tank.average_density) {
+        weightedDensitySum += tank.average_density * tank.current_quantity_liters;
+        totalLitersForDensity += tank.current_quantity_liters;
+      }
+    });
+    
+    let averageDensity = 0;
+    if (totalLitersForDensity > 0) {
+      averageDensity = weightedDensitySum / totalLitersForDensity;
+    } else if (totalLiters > 0 && totalKg > 0) {
+      averageDensity = totalKg / totalLiters;
+    }
+    
+    const fillPercentage = totalCapacity > 0 ? (totalLiters / totalCapacity) * 100 : 0;
+    
+    return {
+      totalLiters,
+      totalKg,
+      totalCapacity,
+      averageDensity,
+      fillPercentage,
+      tanksCount: tanks.filter(t => t.is_active).length
+    };
+  }, [tanks]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -551,10 +675,16 @@ const PhysicalTanksDisplay = () => {
               </Button>
             </>
           ) : activeTab === 'cisterns' ? (
-            <Button onClick={() => setShowCreateCisternModal(true)} className="bg-green-600 hover:bg-green-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Dodaj Cisternu
-            </Button>
+            <>
+              <Button onClick={() => setShowCreateCisternModal(true)} className="bg-green-600 hover:bg-green-700">
+                <Plus className="h-4 w-4 mr-2" />
+                Dodaj Cisternu
+              </Button>
+              <Button onClick={recalculateCisternDensity} className="bg-blue-600 hover:bg-blue-700" disabled={loading}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Ažuriraj Gustoću
+              </Button>
+            </>
           ) : (
             <Button onClick={() => setShowTransferModal(true)} className="bg-purple-600 hover:bg-purple-700">
               <Plus className="h-4 w-4 mr-2" />
@@ -598,6 +728,199 @@ const PhysicalTanksDisplay = () => {
         </button>
       </div>
 
+      {/* Summary Cards - Combined statistics for tanks AND cisterns */}
+      {activeTab === 'tanks' && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-gray-700">Ukupna Statistika</h3>
+            <span className="text-xs text-gray-500">(Fizički Tankovi + Cisterne)</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Total Liters Card */}
+          <Card className="bg-white border-gray-200 hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">Ukupno Litara</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {tanksSummary.totalLiters.toLocaleString('bs-BA', { maximumFractionDigits: 0 })}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    od {tanksSummary.totalCapacity.toLocaleString('bs-BA', { maximumFractionDigits: 0 })} L ({tanksSummary.fillPercentage.toFixed(1)}%)
+                  </p>
+                </div>
+                <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <svg className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Total Kg Card */}
+          <Card className="bg-white border-gray-200 hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">Ukupno Kilograma</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {tanksSummary.totalKg.toLocaleString('bs-BA', { maximumFractionDigits: 0 })}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    kg
+                  </p>
+                </div>
+                <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <svg className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                  </svg>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Average Density Card */}
+          <Card className="bg-white border-gray-200 hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">Prosječna Gustoća</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {tanksSummary.averageDensity.toFixed(4)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    kg/L
+                  </p>
+                </div>
+                <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <svg className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Active Tanks & Cisterns Card */}
+          <Card className="bg-white border-gray-200 hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">Ukupno Aktivnih</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {tanksSummary.tanksCount + tanksSummary.cisternsCount}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {tanksSummary.tanksCount} tankova + {tanksSummary.cisternsCount} cisterni
+                  </p>
+                </div>
+                <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <Database className="h-6 w-6 text-gray-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          </div>
+        </div>
+      )}
+
+      {/* Summary Cards - ONLY Physical Tanks */}
+      {activeTab === 'tanks' && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-gray-700">Statistika Fizičkih Tankova</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Total Liters Card */}
+          <Card className="bg-white border-gray-200 hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">Ukupno Litara</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {onlyTanksSummary.totalLiters.toLocaleString('bs-BA', { maximumFractionDigits: 0 })}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    od {onlyTanksSummary.totalCapacity.toLocaleString('bs-BA', { maximumFractionDigits: 0 })} L ({onlyTanksSummary.fillPercentage.toFixed(1)}%)
+                  </p>
+                </div>
+                <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <svg className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Total Kg Card */}
+          <Card className="bg-white border-gray-200 hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">Ukupno Kilograma</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {onlyTanksSummary.totalKg.toLocaleString('bs-BA', { maximumFractionDigits: 0 })}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    kg
+                  </p>
+                </div>
+                <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <svg className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                  </svg>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Average Density Card */}
+          <Card className="bg-white border-gray-200 hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">Prosječna Gustoća</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {onlyTanksSummary.averageDensity.toFixed(4)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    kg/L
+                  </p>
+                </div>
+                <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <svg className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Active Tanks Card */}
+          <Card className="bg-white border-gray-200 hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">Aktivnih Tankova</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {onlyTanksSummary.tanksCount}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    tankova
+                  </p>
+                </div>
+                <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <Database className="h-6 w-6 text-gray-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {activeTab === 'tanks' ? (
           tanks.map((tank) => {
@@ -610,7 +933,7 @@ const PhysicalTanksDisplay = () => {
               const lastIntakeDate = new Date(tank.last_fuel_intake_date);
               const now = new Date();
               const hoursSinceIntake = (now.getTime() - lastIntakeDate.getTime()) / (1000 * 60 * 60);
-              isReady = hoursSinceIntake >= 5;
+              isReady = hoursSinceIntake >= 6;
               readinessStatus = isReady ? 'Spreman' : 'Slijeganje';
             }
             
@@ -640,6 +963,12 @@ const PhysicalTanksDisplay = () => {
                           : 'bg-amber-100 text-amber-700 border border-amber-300'
                       }`}>
                         {readinessStatus}
+                      </Badge>
+                    )}
+                    {/* Out of Service Badge during settling */}
+                    {tank.last_fuel_intake_date && !isReady && (
+                      <Badge className="shrink-0 text-xs bg-red-100 text-red-700 border border-red-300">
+                        Van upotrebe
                       </Badge>
                     )}
                   </div>
@@ -745,7 +1074,7 @@ const PhysicalTanksDisplay = () => {
                   const lastIntakeDate = new Date(tank.last_fuel_intake_date);
                   const now = new Date();
                   const hoursSinceIntake = (now.getTime() - lastIntakeDate.getTime()) / (1000 * 60 * 60);
-                  const isWithinSettlingPeriod = hoursSinceIntake < 5;
+                  const isWithinSettlingPeriod = hoursSinceIntake < 6;
 
                   return (
                     <div className="space-y-3">
@@ -792,7 +1121,7 @@ const PhysicalTanksDisplay = () => {
                                     Proteklo
                                   </p>
                                   <p className={`text-xs font-semibold ${isWithinSettlingPeriod ? 'text-white' : 'text-gray-900'}`}>
-                                    {hoursSinceIntake.toFixed(1)}h / 5h
+                                    {hoursSinceIntake.toFixed(1)}h / 6h
                                   </p>
                                 </div>
                                 <div className="flex items-center justify-between">
@@ -800,7 +1129,7 @@ const PhysicalTanksDisplay = () => {
                                     Preostalo
                                   </p>
                                   <p className={`text-xs font-semibold ${isWithinSettlingPeriod ? 'text-white' : 'text-gray-900'}`}>
-                                    {(5 - hoursSinceIntake).toFixed(1)}h
+                                    {(6 - hoursSinceIntake).toFixed(1)}h
                                   </p>
                                 </div>
                               </div>
@@ -1491,16 +1820,21 @@ const PhysicalTanksDisplay = () => {
               </div>
               <div>
                 <Label htmlFor="fuel_type">Tip Goriva</Label>
-                <Select
+                <select
+                  id="fuel_type"
+                  name="fuel_type"
                   value={createForm.fuel_type}
-                  onValueChange={(value) => setCreateForm({...createForm, fuel_type: value})}
+                  onChange={(e) => setCreateForm({...createForm, fuel_type: e.target.value})}
+                  className="w-full h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
                 >
+                  <option value="">Odaberite tip goriva</option>
                   {fuelTypes.map((ft) => (
-                    <SelectItem key={ft.value} value={ft.value}>
+                    <option key={ft.value} value={ft.value}>
                       {ft.label}
-                    </SelectItem>
+                    </option>
                   ))}
-                </Select>
+                </select>
               </div>
               <div>
                 <Label htmlFor="location_description">Lokacija (opciono)</Label>
@@ -1560,16 +1894,21 @@ const PhysicalTanksDisplay = () => {
               </div>
               <div>
                 <Label htmlFor="edit_fuel_type">Tip Goriva</Label>
-                <Select
+                <select
+                  id="edit_fuel_type"
+                  name="edit_fuel_type"
                   value={createForm.fuel_type}
-                  onValueChange={(value) => setCreateForm({...createForm, fuel_type: value})}
+                  onChange={(e) => setCreateForm({...createForm, fuel_type: e.target.value})}
+                  className="w-full h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
                 >
+                  <option value="">Odaberite tip goriva</option>
                   {fuelTypes.map((ft) => (
-                    <SelectItem key={ft.value} value={ft.value}>
+                    <option key={ft.value} value={ft.value}>
                       {ft.label}
-                    </SelectItem>
+                    </option>
                   ))}
-                </Select>
+                </select>
               </div>
               <div>
                 <Label htmlFor="edit_location_description">Lokacija (opciono)</Label>
@@ -1623,16 +1962,21 @@ const PhysicalTanksDisplay = () => {
               </div>
               <div>
                 <Label htmlFor="cistern_fuel_type">Tip Goriva</Label>
-                <Select
+                <select
+                  id="cistern_fuel_type"
+                  name="cistern_fuel_type"
                   value={createCisternForm.fuel_type}
-                  onValueChange={(value) => setCreateCisternForm({...createCisternForm, fuel_type: value})}
+                  onChange={(e) => setCreateCisternForm({...createCisternForm, fuel_type: e.target.value})}
+                  className="w-full h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
                 >
+                  <option value="">Odaberite tip goriva</option>
                   {fuelTypes.map((ft) => (
-                    <SelectItem key={ft.value} value={ft.value}>
+                    <option key={ft.value} value={ft.value}>
                       {ft.label}
-                    </SelectItem>
+                    </option>
                   ))}
-                </Select>
+                </select>
               </div>
               <div className="flex gap-2 justify-end">
                 <Button type="button" variant="outline" onClick={() => setShowCreateCisternModal(false)}>
@@ -1675,16 +2019,21 @@ const PhysicalTanksDisplay = () => {
               </div>
               <div>
                 <Label htmlFor="edit_cistern_fuel_type">Tip Goriva</Label>
-                <Select
+                <select
+                  id="edit_cistern_fuel_type"
+                  name="edit_cistern_fuel_type"
                   value={createCisternForm.fuel_type}
-                  onValueChange={(value) => setCreateCisternForm({...createCisternForm, fuel_type: value})}
+                  onChange={(e) => setCreateCisternForm({...createCisternForm, fuel_type: e.target.value})}
+                  className="w-full h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
                 >
+                  <option value="">Odaberite tip goriva</option>
                   {fuelTypes.map((ft) => (
-                    <SelectItem key={ft.value} value={ft.value}>
+                    <option key={ft.value} value={ft.value}>
                       {ft.label}
-                    </SelectItem>
+                    </option>
                   ))}
-                </Select>
+                </select>
               </div>
               <div className="flex items-center gap-2">
                 <input
@@ -1723,20 +2072,24 @@ const PhysicalTanksDisplay = () => {
             }} className="space-y-4">
               <div>
                 <Label htmlFor="from_tank_id">Iz Tankova</Label>
-                <Select
+                <select
+                  id="from_tank_id"
+                  name="from_tank_id"
                   value={transferForm.from_tank_id ? transferForm.from_tank_id.toString() : ''}
-                  onValueChange={(value) => {
-                    const tank = tanks.find(t => t.id === parseInt(value));
-                    setTransferForm({...transferForm, from_tank_id: parseInt(value)});
+                  onChange={(e) => {
+                    const tank = tanks.find(t => t.id === parseInt(e.target.value));
+                    setTransferForm({...transferForm, from_tank_id: parseInt(e.target.value)});
                   }}
+                  className="w-full h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
                 >
-                  <SelectItem value="" disabled>Odaberite tank</SelectItem>
+                  <option value="">Odaberite tank</option>
                   {tanks.map((tank) => (
-                    <SelectItem key={tank.id} value={tank.id.toString()}>
-                      {tank.tank_name} - {Number(tank.current_quantity_liters).toLocaleString()}L / {Number(tank.current_quantity_kg).toLocaleString()}kg ({tank.average_density ? Number(tank.average_density).toFixed(3) : 'N/A'} kg/L)
-                    </SelectItem>
+                    <option key={tank.id} value={tank.id.toString()}>
+                      {tank.tank_name} - {Number(tank.current_quantity_liters || 0).toLocaleString()}L / {Number(tank.current_quantity_kg || 0).toLocaleString()}kg ({tank.average_density ? Number(tank.average_density).toFixed(3) : 'N/A'} kg/L)
+                    </option>
                   ))}
-                </Select>
+                </select>
                 {transferForm.from_tank_id > 0 && (() => {
                   const selectedTank = tanks.find(t => t.id === transferForm.from_tank_id);
                   return selectedTank && selectedTank.average_density ? (
@@ -1749,30 +2102,34 @@ const PhysicalTanksDisplay = () => {
               {!(cisterns.filter(c => c.is_cumulative).length === 1) && (
               <div>
                 <Label htmlFor="to_cistern_id">U Cisternu</Label>
-                <Select
-                    value={transferForm.to_cistern_id ? transferForm.to_cistern_id.toString() : ''}
-                    onValueChange={(value) => {
-                      const cisternId = parseInt(value);
-                      const cistern = cisterns.find(c => c.id === cisternId);
-                      setSelectedCisternForTransfer(cistern || null);
-                      setTransferForm({...transferForm, to_cistern_id: cisternId, to_sub_cistern_id: null});
-                      
-                      // Load sub-cisterns if cumulative
-                      if (cistern?.is_cumulative) {
-                        const subCisternsForCistern = subCisterns.filter(sc => sc.parent_cistern_id === cisternId);
-                        setAvailableSubCisternsForTransfer(subCisternsForCistern);
-                      } else {
-                        setAvailableSubCisternsForTransfer([]);
-                      }
-                    }}
+                <select
+                  id="to_cistern_id"
+                  name="to_cistern_id"
+                  value={transferForm.to_cistern_id ? transferForm.to_cistern_id.toString() : ''}
+                  onChange={(e) => {
+                    const cisternId = parseInt(e.target.value);
+                    const cistern = cisterns.find(c => c.id === cisternId);
+                    setSelectedCisternForTransfer(cistern || null);
+                    setTransferForm({...transferForm, to_cistern_id: cisternId, to_sub_cistern_id: null});
+                    
+                    // Load sub-cisterns if cumulative
+                    if (cistern?.is_cumulative) {
+                      const subCisternsForCistern = subCisterns.filter(sc => sc.parent_cistern_id === cisternId);
+                      setAvailableSubCisternsForTransfer(subCisternsForCistern);
+                    } else {
+                      setAvailableSubCisternsForTransfer([]);
+                    }
+                  }}
+                  className="w-full h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
                 >
-                  <SelectItem value="" disabled>Odaberite cisternu</SelectItem>
+                  <option value="">Odaberite cisternu</option>
                   {cisterns.map((cistern) => (
-                    <SelectItem key={cistern.id} value={cistern.id.toString()}>
-                        {cistern.cistern_identifier} - {Number(cistern.current_quantity_liters).toLocaleString()}L / {Number(cistern.current_quantity_kg).toLocaleString()}kg
-                    </SelectItem>
+                    <option key={cistern.id} value={cistern.id.toString()}>
+                      {cistern.cistern_identifier} - {Number(cistern.current_quantity_liters || 0).toLocaleString()}L / {Number(cistern.current_quantity_kg || 0).toLocaleString()}kg
+                    </option>
                   ))}
-                </Select>
+                </select>
               </div>
               )}
               
@@ -1780,21 +2137,25 @@ const PhysicalTanksDisplay = () => {
               {selectedCisternForTransfer?.is_cumulative && availableSubCisternsForTransfer.length > 0 && (
                 <div>
                   <Label>Odaberite Cisternu</Label>
-                  <Select
+                  <select
+                    id="sub_cistern_select"
+                    name="sub_cistern_select"
                     value={selectedSubCisternId?.toString() || ''}
-                    onValueChange={(value) => {
-                      const subCisternId = parseInt(value);
+                    onChange={(e) => {
+                      const subCisternId = parseInt(e.target.value);
                       setSelectedSubCisternId(subCisternId);
                       setTransferForm({...transferForm, to_sub_cistern_id: subCisternId});
                     }}
+                    className="w-full h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
                   >
-                    <SelectItem value="" disabled>Odaberite cisternu</SelectItem>
+                    <option value="">Odaberite cisternu</option>
                     {availableSubCisternsForTransfer.map((subCistern) => (
-                      <SelectItem key={subCistern.id} value={subCistern.id.toString()}>
-                        {subCistern.sub_cistern_name} - Kapacitet: {Number(subCistern.capacity_liters).toLocaleString()}L, Trenutno: {Number(subCistern.current_quantity_liters).toLocaleString()}L / {Number(subCistern.current_quantity_kg).toLocaleString()}kg
-                      </SelectItem>
+                      <option key={subCistern.id} value={subCistern.id.toString()}>
+                        {subCistern.sub_cistern_name} - Kapacitet: {Number(subCistern.capacity_liters || 0).toLocaleString()}L, Trenutno: {Number(subCistern.current_quantity_liters || 0).toLocaleString()}L / {Number(subCistern.current_quantity_kg || 0).toLocaleString()}kg
+                      </option>
                     ))}
-                  </Select>
+                  </select>
                 </div>
               )}
               
@@ -2255,22 +2616,26 @@ const PhysicalTanksDisplay = () => {
 
               <div>
                 <Label htmlFor="to_sub_cistern">U Sub-Cisternu</Label>
-                <Select
+                <select
+                  id="to_sub_cistern"
+                  name="to_sub_cistern"
                   value={subCisternTransferForm.to_sub_cistern_id}
-                  onValueChange={(value) => {
-                    setSubCisternTransferForm(prev => ({ ...prev, to_sub_cistern_id: value }));
+                  onChange={(e) => {
+                    setSubCisternTransferForm(prev => ({ ...prev, to_sub_cistern_id: e.target.value }));
                   }}
+                  className="w-full h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
                 >
-                  <SelectItem value="" disabled>Odaberite sub-cisternu</SelectItem>
+                  <option value="">Odaberite sub-cisternu</option>
                   {subCisterns
                     .filter(sc => sc.id !== selectedSubCisternForTransfer.id && sc.parent_cistern_id === selectedSubCisternForTransfer.parent_cistern_id)
                     .map((subCistern) => (
-                      <SelectItem key={subCistern.id} value={subCistern.id.toString()}>
+                      <option key={subCistern.id} value={subCistern.id.toString()}>
                         {subCistern.sub_cistern_name} - 
-                        {' '}{Math.round(subCistern.current_quantity_liters).toLocaleString()}L / {Math.round(subCistern.current_quantity_kg).toLocaleString()}kg
-                      </SelectItem>
+                        {' '}{Math.round(subCistern.current_quantity_liters || 0).toLocaleString()}L / {Math.round(subCistern.current_quantity_kg || 0).toLocaleString()}kg
+                      </option>
                     ))}
-                </Select>
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -2563,8 +2928,8 @@ const PhysicalTanksDisplay = () => {
       <RetrofitModal
         isOpen={showRetrofitModal}
         onClose={() => setShowRetrofitModal(false)}
-        onSuccess={() => {
-          fetchTanks();
+        onSuccess={async () => {
+          await fetchTanks();
           toast.success('Retrofit uspješno izvršen');
         }}
       />

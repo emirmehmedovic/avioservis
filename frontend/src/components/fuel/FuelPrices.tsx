@@ -9,7 +9,7 @@ import { getAirlines, getCachedFuelPriceRules, createFuelPriceRule, updateFuelPr
 import { Airline, FuelPriceRule, CreateFuelPriceRulePayload, UpdateFuelPriceRulePayload } from '@/types/fuel'; // Added UpdateFuelPriceRulePayload // Added type imports
 import { Button } from '@/components/ui/Button'; // Assuming Button component exists
 import { Input } from '@/components/ui/input'; // Corrected casing
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Corrected casing
+// Select imports removed - using native HTML select elements
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table'; // Corrected casing to Table
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog'; // Assuming Dialog components exist
 import { toast } from 'sonner'; // Assuming sonner for notifications
@@ -438,18 +438,21 @@ const FuelPrices: React.FC = () => {
                           <span className="text-sm">Učitavanje avio-kompanija...</span>
                         </div>
                       ) : airlines.length > 0 ? (
-                        <Select onValueChange={setSelectedAirline} value={selectedAirline}>
-                          <SelectTrigger id="airline" className="w-full border-gray-300 focus:border-[#E60026]/50 focus:ring-[#E60026]/50 rounded-md">
-                            <SelectValue placeholder="Izaberite avio-kompaniju" />
-                          </SelectTrigger>
-                          <SelectContent className="max-h-60 overflow-auto">
-                            {airlines.map((airline) => (
-                              <SelectItem key={airline.id} value={airline.id.toString()} className="cursor-pointer hover:bg-black/20">
-                                {airline.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <select
+                          id="airline"
+                          name="airline"
+                          value={selectedAirline}
+                          onChange={(e) => setSelectedAirline(e.target.value)}
+                          className="w-full h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E60026]/50 focus:border-[#E60026]/50"
+                          required
+                        >
+                          <option value="">Izaberite avio-kompaniju</option>
+                          {airlines.map((airline) => (
+                            <option key={airline.id} value={airline.id.toString()}>
+                              {airline.name}
+                            </option>
+                          ))}
+                        </select>
                       ) : (
                         <div className="flex items-center space-x-1 text-red-500">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -476,16 +479,19 @@ const FuelPrices: React.FC = () => {
                     </div>
                     <div className="space-y-2">
                       <label htmlFor="currency" className="block text-sm font-medium text-gray-700">Valuta</label>
-                      <Select onValueChange={setCurrency} value={currency}>
-                        <SelectTrigger id="currency" className="w-full border-white/20 focus:border-[#F08080] focus:ring-[#F08080] rounded-xl backdrop-blur-md">
-                          <SelectValue placeholder="Izaberite valutu" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="USD" className="cursor-pointer hover:bg-black/20">USD</SelectItem>
-                          <SelectItem value="EUR" className="cursor-pointer hover:bg-black/20">EUR</SelectItem>
-                          <SelectItem value="BAM" className="cursor-pointer hover:bg-black/20">BAM</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <select
+                        id="currency"
+                        name="currency"
+                        value={currency}
+                        onChange={(e) => setCurrency(e.target.value)}
+                        className="w-full h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-[#F08080] focus:border-[#F08080]"
+                        required
+                      >
+                        <option value="">Izaberite valutu</option>
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="BAM">BAM</option>
+                      </select>
                     </div>
                     <button 
                       type="submit" 
@@ -692,16 +698,19 @@ const FuelPrices: React.FC = () => {
                 
                 <div className="space-y-2">
                   <label htmlFor="editCurrencyDialog" className="block text-sm font-medium text-gray-700">Valuta</label>
-                  <Select value={editCurrency} onValueChange={setEditCurrency}>
-                    <SelectTrigger id="editCurrencyDialog" className="w-full border-gray-300 focus:border-[#E60026]/50 focus:ring-[#E60026]/50 rounded-md">
-                      <SelectValue placeholder="Odaberite valutu" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="USD" className="cursor-pointer hover:bg-black/20">USD</SelectItem>
-                      <SelectItem value="EUR" className="cursor-pointer hover:bg-black/20">EUR</SelectItem>
-                      <SelectItem value="BAM" className="cursor-pointer hover:bg-black/20">BAM</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <select
+                    id="editCurrencyDialog"
+                    name="editCurrencyDialog"
+                    value={editCurrency}
+                    onChange={(e) => setEditCurrency(e.target.value)}
+                    className="w-full h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E60026]/50 focus:border-[#E60026]/50"
+                    required
+                  >
+                    <option value="">Odaberite valutu</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="BAM">BAM</option>
+                  </select>
                 </div>
               </div>
             </div>

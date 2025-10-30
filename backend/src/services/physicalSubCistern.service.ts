@@ -171,6 +171,36 @@ export async function distributeFuelToSubCisterns(
         `Distributed ${subQuantityLiters.toFixed(2)}L to sub-cistern ${subCistern.sub_cistern_name}`
       );
     }
+
+    // Update parent cistern totals
+    const allSubCisterns = await tx.physicalSubCistern.findMany({
+      where: {
+        parent_cistern_id: cisternId,
+        is_active: true
+      }
+    });
+
+    let totalLiters = 0;
+    let totalKg = 0;
+
+    for (const sc of allSubCisterns) {
+      const proportion = sc.capacity_liters / totalCapacity;
+      totalLiters += sc.current_quantity_liters + (quantityLiters * proportion);
+      totalKg += sc.current_quantity_kg + (quantityKg * proportion);
+    }
+
+    const averageDensity = totalLiters > 0 ? totalKg / totalLiters : 0;
+
+    await tx.physicalCisternFuel.update({
+      where: { id: cisternId },
+      data: {
+        current_quantity_liters: totalLiters,
+        current_quantity_kg: totalKg,
+        average_density: averageDensity
+      }
+    });
+
+    logger.info(`Updated parent cistern ${cisternId} after fuel distribution`);
   });
 }
 
@@ -241,6 +271,39 @@ export async function deductFuelFromSubCisterns(
       remainingLiters = remainingLiters.sub(deductLiters);
       remainingKg = remainingKg.sub(deductKg);
     }
+
+    // Update parent cistern totals
+    const allSubCisterns = await tx.physicalSubCistern.findMany({
+      where: {
+        parent_cistern_id: cisternId,
+        is_active: true
+      }
+    });
+
+    let totalLiters = 0;
+    let totalKg = 0;
+
+    for (const sc of allSubCisterns) {
+      totalLiters += sc.current_quantity_liters;
+      totalKg += sc.current_quantity_kg;
+    }
+
+    // Subtract the deducted amounts
+    totalLiters -= quantityLiters.toNumber();
+    totalKg -= quantityKg.toNumber();
+
+    const averageDensity = totalLiters > 0 ? totalKg / totalLiters : 0;
+
+    await tx.physicalCisternFuel.update({
+      where: { id: cisternId },
+      data: {
+        current_quantity_liters: totalLiters,
+        current_quantity_kg: totalKg,
+        average_density: averageDensity
+      }
+    });
+
+    logger.info(`Updated parent cistern ${cisternId} after fuel deduction`);
   });
 
   logger.info(
@@ -316,15 +379,63 @@ export async function manualUpdateSubCistern(
     notes?: string;
   }
 ): Promise<void> {
-  await prisma.physicalSubCistern.update({
-    where: { id: subCisternId },
-    data: {
-      current_quantity_liters: data.current_quantity_liters,
-      current_quantity_kg: data.current_quantity_kg
-    }
-  });
+  await prisma.$transaction(async (tx) => {
+    // Get the sub-cistern to find its parent
+    const subCistern = await tx.physicalSubCistern.findUnique({
+      where: { id: subCisternId }
+    });
 
-  logger.info(`Manually updated sub-cistern ${subCisternId} quantities`);
+    if (!subCistern) {
+      throw new Error(`Sub-cistern with ID ${subCisternId} not found`);
+    }
+
+    // Update sub-cistern quantities
+    await tx.physicalSubCistern.update({
+      where: { id: subCisternId },
+      data: {
+        current_quantity_liters: data.current_quantity_liters,
+        current_quantity_kg: data.current_quantity_kg
+      }
+    });
+
+    // Recalculate parent cistern totals
+    const allSubCisterns = await tx.physicalSubCistern.findMany({
+      where: {
+        parent_cistern_id: subCistern.parent_cistern_id,
+        is_active: true
+      }
+    });
+
+    // Sum up all sub-cistern quantities
+    let totalLiters = 0;
+    let totalKg = 0;
+
+    for (const sc of allSubCisterns) {
+      // Use updated values for the current sub-cistern
+      if (sc.id === subCisternId) {
+        totalLiters += data.current_quantity_liters;
+        totalKg += data.current_quantity_kg;
+      } else {
+        totalLiters += sc.current_quantity_liters;
+        totalKg += sc.current_quantity_kg;
+      }
+    }
+
+    // Calculate weighted average density
+    const averageDensity = totalLiters > 0 ? totalKg / totalLiters : 0;
+
+    // Update parent cistern with totals
+    await tx.physicalCisternFuel.update({
+      where: { id: subCistern.parent_cistern_id },
+      data: {
+        current_quantity_liters: totalLiters,
+        current_quantity_kg: totalKg,
+        average_density: averageDensity
+      }
+    });
+
+    logger.info(`Manually updated sub-cistern ${subCisternId} and parent cistern ${subCistern.parent_cistern_id} quantities`);
+  });
 }
 
 /**
@@ -402,6 +513,49 @@ export async function transferBetweenSubCisterns(
         }
       }
     });
+
+    // Update parent cistern totals (if they share the same parent)
+    if (source.parent_cistern_id === destination.parent_cistern_id) {
+      // Get all sub-cisterns for this parent
+      const allSubCisterns = await tx.physicalSubCistern.findMany({
+        where: {
+          parent_cistern_id: source.parent_cistern_id,
+          is_active: true
+        }
+      });
+
+      // Sum up all sub-cistern quantities (with updated values)
+      let totalLiters = 0;
+      let totalKg = 0;
+
+      for (const sc of allSubCisterns) {
+        if (sc.id === data.source_sub_cistern_id) {
+          totalLiters += source.current_quantity_liters - data.quantity_liters;
+          totalKg += source.current_quantity_kg - data.quantity_kg;
+        } else if (sc.id === data.destination_sub_cistern_id) {
+          totalLiters += finalTotalLiters;
+          totalKg += finalTotalKg;
+        } else {
+          totalLiters += sc.current_quantity_liters;
+          totalKg += sc.current_quantity_kg;
+        }
+      }
+
+      // Calculate weighted average density
+      const averageDensity = totalLiters > 0 ? totalKg / totalLiters : 0;
+
+      // Update parent cistern
+      await tx.physicalCisternFuel.update({
+        where: { id: source.parent_cistern_id },
+        data: {
+          current_quantity_liters: totalLiters,
+          current_quantity_kg: totalKg,
+          average_density: averageDensity
+        }
+      });
+
+      logger.info(`Updated parent cistern ${source.parent_cistern_id} after sub-cistern transfer`);
+    }
   });
 
   logger.info(`Transferred fuel from sub-cistern ${data.source_sub_cistern_id} to ${data.destination_sub_cistern_id}`);

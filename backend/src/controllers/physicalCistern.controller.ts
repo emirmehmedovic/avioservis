@@ -29,6 +29,15 @@ export const getPhysicalCisterns: RequestHandler = async (req, res, next): Promi
 
     // Calculate average density for each cistern
     const cisternsWithAvgDensity = cisterns.map(cistern => {
+      // For cumulative cisterns, use average_density from database (calculated from sub-cisterns)
+      if (cistern.is_cumulative) {
+        return {
+          ...cistern,
+          average_density: cistern.average_density || 0
+        };
+      }
+
+      // For regular cisterns, calculate from MRN records
       if (cistern.cisternMrn.length === 0) {
         return {
           ...cistern,
@@ -407,6 +416,66 @@ export const manualUpdateCistern: RequestHandler = async (req, res, next): Promi
     res.json(updatedCistern);
   } catch (error) {
     console.error('Error manually updating cistern:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+/**
+ * POST /api/physical-cisterns/recalculate-density
+ * Recalculate average_density for all cumulative cisterns based on their sub-cisterns
+ */
+export const recalculateCumulativeCisternDensity: RequestHandler = async (req, res, next): Promise<void> => {
+  try {
+    // Get all cumulative cisterns
+    const cumulativeCisterns = await prisma.physicalCisternFuel.findMany({
+      where: {
+        is_cumulative: true,
+        is_active: true
+      },
+      include: {
+        subCisterns: {
+          where: {
+            is_active: true
+          }
+        }
+      }
+    });
+
+    let updatedCount = 0;
+
+    for (const cistern of cumulativeCisterns) {
+      // Calculate totals from sub-cisterns
+      let totalLiters = 0;
+      let totalKg = 0;
+
+      for (const subCistern of cistern.subCisterns) {
+        totalLiters += subCistern.current_quantity_liters;
+        totalKg += subCistern.current_quantity_kg;
+      }
+
+      // Calculate weighted average density
+      const averageDensity = totalLiters > 0 ? totalKg / totalLiters : 0;
+
+      // Update parent cistern
+      await prisma.physicalCisternFuel.update({
+        where: { id: cistern.id },
+        data: {
+          current_quantity_liters: totalLiters,
+          current_quantity_kg: totalKg,
+          average_density: averageDensity
+        }
+      });
+
+      updatedCount++;
+      console.log(`Updated cistern ${cistern.cistern_identifier}: ${totalLiters}L / ${totalKg}kg = ${averageDensity.toFixed(4)} kg/L`);
+    }
+
+    res.json({
+      message: `Successfully recalculated density for ${updatedCount} cumulative cistern(s)`,
+      updatedCount
+    });
+  } catch (error) {
+    console.error('Error recalculating cistern density:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };

@@ -18,7 +18,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { FileText } from 'lucide-react';
 import { FuelOperation } from '@/lib/types';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+// Removed Radix UI Select - using native HTML select instead
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/Button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -1771,18 +1771,18 @@ export default function FuelOperationsReport() {
                 
                 <div className="space-y-2">
                   <label htmlFor="trafficType" className="text-sm font-medium text-gray-700 dark:text-gray-300">Tip saobraćaja</label>
-                  <Select value={filterTrafficType} onValueChange={setFilterTrafficType}>
-                    <SelectTrigger id="trafficType">
-                      <SelectValue placeholder="Svi tipovi" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {trafficTypeOptions.map(option => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <select
+                    id="trafficType"
+                    value={filterTrafficType}
+                    onChange={(e) => setFilterTrafficType(e.target.value)}
+                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {trafficTypeOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 
                 <div className="space-y-2">
@@ -1922,33 +1922,33 @@ export default function FuelOperationsReport() {
 
                 <div className="space-y-2">
                   <label htmlFor="currency" className="text-sm font-medium text-gray-700 dark:text-gray-300">Valuta</label>
-                  <Select value={filterCurrency} onValueChange={setFilterCurrency}>
-                    <SelectTrigger id="currency">
-                      <SelectValue placeholder="Sve valute" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {currencyOptions.map(option => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <select
+                    id="currency"
+                    value={filterCurrency}
+                    onChange={(e) => setFilterCurrency(e.target.value)}
+                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {currencyOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="space-y-2">
                   <label htmlFor="payment_method" className="text-sm font-medium text-gray-700 dark:text-gray-300">Način Plaćanja</label>
-                  <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}>
-                    <SelectTrigger id="payment_method">
-                      <SelectValue placeholder="Svi načini plaćanja" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__ALL__">Svi načini plaćanja</SelectItem>
-                      <SelectItem value="VIRMAN">Virman</SelectItem>
-                      <SelectItem value="POS_APARAT">POS aparat</SelectItem>
-                      <SelectItem value="GOTOVINA">Gotovina</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <select
+                    id="payment_method"
+                    value={filterPaymentMethod}
+                    onChange={(e) => setFilterPaymentMethod(e.target.value)}
+                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="__ALL__">Svi načini plaćanja</option>
+                    <option value="VIRMAN">Virman</option>
+                    <option value="POS_APARAT">POS aparat</option>
+                    <option value="GOTOVINA">Gotovina</option>
+                  </select>
                 </div>
                 </div>
                 

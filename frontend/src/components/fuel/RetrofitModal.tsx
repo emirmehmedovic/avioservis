@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Select, SelectItem } from '@/components/ui/select';
+// Select imports removed - using native HTML select elements
 import { Button } from '@/components/ui/Button';
 import { physicalTankRetrofitService, RetrofitPreview, PhysicalTank } from '@/services/physicalTankRetrofitService';
 import { toast } from 'sonner';
@@ -191,17 +191,19 @@ const RetrofitModal: React.FC<RetrofitModalProps> = ({ isOpen, onClose, onSucces
               </div>
               <Label className="text-sm font-semibold text-gray-700">Filtriraj po tipu goriva</Label>
             </div>
-            <Select 
-              value={selectedFuelType} 
-              onValueChange={setSelectedFuelType}
-              className="w-full bg-white border-gray-200 focus:border-gray-400 focus:ring-2 focus:ring-gray-100"
+            <select
+              id="fuel_type_filter"
+              name="fuel_type_filter"
+              value={selectedFuelType}
+              onChange={(e) => setSelectedFuelType(e.target.value)}
+              className="w-full h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-200 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-100 focus:border-gray-400"
             >
-              <SelectItem value="" disabled>Odaberite tip goriva</SelectItem>
-              <SelectItem value="all">Svi tipovi</SelectItem>
-              <SelectItem value="Jet A-1">JET A-1</SelectItem>
-              <SelectItem value="Jet A">JET A</SelectItem>
-              <SelectItem value="AVGAS">AVGAS</SelectItem>
-            </Select>
+              <option value="">Odaberite tip goriva</option>
+              <option value="all">Svi tipovi</option>
+              <option value="Jet A-1">JET A-1</option>
+              <option value="Jet A">JET A</option>
+              <option value="AVGAS">AVGAS</option>
+            </select>
           </div>
         </div>
 
@@ -228,18 +230,20 @@ const RetrofitModal: React.FC<RetrofitModalProps> = ({ isOpen, onClose, onSucces
                     </div>
                     <Label className="text-sm font-semibold text-gray-700">Odaberite MRN Zapis</Label>
                   </div>
-                  <Select 
-                    value={selectedMrn} 
-                    onValueChange={setSelectedMrn}
-                    className="w-full bg-white border-gray-200 focus:border-gray-400 focus:ring-2 focus:ring-gray-100"
+                  <select
+                    id="mrn_select"
+                    name="mrn_select"
+                    value={selectedMrn}
+                    onChange={(e) => setSelectedMrn(e.target.value)}
+                    className="w-full h-10 px-3 py-2 text-sm bg-white text-gray-900 border border-gray-200 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-100 focus:border-gray-400"
                   >
-                    <SelectItem value="" disabled>Odaberite MRN zapis</SelectItem>
+                    <option value="">Odaberite MRN zapis</option>
                     {previewData.existing_mrn_records.map((mrn) => (
-                      <SelectItem key={mrn.customs_declaration_number} value={mrn.customs_declaration_number}>
+                      <option key={mrn.customs_declaration_number} value={mrn.customs_declaration_number}>
                         {mrn.customs_declaration_number} - {mrn.total_liters}L ({mrn.supplier_name})
-                      </SelectItem>
+                      </option>
                     ))}
-                  </Select>
+                  </select>
                 </div>
               </div>
             )}

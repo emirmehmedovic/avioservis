@@ -16,7 +16,7 @@ import jsPDF from 'jspdf';
 import { autoTable, CellHookData } from 'jspdf-autotable'; 
 import { notoSansRegularBase64 } from '@/lib/fonts';
 import { notoSansBoldBase64 } from '@/lib/notoSansBoldBase64';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; 
+// Removed Radix UI Select - using native HTML select instead 
 import AllIntakesList from '@/components/customs/AllIntakesList'; 
 
 interface TankWithHistory extends FixedStorageTank {
@@ -739,23 +739,20 @@ export default function FixedTanksReport() {
                               <label htmlFor={`filter-type-${tank.id}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Tip transakcije:
                               </label>
-                              <Select
+                              <select
+                                id={`filter-type-${tank.id}`}
                                 value={tank.filterTransactionType || 'all'}
-                                onValueChange={(value) => handleFilterTransactionTypeChange(tank.id, value as TankTransaction['type'] | 'all')}
+                                onChange={(e) => handleFilterTransactionTypeChange(tank.id, e.target.value as TankTransaction['type'] | 'all')}
+                                className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                               >
-                                <SelectTrigger id={`filter-type-${tank.id}`} className="w-full">
-                                  <SelectValue placeholder="Svi tipovi" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="all">Svi tipovi</SelectItem>
-                                  <SelectItem value="intake">Ulaz</SelectItem>
-                                  <SelectItem value="transfer_to_mobile">Izlaz (Mob.)</SelectItem>
-                                  <SelectItem value="fuel_drain">Drenirano</SelectItem>
-                                  <SelectItem value="fuel_return">Povrat filtriranog goriva</SelectItem>
-                                  <SelectItem value="internal_transfer_in">Interni Ulaz</SelectItem>
-                                  <SelectItem value="internal_transfer_out">Interni Izlaz</SelectItem>
-                                </SelectContent>
-                              </Select>
+                                <option value="all">Svi tipovi</option>
+                                <option value="intake">Ulaz</option>
+                                <option value="transfer_to_mobile">Izlaz (Mob.)</option>
+                                <option value="fuel_drain">Drenirano</option>
+                                <option value="fuel_return">Povrat filtriranog goriva</option>
+                                <option value="internal_transfer_in">Interni Ulaz</option>
+                                <option value="internal_transfer_out">Interni Izlaz</option>
+                              </select>
                             </div>
                             {/* Action Buttons */}
                             <div className="flex items-end space-x-2 md:mt-0 mt-2">

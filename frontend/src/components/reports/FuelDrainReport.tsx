@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+// Removed Radix UI Select - using native HTML select instead
 import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -332,16 +332,16 @@ const FuelDrainReport = () => {
           {/* Source Type Filter */}
           <div className="ml-auto">
             <Label htmlFor="sourceTypeFilter" className="block text-sm font-medium text-gray-700 mb-1">Tip izvora:</Label>
-            <Select value={selectedSourceType} onValueChange={handleSourceTypeChange}>
-              <SelectTrigger id="sourceTypeFilter" className="w-[200px]">
-                <SelectValue placeholder="Odaberite tip izvora" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Svi izvori</SelectItem>
-                <SelectItem value="fixed">Fiksni tank</SelectItem>
-                <SelectItem value="mobile">Mobilni tank (cisterna)</SelectItem>
-              </SelectContent>
-            </Select>
+            <select
+              id="sourceTypeFilter"
+              value={selectedSourceType}
+              onChange={(e) => handleSourceTypeChange(e.target.value)}
+              className="w-[200px] bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">Svi izvori</option>
+              <option value="fixed">Fiksni tank</option>
+              <option value="mobile">Mobilni tank (cisterna)</option>
+            </select>
           </div>
           {/* TODO: Add dropdown for specific source ID here */}
           <Button onClick={resetSourceFilters} variant="outline" className="self-end backdrop-blur-md bg-[#e53e3e]/80 border border-white/20 text-white shadow-lg hover:bg-[#e53e3e]/90 transition-all rounded-xl">Poništi filter izvora</Button>
