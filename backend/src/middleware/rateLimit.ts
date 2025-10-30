@@ -106,7 +106,7 @@ if (process.env.REDIS_URL) {
 // General API rate limiter - applies to all routes
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 600, // limit each IP to 600 requests per windowMs (povećano za 200%)
+  max: 1000, // Povećano na 1000 zahtjeva po 15 minuta (~67/min)
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   store: store, // Use Redis if available, otherwise memory store
@@ -114,6 +114,39 @@ export const apiLimiter = rateLimit({
     status: 'error',
     message: 'Previše zahtjeva, molimo pokušajte ponovo kasnije.',
   },
+  // Skip rate limiting for privileged users
+  skip: (req: Request) => {
+    // Skip za whitelistu IP adresa
+    const whitelist = process.env.RATE_LIMIT_WHITELIST?.split(',') || [];
+    const ip = req.ip || '';
+    if (whitelist.includes(ip)) {
+      return true;
+    }
+    
+    // Skip za administratore, KONTROLA i FUEL_OPERATOR uloge
+    // Ovi korisnici nikad neće biti ograničeni globalnim rate limitingom
+    if ((req as any).user?.role === 'ADMIN' || 
+        (req as any).user?.role === 'KONTROLA' || 
+        (req as any).user?.role === 'FUEL_OPERATOR') {
+      
+      // Provjeravamo ekstremno ponašanje čak i za privilegovane korisnike
+      const requestCount = getRequestCountForUser((req as any).user?.id);
+      
+      // Ako korisnik napravi više od 5000 zahtjeva u minuti, logujemo to
+      if (requestCount > 5000) {
+        console.warn(`Ekstremno visok broj zahtjeva za korisnika ID: ${(req as any).user?.id}, uloga: ${(req as any).user?.role}`);
+        trackSuspiciousActivity(req);
+      }
+      
+      return true;
+    }
+    
+    return false;
+  },
+  keyGenerator: (req: Request) => {
+    // Koristi user ID ako je autentificiran, inače IP adresu
+    return (req as any).user?.id ? `user_${(req as any).user.id}` : (req.ip || 'unknown');
+  }
 });
 
 // Stricter rate limiter for authentication endpoints
@@ -187,7 +220,7 @@ export const loginFailureLimiter = rateLimit({
 // Limiter for user management routes (more strict)
 export const userManagementLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 90, // limit each IP to 90 requests per 15 minutes (povećano za 200%)
+  max: 300, // Povećano na 300 zahtjeva po 15 minuta (~20/min)
   standardHeaders: true,
   legacyHeaders: false,
   store: store,
@@ -195,15 +228,31 @@ export const userManagementLimiter = rateLimit({
     status: 'error',
     message: 'Previše zahtjeva za upravljanje korisnicima. Pokušajte kasnije.',
   },
+  // Skip rate limiting for admins
+  skip: (req: Request) => {
+    // Skip za whitelistu IP adresa
+    const whitelist = process.env.RATE_LIMIT_WHITELIST?.split(',') || [];
+    const ip = req.ip || '';
+    if (whitelist.includes(ip)) {
+      return true;
+    }
+    
+    // Skip za administratore
+    if ((req as any).user?.role === 'ADMIN') {
+      return true;
+    }
+    
+    return false;
+  },
   keyGenerator: (req: Request) => {
-    return req.ip || 'unknown';
+    return (req as any).user?.id ? `user_${(req as any).user.id}` : (req.ip || 'unknown');
   }
 });
 
 // Limiter for sensitive operations like fuel transfers, financial operations
 export const sensitiveOperationsLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 450, // Povećano na 450 zahtjeva po 15 minuta (200% povećanje)
+  max: 1500, // Povećano na 1500 zahtjeva po 15 minuta (~100/min) - omogućava čitanje velikih izvještaja
   standardHeaders: true,
   legacyHeaders: false,
   store: store,
@@ -220,16 +269,18 @@ export const sensitiveOperationsLimiter = rateLimit({
       return true;
     }
     
-    // Skip za administratore i korisnike s ulogom KONTROLA
+    // Skip za administratore i korisnike s ulogom KONTROLA i FUEL_OPERATOR
     // Ovi korisnici nikad neće biti ograničeni rate limitingom
     // Ali dodajemo provjeru abnormalnog ponašanja čak i za privilegirane korisnike
-    if ((req as any).user?.role === 'ADMIN' || (req as any).user?.role === 'KONTROLA') {
+    if ((req as any).user?.role === 'ADMIN' || 
+        (req as any).user?.role === 'KONTROLA' || 
+        (req as any).user?.role === 'FUEL_OPERATOR') {
       // Ako je korisnik administrator, ipak provjeravamo ekstremno ponašanje
       // Ovo je zaštita u slučaju kompromitiranog administratorskog računa
       const requestCount = getRequestCountForUser((req as any).user?.id);
       
-      // Ako administrator napravi više od 1000 zahtjeva u minuti, to je vjerovatno zloupotreba
-      if (requestCount > 1000) {
+      // Ako administrator napravi više od 3000 zahtjeva u minuti, to je vjerovatno zloupotreba
+      if (requestCount > 3000) {
         console.warn(`Abnormalno ponašanje detektirano za korisnika ID: ${(req as any).user?.id}, uloga: ${(req as any).user?.role}`);
         // Ovdje možete dodati kod za obavještavanje sigurnosnog tima, logiranje događaja, itd.
         // Za sada samo dopuštamo zahtjev, ali ga bilježimo
@@ -251,14 +302,14 @@ export const sensitiveOperationsLimiter = rateLimit({
 
 // Limiter for reporting and data export endpoints
 export const reportingLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 600, // Povećano na 600 zahtjeva po satu (200% povećanje)
+  windowMs: 15 * 60 * 1000, // 15 minutes (smanjen window za bolju kontrolu)
+  max: 2000, // Povećano na 2000 zahtjeva po 15 minuta (omogućava generisanje kompleksnih izvještaja)
   standardHeaders: true,
   legacyHeaders: false,
   store: store,
   message: {
     status: 'error',
-    message: 'Previše zahtjeva za izvještaje. Pokušajte kasnije.',
+    message: 'Previše zahtjeva za izvještaje. Pokušajte ponovo za nekoliko minuta.',
   },
   // Skip rate limiting for reporting endpoints for certain users
   skip: (req: Request) => {
@@ -279,8 +330,8 @@ export const reportingLimiter = rateLimit({
       // Ipak provjeravamo ekstremno ponašanje za izvještaje
       const requestCount = getRequestCountForUser((req as any).user?.id);
       
-      // Ako korisnik napravi više od 1000 zahtjeva za izvještaje u minuti, to je vjerovatno zloupotreba
-      if (requestCount > 1000) {
+      // Ako korisnik napravi više od 2000 zahtjeva za izvještaje u minuti, to je vjerovatno zloupotreba
+      if (requestCount > 2000) {
         console.warn(`Abnormalno ponašanje za izvještaje detektirano za korisnika ID: ${(req as any).user?.id}, uloga: ${(req as any).user?.role}`);
         trackSuspiciousActivity(req);
       }

@@ -99,6 +99,11 @@ app.use(cors({
 
 app.use(express.json());
 
+// VAŽNO: Opcionalni auth middleware MORA biti prije rate limitera
+// da bi rate limiter mogao provjeriti ulogu korisnika i skip-ovati ADMIN/KONTROLA/FUEL_OPERATOR
+import { optionalAuth } from './middleware/auth';
+app.use(optionalAuth);
+
 // Apply global API rate limiter to all routes
 // Privremeno isključen rate limiting za testiranje i seed skriptu
 app.use(apiLimiter);

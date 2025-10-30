@@ -59,3 +59,34 @@ export function checkRole(roles: string[]) {
     next();
   };
 }
+
+// Optional auth middleware - parsira token ako postoji, ali ne blokira zahtjev ako ne postoji
+// Ovo omogućava rate limiteru da provjeri ulogu korisnika bez obzira da li je ruta zaštićena
+export const optionalAuth = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+  // Ako nema tokena, samo nastavi dalje bez postavljanja req.user
+  if (!token) {
+    next();
+    return;
+  }
+
+  try {
+    const decoded = await new Promise<any>((resolve, reject) => {
+      jwt.verify(token, JWT_SECRET, (err: VerifyErrors | null, decodedToken: object | string | undefined) => {
+        if (err) {
+          return reject(err);
+        }
+        resolve(decodedToken);
+      });
+    });
+
+    req.user = decoded as { id: number; username: string; role: string; iat?: number; exp?: number };
+  } catch (error: any) {
+    // Ne vraćamo grešku, samo nastavljamo bez req.user
+    // Rate limiter će tretirati ovaj zahtjev kao neautentificirani
+  }
+
+  next();
+};
