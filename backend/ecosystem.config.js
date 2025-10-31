@@ -48,6 +48,7 @@ module.exports = {
       exec_mode: 'fork',
       env: {
         NODE_ENV: 'production',
+        TZ: 'Europe/Sarajevo',  // ✅ KRIITČNO: Timezone za CRON jobove
       },
       error_file: '../logs/cron-error.log',
       out_file: '../logs/cron-out.log',
