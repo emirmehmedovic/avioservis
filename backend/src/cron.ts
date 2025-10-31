@@ -49,48 +49,72 @@ process.on('unhandledRejection', (reason, promise) => {
 // Initialize cron jobs
 const initCronProcess = async () => {
   try {
-    logger.info('');
-    logger.info('═══════════════════════════════════════════════════');
-    logger.info('HIFA Petrol - Pokretanje Cron Poslova...');
-    logger.info('═══════════════════════════════════════════════════');
-    logger.info('');
-    logger.info(`Okruzenje: ${process.env.NODE_ENV || 'development'}`);
-    logger.info(`Vremenska zona: ${process.env.TZ || 'Europe/Sarajevo'}`);
-    logger.info(`Baza podataka: ${process.env.DATABASE_URL ? 'Povezana' : 'Nije konfigurisana'}`);
-    logger.info('');
-    
-    // Test database connection
-    await prisma.$connect();
-    logger.info('Konekcija na bazu uspostavljena');
-    
-    // Initialize all cron jobs
+    console.log('');
+    console.log('═══════════════════════════════════════════════════');
+    console.log('HIFA Petrol - Pokretanje Cron Poslova...');
+    console.log('═══════════════════════════════════════════════════');
+    console.log('');
+    console.log(`Okruzenje: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Vremenska zona: ${process.env.TZ || 'Europe/Sarajevo'}`);
+    console.log(`Baza podataka: ${process.env.DATABASE_URL ? 'Postavljena' : 'NIJE POSTAVLJENA!'}`);
+    console.log('');
+
+    // ✅ INICIJALIZUJ CRON JOBOVE PRVO - Bez čekanja na bazu!
+    // Cron jobovi mogu raditi i bez baze (trebat će joj kasnije)
+    console.log(`[${new Date().toISOString()}] Inicijalizacija CRON jobova (BEZ čekanja na bazu)...`);
     initAllCronJobs();
-    
-    logger.info('');
-    logger.info('═══════════════════════════════════════════════════');
-    logger.info('Cron Poslovi - Uspjesno Pokrenuti');
-    logger.info('═══════════════════════════════════════════════════');
-    logger.info('');
-    logger.info('Zakazani poslovi:');
-    logger.info('   - 01:00 - Provjera konzistentnosti goriva');
-    logger.info('   - 05:00 - Notifikacije isteka dokumenata');
-    logger.info('   - 06:00 - Azuriranje statusa XML faktura');
-    logger.info('   - 06:30 - Azuriranje statusa Email faktura');
-    logger.info('   - 00:40 - Slanje email faktura (TESTING TIME)');
-    logger.info('   - 00:45 - Slanje XML faktura - Wizz Air (TESTING TIME)');
-    logger.info('   - 00:50 - Ponovno slanje neuspjelih email faktura (TESTING TIME)');
-    logger.info('');
-    logger.info('NAPOMENA: Vremenski okviri su postavljeni za testiranje.');
-    logger.info('Trebati će vratiti na originalne nakon što testiranje bude uspješno.');
-    logger.info('');
-    logger.info('Process PID:', process.pid);
-    logger.info('Za zaustavljanje: pm2 stop avioservis-cron');
-    logger.info('Za pregled logova: pm2 logs avioservis-cron');
-    logger.info('');
-    
+    console.log(`[${new Date().toISOString()}] ✅ CRON jobovi su inicijalizovani i zakazani!`);
+    console.log('');
+
+    // Sada se poveži na bazu (sa timeout)
+    console.log(`[${new Date().toISOString()}] Pokušaj povezivanja na bazu podataka (timeout: 30s)...`);
+
+    try {
+      // Dodaj timeout - ako se ne povežee za 30s, nastavi bez baze
+      await Promise.race([
+        prisma.$connect(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Database connection timeout after 30s')), 30000)
+        )
+      ]);
+      console.log(`[${new Date().toISOString()}] ✅ Konekcija na bazu uspostavljena`);
+    } catch (dbError: any) {
+      console.error(`[${new Date().toISOString()}] ⚠️ UPOZORENJE: Neuspješna konekcija na bazu - ${dbError.message}`);
+      console.error(`[${new Date().toISOString()}] ⚠️ Cron jobovi će pokušavati da se povežu tokom izvršavanja`);
+      console.error(`[${new Date().toISOString()}] ⚠️ Ako baza ostane nedostižna, CRON jobovi će failati!`);
+    }
+
+    console.log('');
+    console.log('═══════════════════════════════════════════════════');
+    console.log('Cron Poslovi - Uspjesno Pokrenuti');
+    console.log('═══════════════════════════════════════════════════');
+    console.log('');
+    console.log('Zakazani poslovi:');
+    console.log('   - 01:00 - Provjera konzistentnosti goriva');
+    console.log('   - 05:00 - Notifikacije isteka dokumenata');
+    console.log('   - 06:00 - Azuriranje statusa XML faktura');
+    console.log('   - 06:30 - Azuriranje statusa Email faktura');
+    console.log('   - 00:40 - Slanje email faktura (TESTING TIME)');
+    console.log('   - 00:45 - Slanje XML faktura - Wizz Air (TESTING TIME)');
+    console.log('   - 00:50 - Ponovno slanje neuspjelih email faktura (TESTING TIME)');
+    console.log('');
+    console.log('NAPOMENA: Vremenski okviri su postavljeni za testiranje.');
+    console.log('Trebati će vratiti na originalne nakon što testiranje bude uspješno.');
+    console.log('');
+    console.log(`Process PID: ${process.pid}`);
+    console.log('Za zaustavljanje: pm2 stop avioservis-cron');
+    console.log('Za pregled logova: pm2 logs avioservis-cron');
+    console.log('');
+
   } catch (error) {
-    logger.error('Greska pri inicijalizaciji cron poslova:', error);
-    process.exit(1);
+    console.error(`[${new Date().toISOString()}] ❌ KRITIČNA GREŠKA pri inicijalizaciji cron poslova:`, error);
+    console.error('Pokušaj se pokreće ponovo kroz 30 sekundi...');
+
+    // Umjesto process.exit(), čekaj 30s pa pokušaj ponovno
+    setTimeout(() => {
+      console.log(`[${new Date().toISOString()}] Ponovni pokušaj inicijalizacije...`);
+      initCronProcess();
+    }, 30000);
   }
 };
 
