@@ -10,39 +10,43 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 
 export function initEmailInvoiceCron(): void {
-  // Run at 00:10 every day (processes YESTERDAY's operations)
+  // Run at 00:40 every day (processes YESTERDAY's operations) - TESTING TIME
   // NOTE: Scheduled after midnight to process the completed previous day's operations
   // This avoids timezone issues with 23:50 scheduling and ensures all operations are finalized
-  const cronExpression = '10 0 * * *';
+  const cronExpression = '40 0 * * *';
   const tz = process.env.TZ || 'Europe/Sarajevo';
 
-  // NOTE: Timezone parameter removed - system timezone (Europe/Sarajevo) is used
+  console.log(`[${new Date().toISOString()}] Zakazivanje email invoice crona: ${cronExpression} TZ=${tz}`);
+
+  // Email dispatch main job
   cron.schedule(cronExpression, async () => {
-    console.log('🔥🔥🔥 EMAIL CRON CALLBACK TRIGGERED! 🔥🔥🔥');
-    console.log(`Time: ${new Date().toISOString()}`);
-    console.log(`Local: ${new Date().toLocaleString('sr-Latn-BA', { timeZone: tz })}`);
-    
+    console.log(`[${new Date().toISOString()}] 🔥🔥🔥 EMAIL CRON CALLBACK TRIGGERED! 🔥🔥🔥`);
+    console.log(`[${new Date().toISOString()}] UTC Time: ${new Date().toISOString()}`);
+    console.log(`[${new Date().toISOString()}] Local: ${new Date().toLocaleString('sr-Latn-BA', { timeZone: tz })}`);
+
+    let isProcessing = true;
     const timeoutId = setTimeout(() => {
-      console.error(`[${new Date().toISOString()}] Email invoice cron job timed out after 10 minutes`);
-      process.exit(1); // Force restart if stuck
+      if (isProcessing) {
+        console.error(`[${new Date().toISOString()}] Email invoice cron job timed out after 10 minutes - still processing`);
+      }
     }, 10 * 60 * 1000); // 10 minutes timeout
     
     try {
       console.log(`[${new Date().toISOString()}] Starting email invoice dispatch cron job...`);
-      
+
       // Process operations for the correct day
       // If cron runs after midnight (00:00-05:59), process YESTERDAY's operations
       // If cron runs before midnight (06:00-23:59), process TODAY's operations
       const now = dayjs().tz(tz);
       const currentHour = now.hour();
-      const targetDate = (currentHour >= 0 && currentHour < 6) 
+      const targetDate = (currentHour >= 0 && currentHour < 6)
         ? now.subtract(1, 'day').toDate()  // After midnight → yesterday
         : now.toDate();                     // Before midnight → today
-      
+
       console.log(`[${new Date().toISOString()}] Processing operations for date: ${dayjs(targetDate).format('YYYY-MM-DD')} (current hour: ${currentHour})`);
-      
+
       const result = await dispatchEmailRange(targetDate, targetDate);
-      
+
       console.log(`[${new Date().toISOString()}] Email invoice dispatch completed:`, {
         daysProcessed: result.daysProcessed,
         totalOperations: result.total,
@@ -54,13 +58,13 @@ export function initEmailInvoiceCron(): void {
         const successCount = day.results.filter((r: any) => r.success && !r.skipped).length;
         const failedCount = day.results.filter((r: any) => !r.success && !r.skipped).length;
         const skippedCount = day.results.filter((r: any) => r.skipped).length;
-        
+
         console.log(`[${new Date().toISOString()}] Day ${day.date}: ${day.operations} operations, ${successCount} sent, ${failedCount} failed, ${skippedCount} skipped`);
-        
+
         // Log failed operations
         const failedOps = day.results.filter((r: any) => !r.success && !r.skipped);
         if (failedOps.length > 0) {
-          console.error(`[${new Date().toISOString()}] Failed email dispatches for ${day.date}:`, 
+          console.error(`[${new Date().toISOString()}] Failed email dispatches for ${day.date}:`,
             failedOps.map((op: any) => ({ opId: op.opId, error: op.error }))
           );
         }
@@ -68,28 +72,33 @@ export function initEmailInvoiceCron(): void {
     } catch (error) {
       console.error(`[${new Date().toISOString()}] Email invoice cron job failed:`, error);
     } finally {
+      isProcessing = false;
       clearTimeout(timeoutId);
     }
-  }); // Removed timezone parameter
+  }, {
+    timezone: tz  // ✅ EKSPLICITNO POSTAVLJENO
+  });
 
-  console.log(`Email invoice cron job scheduled: ${cronExpression} (NO timezone param - using system timezone)`);
+  console.log(`[${new Date().toISOString()}] ✅ Email invoice cron job scheduled: ${cronExpression} (timezone: ${tz})`);
 
-  // Retry failed emails at 00:20 (10 minutes after main cron)
-  const retryCronExpression = '20 0 * * *';
-  
+  // Retry failed emails at 00:50 (10 minutes after main cron) - TESTING TIME
+  const retryCronExpression = '50 0 * * *';
+
   cron.schedule(retryCronExpression, async () => {
+    let isRetryProcessing = true;
     const timeoutId = setTimeout(() => {
-      console.error(`[${new Date().toISOString()}] Email invoice retry cron job timed out after 5 minutes`);
-      process.exit(1); // Force restart if stuck
+      if (isRetryProcessing) {
+        console.error(`[${new Date().toISOString()}] Email invoice retry cron job timed out after 5 minutes - still processing`);
+      }
     }, 5 * 60 * 1000); // 5 minutes timeout
-    
+
     try {
       console.log(`[${new Date().toISOString()}] Starting email invoice retry cron job...`);
-      
+
       // Find failed email dispatches from today
       const today = dayjs().tz(tz).startOf('day').toDate();
       const tomorrow = dayjs().tz(tz).add(1, 'day').startOf('day').toDate();
-      
+
       const failedDispatches = await prisma.emailInvoiceDispatch.findMany({
         where: {
           status: EmailDispatchStatus.FAILED,
@@ -125,9 +134,9 @@ export function initEmailInvoiceCron(): void {
       for (const dispatch of failedDispatches) {
         try {
           console.log(`[${new Date().toISOString()}] Retrying email dispatch for operation ${dispatch.fuelingOperationId}...`);
-          
+
           const result = await dispatchOneEmailOperation(dispatch.fuelingOperationId, true); // Force retry
-          
+
           if (result.success) {
             retrySuccessCount++;
             console.log(`[${new Date().toISOString()}] ✅ Retry successful for operation ${dispatch.fuelingOperationId}`);
@@ -142,15 +151,18 @@ export function initEmailInvoiceCron(): void {
       }
 
       console.log(`[${new Date().toISOString()}] Email invoice retry completed: ${retrySuccessCount} successful, ${retryFailedCount} failed`);
-      
+
     } catch (error) {
       console.error(`[${new Date().toISOString()}] Email invoice retry cron job failed:`, error);
     } finally {
+      isRetryProcessing = false;
       clearTimeout(timeoutId);
     }
-  }); // Removed timezone parameter
+  }, {
+    timezone: tz  // ✅ EKSPLICITNO POSTAVLJENO
+  });
 
-  console.log(`Email invoice retry cron job scheduled: ${retryCronExpression} (NO timezone param - using system timezone)`);
+  console.log(`[${new Date().toISOString()}] ✅ Email invoice retry cron job scheduled: ${retryCronExpression} (timezone: ${tz})`);
 }
 
 // Function to manually trigger email dispatch for a specific date

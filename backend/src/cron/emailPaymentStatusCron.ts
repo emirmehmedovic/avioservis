@@ -64,12 +64,16 @@ export function initEmailPaymentStatusCron(): void {
   const cronExpression = '30 6 * * *';
   const tz = process.env.TZ || 'Europe/Sarajevo';
 
+  console.log(`[${new Date().toISOString()}] Zakazivanje email payment status crona: ${cronExpression} TZ=${tz}`);
+
   cron.schedule(cronExpression, async () => {
+    let isProcessing = true;
     const timeoutId = setTimeout(() => {
-      console.error(`[${new Date().toISOString()}] Email payment status cron job timed out after 5 minutes`);
-      process.exit(1); // Force restart if stuck
+      if (isProcessing) {
+        console.error(`[${new Date().toISOString()}] Email payment status cron job timed out after 5 minutes - still processing`);
+      }
     }, 5 * 60 * 1000); // 5 minutes timeout
-    
+
     try {
       console.log(`[${new Date().toISOString()}] Starting email payment status update cron job...`);
       const result = await updateExpiredAndOverdueEmailInvoices();
@@ -77,13 +81,14 @@ export function initEmailPaymentStatusCron(): void {
     } catch (error) {
       console.error(`[${new Date().toISOString()}] Email payment status cron job failed:`, error);
     } finally {
+      isProcessing = false;
       clearTimeout(timeoutId);
     }
   }, {
     timezone: tz
   });
 
-  console.log(`Email payment status cron job scheduled: ${cronExpression} (timezone: ${tz})`);
+  console.log(`[${new Date().toISOString()}] ✅ Email payment status cron job scheduled: ${cronExpression} (timezone: ${tz})`);
 }
 
 // Export the function for manual triggering

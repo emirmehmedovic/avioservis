@@ -62,26 +62,31 @@ const updateExpiredAndOverdueInvoices = async () => {
  */
 export function initPaymentStatusCron(): void {
   // Run every day at 06:00 to update payment statuses
+  const tz = process.env.TZ || 'Europe/Sarajevo';
+
   cron.schedule('0 6 * * *', async () => {
+    let isProcessing = true;
     const timeoutId = setTimeout(() => {
-      console.error('Payment status cron job timed out after 5 minutes');
-      process.exit(1); // Force restart if stuck
+      if (isProcessing) {
+        console.error(`[${new Date().toISOString()}] Payment status cron job timed out after 5 minutes - still processing`);
+      }
     }, 5 * 60 * 1000); // 5 minutes timeout
-    
+
     try {
-      console.log('Starting payment status update cron job...');
+      console.log(`[${new Date().toISOString()}] Starting payment status update cron job...`);
       const result = await updateExpiredAndOverdueInvoices();
-      console.log(`Payment status cron job completed: ${result.overdueCount} overdue, ${result.expiredCount} expired`);
+      console.log(`[${new Date().toISOString()}] Payment status cron job completed: ${result.overdueCount} overdue, ${result.expiredCount} expired`);
     } catch (error) {
-      console.error('Payment status cron job failed:', error);
+      console.error(`[${new Date().toISOString()}] Payment status cron job failed:`, error);
     } finally {
+      isProcessing = false;
       clearTimeout(timeoutId);
     }
   }, {
-    timezone: 'Europe/Sarajevo'
+    timezone: tz
   });
 
-  console.log('Payment status cron job scheduled: daily at 06:00 (Europe/Sarajevo)');
+  console.log(`[${new Date().toISOString()}] ✅ Payment status cron job scheduled: daily at 06:00 (timezone: ${tz})`);
 }
 
 // Export the function for manual triggering

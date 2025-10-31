@@ -7,49 +7,57 @@ import { logger } from '../utils/logger';
  * Pokreće se svakog dana u 05:00
  */
 export function initExpirationNotificationCron(): void {
-  console.log("Inicijalizacija cron posla za provjeru datuma isteka...");
+  const tz = process.env.TZ || 'Europe/Sarajevo';
+
+  console.log(`[${new Date().toISOString()}] Inicijalizacija cron posla za provjeru datuma isteka (timezone: ${tz})...`);
 
   // Pokretanje svakog dana u 05:00
   cron.schedule('0 5 * * *', async () => {
+    let isProcessing = true;
     const timeoutId = setTimeout(() => {
-      console.error("❌ Expiration notification cron job timed out after 10 minutes");
-      process.exit(1); // Force restart if stuck
+      if (isProcessing) {
+        console.error(`[${new Date().toISOString()}] ❌ Expiration notification cron job timed out after 10 minutes - still processing`);
+      }
     }, 10 * 60 * 1000); // 10 minutes timeout
-    
-    console.log("🔔 Pokretanje cron posla za provjeru datuma isteka...");
+
+    console.log(`[${new Date().toISOString()}] 🔔 Pokretanje cron posla za provjeru datuma isteka...`);
     try {
       await checkExpirationDatesJob();
-      console.log("✅ Cron posao za provjeru datuma isteka usjpešno završen");
+      console.log(`[${new Date().toISOString()}] ✅ Cron posao za provjeru datuma isteka uspješno završen`);
     } catch (error) {
-      console.error("❌ Greška u cron poslu za provjeru datuma isteka:", error);
+      console.error(`[${new Date().toISOString()}] ❌ Greška u cron poslu za provjeru datuma isteka:`, error);
     } finally {
+      isProcessing = false;
       clearTimeout(timeoutId);
     }
   }, {
-    timezone: "Europe/Sarajevo"
+    timezone: tz
   });
 
   // Opciono: pokretanje svakog sata za testiranje (može se ukloniti u produkciji)
   if (process.env.NODE_ENV === 'development') {
     cron.schedule('0 * * * *', async () => {
+      let isDevProcessing = true;
       const timeoutId = setTimeout(() => {
-        console.error("❌ [DEV] Expiration notification test cron job timed out after 10 minutes");
-        process.exit(1);
+        if (isDevProcessing) {
+          console.error(`[${new Date().toISOString()}] ❌ [DEV] Expiration notification test cron job timed out after 10 minutes - still processing`);
+        }
       }, 10 * 60 * 1000);
-      
-      console.log("🔔 [DEV] Pokretanje test cron posla za provjeru datuma isteka...");
+
+      console.log(`[${new Date().toISOString()}] 🔔 [DEV] Pokretanje test cron posla za provjeru datuma isteka...`);
       try {
         await checkExpirationDatesJob();
-        console.log("✅ [DEV] Test cron posao za provjeru datuma isteka uspješno završen");
+        console.log(`[${new Date().toISOString()}] ✅ [DEV] Test cron posao za provjeru datuma isteka uspješno završen`);
       } catch (error) {
-        console.error("❌ [DEV] Greška u test cron poslu za provjeru datuma isteka:", error);
+        console.error(`[${new Date().toISOString()}] ❌ [DEV] Greška u test cron poslu za provjeru datuma isteka:`, error);
       } finally {
+        isDevProcessing = false;
         clearTimeout(timeoutId);
       }
     }, {
-      timezone: "Europe/Sarajevo"
+      timezone: tz
     });
   }
 
-  console.log("✅ Cron posao za provjeru datuma isteka uspješno inicijalizovan");
+  console.log(`[${new Date().toISOString()}] ✅ Cron posao za provjeru datuma isteka uspješno inicijalizovan (timezone: ${tz})`);
 }

@@ -131,18 +131,23 @@ export function initFuelSyncCronJobs(config?: Partial<FuelSyncCronConfig>): void
     console.log(`Zakazivanje dnevne provjere konzistentnosti goriva: ${dailyCronExpression}`);
     
     dailyCheckJob = cron.schedule(dailyCronExpression, async () => {
+      let isProcessing = true;
       const timeoutId = setTimeout(() => {
-        console.error("Fuel consistency check cron job timed out after 10 minutes");
-        process.exit(1);
+        if (isProcessing) {
+          console.error(`[${new Date().toISOString()}] Fuel consistency check cron job timed out after 10 minutes - still processing`);
+        }
       }, 10 * 60 * 1000);
-      
+
       try {
         await runDailyConsistencyCheck();
       } catch (error) {
-        console.error("Greška u dnevnom cron poslu za provjeru konzistentnosti:", error);
+        console.error(`[${new Date().toISOString()}] Greška u dnevnom cron poslu za provjeru konzistentnosti:`, error);
       } finally {
+        isProcessing = false;
         clearTimeout(timeoutId);
       }
+    }, {
+      timezone: process.env.TZ || 'Europe/Sarajevo'
     });
   }
   
@@ -156,18 +161,23 @@ export function initFuelSyncCronJobs(config?: Partial<FuelSyncCronConfig>): void
     console.log(`Zakazivanje sedmične pune sinhronizacije goriva: ${weeklyCronExpression}`);
     
     weeklyFullSyncJob = cron.schedule(weeklyCronExpression, async () => {
+      let isProcessing = true;
       const timeoutId = setTimeout(() => {
-        console.error("Fuel weekly sync cron job timed out after 15 minutes");
-        process.exit(1);
+        if (isProcessing) {
+          console.error(`[${new Date().toISOString()}] Fuel weekly sync cron job timed out after 15 minutes - still processing`);
+        }
       }, 15 * 60 * 1000);
-      
+
       try {
         await runWeeklyFullSync();
       } catch (error) {
-        console.error("Greška u sedmičnom cron poslu za punu sinhronizaciju:", error);
+        console.error(`[${new Date().toISOString()}] Greška u sedmičnom cron poslu za punu sinhronizaciju:`, error);
       } finally {
+        isProcessing = false;
         clearTimeout(timeoutId);
       }
+    }, {
+      timezone: process.env.TZ || 'Europe/Sarajevo'
     });
   }
 }
