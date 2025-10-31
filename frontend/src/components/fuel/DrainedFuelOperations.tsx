@@ -714,40 +714,40 @@ const DrainedFuelOperations: React.FC = () => {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {/* Total Drained */}
-        <Card className="bg-black/50 border-white/10 shadow-md">
+        <Card className="bg-white/10 border-white/20 shadow-md">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Ukupno Drenirano</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-900">Ukupno Drenirano</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalDrained.toLocaleString('bs-BA')} L</div>
+            <div className="text-2xl font-bold text-gray-900">{totalDrained.toLocaleString('bs-BA')} L</div>
           </CardContent>
         </Card>
-        
+
         {/* Total Returned/Sold */}
-        <Card className="bg-black/50 border-white/10 shadow-md">
+        <Card className="bg-white/10 border-white/20 shadow-md">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Ukupno Vraćeno/Prodano</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-900">Ukupno Vraćeno/Prodano</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalReturned.toLocaleString('bs-BA')} L</div>
+            <div className="text-2xl font-bold text-gray-900">{totalReturned.toLocaleString('bs-BA')} L</div>
           </CardContent>
         </Card>
-        
+
         {/* Current Balance */}
-        <Card className="bg-black/50 border-white/10 shadow-md">
+        <Card className="bg-white/10 border-white/20 shadow-md">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Trenutno Stanje</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-900">Trenutno Stanje</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{currentBalance.toLocaleString('bs-BA')} L</div>
+            <div className="text-2xl font-bold text-gray-900">{currentBalance.toLocaleString('bs-BA')} L</div>
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Records Table */}
-      <Card className="bg-black/50 border-white/10 shadow-md">
+      <Card className="bg-white/10 border-white/20 shadow-md">
         <CardHeader>
-          <CardTitle>Evidencija Istakanja i Transakcija</CardTitle>
+          <CardTitle className="text-gray-900">Evidencija Istakanja i Transakcija</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -867,29 +867,30 @@ const DrainedFuelOperations: React.FC = () => {
       
       {/* New Drain Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md bg-white border-gray-200">
           <DialogHeader>
-            <DialogTitle>Novo istakanje goriva</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-gray-900">Novo istakanje goriva</DialogTitle>
+            <DialogDescription className="text-gray-600">
               Evidentirajte istakanje goriva iz fiksnog rezervoara ili mobilne cisterne.
             </DialogDescription>
           </DialogHeader>
           
           <form onSubmit={handleSubmit} className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label htmlFor="date">Datum</Label>
-              <Input
+              <Label htmlFor="date" className="text-gray-900">Datum</Label>
+              <input
                 id="date"
                 name="date"
                 type="date"
                 value={formData.date}
                 onChange={handleInputChange}
+                className="w-full h-10 px-3 py-2 bg-white border border-gray-300 text-gray-900 placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
-              <Label>Tip izvora</Label>
+              <Label className="text-gray-900">Tip izvora</Label>
               <Tabs 
                 value={activeTab} 
                 onValueChange={(value: string) => handleSelectChange('sourceType', value)}
@@ -902,7 +903,7 @@ const DrainedFuelOperations: React.FC = () => {
                 
                 <TabsContent value="fixed" className="mt-4">
                   <div className="space-y-2">
-                    <Label htmlFor="sourceId">Odaberite rezervoar</Label>
+                    <Label htmlFor="sourceId" className="text-gray-900">Odaberite rezervoar</Label>
                     <select
                       id="sourceId"
                       name="sourceId"
@@ -923,7 +924,7 @@ const DrainedFuelOperations: React.FC = () => {
                 
                 <TabsContent value="mobile" className="mt-4">
                   <div className="space-y-2">
-                    <Label htmlFor="sourceIdMobile">Odaberite cisternu</Label>
+                    <Label htmlFor="sourceIdMobile" className="text-gray-900">Odaberite cisternu</Label>
                     <select
                       id="sourceIdMobile"
                       name="sourceIdMobile"
@@ -969,8 +970,8 @@ const DrainedFuelOperations: React.FC = () => {
             )}
             
             <div className="space-y-2">
-              <Label htmlFor="quantity_liters">Količina (L)</Label>
-              <Input
+              <Label htmlFor="quantity_liters" className="text-gray-900">Količina (L)</Label>
+              <input
                 id="quantity_liters"
                 name="quantity_liters"
                 type="number"
@@ -978,17 +979,19 @@ const DrainedFuelOperations: React.FC = () => {
                 min="0.01"
                 value={formData.quantity_liters}
                 onChange={handleInputChange}
+                className="w-full h-10 px-3 py-2 bg-white border border-gray-300 text-gray-900 placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
-              <Label htmlFor="notes">Napomena</Label>
-              <Input
+              <Label htmlFor="notes" className="text-gray-900">Napomena</Label>
+              <input
                 id="notes"
                 name="notes"
                 value={formData.notes}
                 onChange={handleInputChange}
+                className="w-full h-10 px-3 py-2 bg-white border border-gray-300 text-gray-900 placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Opcionalno"
               />
             </div>
@@ -1014,10 +1017,10 @@ const DrainedFuelOperations: React.FC = () => {
 
       {/* Sale Transaction Modal */}
       <Dialog open={isSaleModalOpen} onOpenChange={setIsSaleModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] bg-white border-gray-200">
           <DialogHeader>
-            <DialogTitle>Prodaja Filtriranog Goriva</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-gray-900">Prodaja Filtriranog Goriva</DialogTitle>
+            <DialogDescription className="text-gray-600">
               Evidentirajte prodaju filtriranog goriva eksternom kupcu
             </DialogDescription>
           </DialogHeader>
@@ -1049,38 +1052,38 @@ const DrainedFuelOperations: React.FC = () => {
           
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="sale-date" className="text-right">
+                <Label htmlFor="sale-date" className="text-right text-gray-900">
                   Datum
                 </Label>
-                <Input
+                <input
                   id="sale-date"
                   name="date"
                   type="date"
                   value={saleFormData.date}
                   onChange={handleSaleInputChange}
-                  className="col-span-3"
+                  className="col-span-3 h-10 px-3 py-2 bg-white border border-gray-300 text-gray-900 placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="buyer-name" className="text-right">
+                <Label htmlFor="buyer-name" className="text-right text-gray-900">
                   Naziv kupca
                 </Label>
-                <Input
+                <input
                   id="buyer-name"
                   name="buyerName"
                   placeholder="Unesite naziv kupca"
                   value={saleFormData.buyerName}
                   onChange={handleSaleInputChange}
-                  className="col-span-3"
+                  className="col-span-3 h-10 px-3 py-2 bg-white border border-gray-300 text-gray-900 placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="sale-quantity" className="text-right">
+                <Label htmlFor="sale-quantity" className="text-right text-gray-900">
                   Količina (L)
                 </Label>
-                <Input
+                <input
                   id="sale-quantity"
                   name="quantity_liters"
                   type="number"
@@ -1089,21 +1092,21 @@ const DrainedFuelOperations: React.FC = () => {
                   placeholder="Unesite količinu"
                   value={saleFormData.quantity_liters}
                   onChange={handleSaleInputChange}
-                  className="col-span-3"
+                  className="col-span-3 h-10 px-3 py-2 bg-white border border-gray-300 text-gray-900 placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="sale-notes" className="text-right">
+                <Label htmlFor="sale-notes" className="text-right text-gray-900">
                   Napomena
                 </Label>
-                <Input
+                <input
                   id="sale-notes"
                   name="notes"
                   placeholder="Opcionalna napomena"
                   value={saleFormData.notes}
                   onChange={handleSaleInputChange}
-                  className="col-span-3"
+                  className="col-span-3 h-10 px-3 py-2 bg-white border border-gray-300 text-gray-900 placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -1131,10 +1134,10 @@ const DrainedFuelOperations: React.FC = () => {
 
       {/* Reverse Transaction Modal */}
       <Dialog open={isReverseModalOpen} onOpenChange={setIsReverseModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] bg-white border-gray-200">
           <DialogHeader>
-            <DialogTitle>Povrat Filtriranog Goriva</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-gray-900">Povrat Filtriranog Goriva</DialogTitle>
+            <DialogDescription className="text-gray-600">
               Evidentirajte povrat filtriranog goriva u fiksni rezervoar ili mobilni tank
             </DialogDescription>
           </DialogHeader>
@@ -1184,19 +1187,20 @@ const DrainedFuelOperations: React.FC = () => {
           
           <form onSubmit={handleReverseSubmit} className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label htmlFor="date">Datum povrata</Label>
-              <Input
+              <Label htmlFor="date" className="text-gray-900">Datum povrata</Label>
+              <input
                 id="date"
                 name="date"
                 type="date"
                 value={reverseFormData.date}
                 onChange={handleReverseInputChange}
+                className="w-full h-10 px-3 py-2 bg-white border border-gray-300 text-gray-900 placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
-              <Label>Tip odredišta</Label>
+              <Label className="text-gray-900">Tip odredišta</Label>
               <Tabs 
                 value={reverseActiveTab} 
                 onValueChange={(value: string) => handleSelectChange('destinationType', value)}
@@ -1209,7 +1213,7 @@ const DrainedFuelOperations: React.FC = () => {
                 
                 <TabsContent value="fixed" className="mt-4">
                   <div className="space-y-2">
-                    <Label htmlFor="destinationId">Odaberite rezervoar</Label>
+                    <Label htmlFor="destinationId" className="text-gray-900">Odaberite rezervoar</Label>
                     <select
                       id="destinationId"
                       name="destinationId"
@@ -1230,7 +1234,7 @@ const DrainedFuelOperations: React.FC = () => {
                 
                 <TabsContent value="mobile" className="mt-4">
                   <div className="space-y-2">
-                    <Label htmlFor="destinationIdMobile">Odaberite cisternu</Label>
+                    <Label htmlFor="destinationIdMobile" className="text-gray-900">Odaberite cisternu</Label>
                     <select
                       id="destinationIdMobile"
                       name="destinationIdMobile"
@@ -1276,8 +1280,8 @@ const DrainedFuelOperations: React.FC = () => {
             )}
             
             <div className="space-y-2">
-              <Label htmlFor="quantity_liters">Količina za povrat (L)</Label>
-              <Input
+              <Label htmlFor="quantity_liters" className="text-gray-900">Količina za povrat (L)</Label>
+              <input
                 id="quantity_liters"
                 name="quantity_liters"
                 type="number"
@@ -1285,17 +1289,19 @@ const DrainedFuelOperations: React.FC = () => {
                 min="0.01"
                 value={reverseFormData.quantity_liters}
                 onChange={handleReverseInputChange}
+                className="w-full h-10 px-3 py-2 bg-white border border-gray-300 text-gray-900 placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
-              <Label htmlFor="notes">Napomena</Label>
-              <Input
+              <Label htmlFor="notes" className="text-gray-900">Napomena</Label>
+              <input
                 id="notes"
                 name="notes"
                 value={reverseFormData.notes}
                 onChange={handleReverseInputChange}
+                className="w-full h-10 px-3 py-2 bg-white border border-gray-300 text-gray-900 placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Opcionalno"
               />
             </div>

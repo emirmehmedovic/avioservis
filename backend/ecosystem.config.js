@@ -48,18 +48,21 @@ module.exports = {
       exec_mode: 'fork',
       env: {
         NODE_ENV: 'production',
-        TZ: 'Europe/Sarajevo',  // ✅ KRIITČNO: Timezone za CRON jobove
+        TZ: 'Europe/Sarajevo',  // ✅ KRITIČNO: Timezone za CRON jobove
       },
       error_file: '../logs/cron-error.log',
       out_file: '../logs/cron-out.log',
       log_file: '../logs/cron-combined.log',
       time: true,
-      max_memory_restart: '300M',
+      max_memory_restart: '500M',  // Povećano sa 300M
       autorestart: true,
       watch: false,
       max_restarts: 10,
-      min_uptime: '10s',
-      cron_restart: '0 4 * * *', // Restart cron process daily at 4 AM
+      min_uptime: '60s',  // Povećano sa 10s - daj procesu vremena za inicijalizaciju
+      cron_restart: '3 4 * * *', // Restart cron process daily at 04:03 (nakon main restarta)
+      // Health check: ako proces krši u manje od 60s, PM2 će čekati prije nego što ga ponovno pokrene
+      listen_timeout: 10000,  // Timeout za proces
+      kill_timeout: 5000,  // Timeout za kill command
     },
   ],
 };

@@ -6,7 +6,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, TrendingUp, BarChart3, Activity } from 'lucide-react';
@@ -542,21 +541,15 @@ const TrendAnalysisTab: React.FC = () => {
             {/* Trend Type */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Tip trenda:</label>
-              <Select
+              <select
                 value={state.filters.trendType}
-                onValueChange={(value: 'weekly' | 'monthly' | 'yearly') => 
-                  handleTrendTypeChange(value)
-                }
+                onChange={(e) => handleTrendTypeChange(e.target.value as 'weekly' | 'monthly' | 'yearly')}
+                className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 hover:border-gray-400 transition-all"
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="weekly">Sedmično</SelectItem>
-                  <SelectItem value="monthly">Mjesečno</SelectItem>
-                  <SelectItem value="yearly">Godina na godinu</SelectItem>
-                </SelectContent>
-              </Select>
+                <option value="weekly">Sedmično</option>
+                <option value="monthly">Mjesečno</option>
+                <option value="yearly">Godina na godinu</option>
+              </select>
             </div>
 
             {/* Apply Filters Button */}

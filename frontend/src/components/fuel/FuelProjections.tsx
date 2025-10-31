@@ -2,11 +2,9 @@ import React, { useState, useEffect, useCallback, useRef, useMemo, SetStateActio
 import { fetchOperations, fetchAirlines, getGlobalFuelProjectionPreset, saveGlobalFuelProjectionPreset } from './services/fuelingOperationsService'; 
 import { AirlineFE, FuelingOperation, ProjectionInputRow, ProjectionResult, TotalProjection, FuelProjectionPresetData, FullFuelProjectionPreset, CalculatedResultsData } from './types';
 import dayjs from 'dayjs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -537,14 +535,14 @@ export default function FuelProjections() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Projekcije potrošnje goriva</CardTitle>
-          <CardDescription>
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">Projekcije potrošnje goriva</h3>
+          <p className="text-sm text-gray-700 mt-1">
             Unesite kombinacije avio kompanija, destinacija i očekivani broj operacija mjesečno za izračun projekcije.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </p>
+        </div>
+        <div className="p-6">
           <div className="space-y-4">
             {projectionInputs.map((input, index) => {
               // Temporary debug to catch duplicate IDs
@@ -552,44 +550,40 @@ export default function FuelProjections() {
                 console.warn('Duplicate ID found:', input.id, 'in projectionInputs');
               }
               return (
-              <div key={input.id} className="p-4 border rounded-md space-y-3 bg-gray-50 dark:bg-gray-800/50 relative">
+              <div key={input.id} className="p-4 border border-gray-200 rounded-lg space-y-3 bg-white hover:border-gray-300 transition-all relative">
                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                     <div className="md:col-span-4">
-                        <Label htmlFor={`airline-${input.id}`}>Avio Kompanija</Label>
-                        <Select
+                        <Label htmlFor={`airline-${input.id}`} className="text-sm font-medium text-gray-700">Avio Kompanija</Label>
+                        <select
+                            id={`airline-${input.id}`}
                             value={input.airlineId}
-                            onValueChange={(value) => handleInputChange(input.id, 'airlineId', value)}
+                            onChange={(e) => handleInputChange(input.id, 'airlineId', e.target.value)}
                             disabled={loadingAirlines || loadingPreset}
+                            className="mt-1 w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 hover:border-gray-400 transition-all"
                         >
-                            <SelectTrigger id={`airline-${input.id}`} className="mt-1">
-                                <SelectValue placeholder="Izaberite avio kompaniju" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {airlines.map(airline => (
-                                    <SelectItem key={airline.id} value={airline.id.toString()}>{airline.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            <option value="">Izaberite avio kompaniju</option>
+                            {airlines.map(airline => (
+                                <option key={airline.id} value={airline.id.toString()}>{airline.name}</option>
+                            ))}
+                        </select>
                     </div>
                     <div className="md:col-span-4">
-                        <Label htmlFor={`destination-${input.id}`}>Destinacija</Label>
-                        <Select
+                        <Label htmlFor={`destination-${input.id}`} className="text-sm font-medium text-gray-700">Destinacija</Label>
+                        <select
+                            id={`destination-${input.id}`}
                             value={input.destination}
-                            onValueChange={(value) => handleInputChange(input.id, 'destination', value)}
+                            onChange={(e) => handleInputChange(input.id, 'destination', e.target.value)}
                             disabled={!input.airlineId || loadingAirlines || loadingPreset}
+                            className="mt-1 w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 hover:border-gray-400 transition-all"
                         >
-                            <SelectTrigger id={`destination-${input.id}`} className="mt-1">
-                                <SelectValue placeholder="Izaberite destinaciju" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {input.availableDestinations.map((dest: string) => (
-                                    <SelectItem key={dest} value={dest}>{dest}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            <option value="">Izaberite destinaciju</option>
+                            {input.availableDestinations.map((dest: string) => (
+                                <option key={dest} value={dest}>{dest}</option>
+                            ))}
+                        </select>
                     </div>
                     <div className="md:col-span-3">
-                        <Label htmlFor={`operations-${input.id}`}>Broj operacija (mjesečno)</Label>
+                        <Label htmlFor={`operations-${input.id}`} className="text-sm font-medium text-gray-700">Broj operacija (mjesečno)</Label>
                         <Input 
                             id={`operations-${input.id}`} 
                             type="number" 
@@ -601,95 +595,95 @@ export default function FuelProjections() {
                         />
                     </div>
                     <div className="md:col-span-1 flex items-end justify-end">
-                        <Button variant="destructive" size="icon" onClick={() => handleRemoveRow(input.id)} disabled={loadingAirlines || loadingPreset || projectionInputs.length <= 1} className="w-full">
-                            <Trash2 size={18} />
-                        </Button>
+                        <button onClick={() => handleRemoveRow(input.id)} disabled={loadingAirlines || loadingPreset || projectionInputs.length <= 1} className="w-full px-3 py-2 text-sm font-medium border border-red-300 text-red-700 rounded-lg hover:border-red-400 hover:bg-red-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                            <Trash2 size={16} />
+                        </button>
                     </div>
                 </div>
               </div>
               );
             })}
             <div className="flex justify-start pt-2">
-              <Button onClick={handleAddRow} className="mb-4 mr-2" variant="outline" disabled={loadingAirlines || loadingPreset}>
-                <PlusCircle size={16} className="mr-2" /> Dodaj Red
-              </Button>
+              <button onClick={handleAddRow} disabled={loadingAirlines || loadingPreset} className="px-4 py-2 mb-4 mr-2 text-sm font-medium border border-gray-300 text-gray-900 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                <PlusCircle size={16} /> Dodaj Red
+              </button>
             </div>
 
-            <Button 
-              onClick={calculateProjections} 
+            <button
+              onClick={calculateProjections}
               disabled={calculationInProgress || loadingAirlines || loadingPreset || projectionInputs.length === 0 || projectionInputs.some(pIn => !pIn.airlineId || !pIn.destination || pIn.operations <= 0)}
-              className="w-full md:w-auto mt-4"
+              className="w-full md:w-auto mt-4 px-4 py-2 text-sm font-medium bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {calculationInProgress ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Izračunavanje...</>
+                <><Loader2 className="h-4 w-4 animate-spin" /> Izračunavanje...</>
               ) : (
-                <><Calculator className="mr-2 h-4 w-4" /> Izračunaj projekciju</>
+                <><Calculator className="h-4 w-4" /> Izračunaj projekciju</>
               )}
-            </Button>
+            </button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {projectionResults.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl">Rezultati projekcije</CardTitle>
-            <CardDescription>
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">Rezultati projekcije</h3>
+            <p className="text-sm text-gray-700 mt-1">
               Projekcije potrošnje goriva bazirane na historijskim podacima za unesene kombinacije.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </p>
+          </div>
+          <div className="p-6">
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-sm">
                 <thead>
-                  <tr className="bg-gray-100 dark:bg-gray-800">
-                    <th className="border p-2 text-left">Avio Kompanija</th>
-                    <th className="border p-2 text-left">Destinacija</th>
-                    <th className="border p-2 text-right">Prosj. potrošnja / operaciji (L)</th>
-                    <th className="border p-2 text-right">Operacija mjesečno</th>
-                    <th className="border p-2 text-right">Mjesečna potrošnja (L)</th>
-                    <th className="border p-2 text-right">Kvartalna potrošnja (L)</th>
-                    <th className="border p-2 text-right">Godišnja potrošnja (L)</th>
-                    <th className="border p-2 text-center">Analizirano operacija</th>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Avio Kompanija</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Destinacija</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Prosj. potrošnja / operaciji (L)</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Operacija mjesečno</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Mjesečna potrošnja (L)</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Kvartalna potrošnja (L)</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Godišnja potrošnja (L)</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Analizirano operacija</th>
                   </tr>
                 </thead>
                 <tbody>
                   {projectionResults.map((result, index) => (
-                    <tr key={`${result.airlineName}-${result.destination}-${index}`} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                      <td className="border p-2">{result.airlineName}</td>
-                      <td className="border p-2">{result.destination}</td>
-                      <td className="border p-2 text-right">
+                    <tr key={`${result.airlineName}-${result.destination}-${index}`} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 text-sm text-gray-700">{result.airlineName}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{result.destination}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700 text-right">
                         {result.averageFuelPerOperation.toLocaleString('bs-BA', { maximumFractionDigits: 2 })}
                       </td>
-                      <td className="border p-2 text-right">{result.operationsPerMonth}</td>
-                      <td className="border p-2 text-right">
+                      <td className="px-4 py-3 text-sm text-gray-700 text-right">{result.operationsPerMonth}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700 text-right">
                         {result.monthlyConsumption.toLocaleString('bs-BA', { maximumFractionDigits: 2 })}
                       </td>
-                      <td className="border p-2 text-right">
+                      <td className="px-4 py-3 text-sm text-gray-700 text-right">
                         {result.quarterlyConsumption.toLocaleString('bs-BA', { maximumFractionDigits: 2 })}
                       </td>
-                      <td className="border p-2 text-right">
+                      <td className="px-4 py-3 text-sm text-gray-700 text-right">
                         {result.yearlyConsumption.toLocaleString('bs-BA', { maximumFractionDigits: 2 })}
                       </td>
-                      <td className="border p-2 text-center">
+                      <td className="px-4 py-3 text-sm text-gray-700 text-center">
                         {result.operationsAnalyzed > 0 ? result.operationsAnalyzed : (
-                          <span className="text-red-500 font-semibold">Nema podataka</span>
+                          <span className="text-red-600 font-semibold">Nema podataka</span>
                         )}
                       </td>
                     </tr>
                   ))}
-                  <tr className="bg-blue-50 dark:bg-blue-900/30 font-bold">
-                    <td className="border p-2" colSpan={4}>UKUPNO</td>
-                    <td className="border p-2 text-right">
+                  <tr className="bg-gray-100 border-t-2 border-gray-300 font-semibold">
+                    <td className="px-4 py-3 text-sm text-gray-900" colSpan={4}>UKUPNO</td>
+                    <td className="px-4 py-3 text-sm text-gray-900 text-right">
                       {totalProjection?.monthly ? totalProjection.monthly.toLocaleString('bs-BA', { maximumFractionDigits: 2 }) : 'N/A'}
                     </td>
-                    <td className="border p-2 text-right">
+                    <td className="px-4 py-3 text-sm text-gray-900 text-right">
                       {totalProjection?.quarterly ? totalProjection.quarterly.toLocaleString('bs-BA', { maximumFractionDigits: 2 }) : 'N/A'}
                     </td>
-                    <td className="border p-2 text-right">
+                    <td className="px-4 py-3 text-sm text-gray-900 text-right">
                       {totalProjection?.yearly ? totalProjection.yearly.toLocaleString('bs-BA', { maximumFractionDigits: 2 }) : 'N/A'}
                     </td>
-                    <td className="border p-2"></td>
+                    <td className="px-4 py-3"></td>
                   </tr>
                 </tbody>
               </table>
@@ -702,41 +696,41 @@ export default function FuelProjections() {
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* NOVA KARTICA ZA GRAFIKONE - POČETAK */}
       {projectionResults.length > 0 && (
-        <Card className="mt-6" ref={chartsContainerRef}>
-          <CardHeader>
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden" ref={chartsContainerRef}>
+          <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex justify-between items-center">
               <div>
-                <CardTitle className="text-lg">Statistički prikaz projekcija</CardTitle>
-                <CardDescription>
+                <h3 className="text-lg font-semibold text-gray-900">Statistički prikaz projekcija</h3>
+                <p className="text-sm text-gray-700 mt-1">
                   Vizualizacija projicirane potrošnje goriva.
-                </CardDescription>
+                </p>
               </div>
-              <div className="flex items-center space-x-2">
-                <Button variant="outline" size="sm" onClick={handleExportTablePDF} className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 border-blue-500/30">
-                  <Table className="mr-2 h-4 w-4" />
-                  Tabela u PDF
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleExportChartsPDF} className="bg-[#F08080]/10 hover:bg-[#F08080]/20 text-[#F08080] border-[#F08080]/30">
-                  <BarChart3 className="mr-2 h-4 w-4" />
-                  Grafikoni u PDF
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleExportExcel} className="bg-green-500/10 hover:bg-green-500/20 text-green-600 border-green-500/30">
-                  <Sheet className="mr-2 h-4 w-4" />
-                  Excel
-                </Button>
+              <div className="flex items-center flex-wrap gap-2">
+                <button onClick={handleExportTablePDF} className="px-3 py-2 text-sm font-medium border border-gray-300 text-gray-900 rounded-lg hover:border-gray-400 hover:bg-blue-50 transition-all flex items-center gap-2 whitespace-nowrap">
+                  <Table className="h-4 w-4" />
+                  <span>Tabela u PDF</span>
+                </button>
+                <button onClick={handleExportChartsPDF} className="px-3 py-2 text-sm font-medium border border-gray-300 text-gray-900 rounded-lg hover:border-gray-400 hover:bg-stone-100 transition-all flex items-center gap-2 whitespace-nowrap">
+                  <BarChart3 className="h-4 w-4" />
+                  <span>Grafikoni u PDF</span>
+                </button>
+                <button onClick={handleExportExcel} className="px-3 py-2 text-sm font-medium border border-gray-300 text-gray-900 rounded-lg hover:border-gray-400 hover:bg-green-50 transition-all flex items-center gap-2 whitespace-nowrap">
+                  <Sheet className="h-4 w-4" />
+                  <span>Excel</span>
+                </button>
                 {airlines.length > 0 && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline">
+                      <button className="px-3 py-2 text-sm font-medium border border-gray-300 text-gray-900 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-all flex items-center gap-2 whitespace-nowrap">
                         Avio Kompanije ({selectedAirlines.length === 0 ? 'Sve' : selectedAirlines.length})
-                        <ChevronDown className="ml-2 h-4 w-4" />
-                      </Button>
+                        <ChevronDown className="h-4 w-4" />
+                      </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-56 max-h-60 overflow-y-auto">
                       <DropdownMenuLabel>Filtriraj po Avio Kompaniji</DropdownMenuLabel>
@@ -780,10 +774,10 @@ export default function FuelProjections() {
                 )}
               </div>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
+          </div>
+          <div className="p-6 space-y-6">
             <div>
-              <h3 className="text-lg font-semibold mb-2">Potrošnja po Avio Kompaniji</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Potrošnja po Avio Kompaniji</h3>
               {airlineConsumptionData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart 
@@ -810,7 +804,7 @@ export default function FuelProjections() {
             </div>
             {/* Grafikon po destinaciji */}
             <div className="mt-6">
-              <h3 className="text-lg font-semibold mb-2">Potrošnja po Destinaciji</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Potrošnja po Destinaciji</h3>
               {destinationConsumptionData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart 
@@ -837,7 +831,7 @@ export default function FuelProjections() {
             </div>
             {/* Grafikon ukupne potrošnje */}
             <div className="mt-6">
-              <h3 className="text-lg font-semibold mb-2">Ukupna Potrošnja (Mjesečno, Kvartalno, Godišnje)</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Ukupna Potrošnja (Mjesečno, Kvartalno, Godišnje)</h3>
               {overallConsumptionData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart 
@@ -865,8 +859,8 @@ export default function FuelProjections() {
               )}
             </div>
             {/* Ovdje će doći ostali grafovi */}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
     </div>
   );

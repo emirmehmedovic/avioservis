@@ -221,55 +221,38 @@ export default function OstalaOpremaPage() {
       transition={{ duration: 0.5 }}
     >
       {/* Header */}
-      <div className="bg-white rounded-xl overflow-hidden shadow-lg border border-gray-100">
-        <div className="relative overflow-hidden p-6 rounded-xl shadow-lg text-white">
-          {/* Black gradient with subtle blue corners */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[#4d4c4c] to-[#1a1a1a] backdrop-blur-md border border-white/10 z-0"></div>
-          {/* Subtle blue shadows in corners */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full filter blur-3xl opacity-5 -translate-y-1/2 translate-x-1/4 z-0"></div>
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-800 rounded-full filter blur-3xl opacity-5 translate-y-1/2 -translate-x-1/4 z-0"></div>
-          
-          {/* Glass highlight effect */}
-          <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent z-0"></div>
-          
-          <div className="relative z-10">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg">
-                  <Wrench className="h-8 w-8 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-white mb-2">
-                    Ostala Oprema
-                  </h1>
-                  <p className="text-gray-300">
-                    Upravljanje i praćenje ostale opreme
-                  </p>
-                </div>
-              </div>
+      <div className="relative overflow-hidden rounded-xl border border-white/10 backdrop-blur-md bg-gradient-to-br from-[#4d4c4c] to-[#1a1a1a] shadow-lg p-6 mb-6">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gray-600 rounded-full filter blur-3xl opacity-10 -translate-y-1/2 translate-x-1/4"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gray-800 rounded-full filter blur-3xl opacity-10 translate-y-1/2 -translate-x-1/4"></div>
 
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button
-                  onClick={() => setIsFormOpen(true)}
-                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 py-3 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center space-x-2"
-                >
-                  <Plus className="h-5 w-5" />
-                  <span>Nova Oprema</span>
-                </Button>
-
-                <Button
-                  onClick={handleGenerateFullReport}
-                  disabled={generateReportLoading || opremaList.length === 0}
-                  className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center space-x-2"
-                >
-                  {generateReportLoading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <FileText className="h-5 w-5" />
-                  )}
-                  <span>Ukupni Izvještaj</span>
-                </Button>
-              </div>
+        <div className="relative z-10">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-white">
+                Ostala Oprema
+              </h1>
+              <p className="text-gray-300 mt-1">Upravljanje i praćenje ostale opreme</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+              <Button
+                onClick={handleGenerateFullReport}
+                disabled={generateReportLoading || opremaList.length === 0}
+                className="bg-amber-600 hover:bg-amber-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 duration-200"
+              >
+                {generateReportLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <FileText className="h-4 w-4 mr-2" />
+                )}
+                Izvještaj
+              </Button>
+              <Button
+                onClick={() => setIsFormOpen(true)}
+                className="backdrop-blur-md bg-slate-600/80 hover:bg-slate-700 border border-white/20 text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all font-medium duration-200"
+              >
+                <Plus size={18} className="mr-2"/>
+                <span className="hidden sm:inline">Nova</span>
+              </Button>
             </div>
           </div>
         </div>
@@ -278,70 +261,58 @@ export default function OstalaOpremaPage() {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <motion.div variants={itemVariants}>
-          <div className="group relative">
-            <div className="relative bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 opacity-0 group-hover:opacity-5 transition-opacity duration-300"></div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-500 text-sm font-medium">Ukupno Opreme</p>
-                  <p className="text-2xl font-bold text-gray-800">{summary.ukupno}</p>
-                </div>
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <Wrench className="w-6 h-6 text-white" />
-                </div>
+          <div className="relative bg-white rounded-xl p-6 shadow-md border border-gray-200 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm font-medium">Ukupno Opreme</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{summary.ukupno}</p>
+              </div>
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Wrench className="w-6 h-6 text-blue-600" />
               </div>
             </div>
           </div>
         </motion.div>
 
         <motion.div variants={itemVariants}>
-          <div className="group relative">
-            <div className="relative bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 opacity-0 group-hover:opacity-5 transition-opacity duration-300"></div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-500 text-sm font-medium">Prikazano</p>
-                  <p className="text-2xl font-bold text-gray-800">{filteredOprema.length}</p>
-                </div>
-                <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <Filter className="w-6 h-6 text-white" />
-                </div>
+          <div className="relative bg-white rounded-xl p-6 shadow-md border border-gray-200 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm font-medium">Prikazano</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{filteredOprema.length}</p>
+              </div>
+              <div className="w-12 h-12 bg-cyan-100 rounded-lg flex items-center justify-center">
+                <Filter className="w-6 h-6 text-cyan-600" />
               </div>
             </div>
           </div>
         </motion.div>
 
         <motion.div variants={itemVariants}>
-          <div className="group relative">
-            <div className="relative bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 opacity-0 group-hover:opacity-5 transition-opacity duration-300"></div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-500 text-sm font-medium">Vlasnici</p>
-                  <p className="text-2xl font-bold text-gray-800">{uniqueVlasnici.length}</p>
-                </div>
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <Settings2 className="w-6 h-6 text-white" />
-                </div>
+          <div className="relative bg-white rounded-xl p-6 shadow-md border border-gray-200 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm font-medium">Vlasnici</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{uniqueVlasnici.length}</p>
+              </div>
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <Settings2 className="w-6 h-6 text-purple-600" />
               </div>
             </div>
           </div>
         </motion.div>
 
         <motion.div variants={itemVariants}>
-          <div className="group relative">
-            <div className="relative bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 opacity-0 group-hover:opacity-5 transition-opacity duration-300"></div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-500 text-sm font-medium">Sa Dokumentima</p>
-                  <p className="text-2xl font-bold text-gray-800">
-                    {opremaList.filter(o => o.dokument_url).length}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <FileText className="w-6 h-6 text-white" />
-                </div>
+          <div className="relative bg-white rounded-xl p-6 shadow-md border border-gray-200 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm font-medium">Sa Dokumentima</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">
+                  {opremaList.filter(o => o.dokument_url).length}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <FileText className="w-6 h-6 text-green-600" />
               </div>
             </div>
           </div>
@@ -351,34 +322,34 @@ export default function OstalaOpremaPage() {
       {/* Search and Filters */}
       <motion.div
         variants={itemVariants}
-        className="bg-white rounded-xl shadow-lg border border-gray-100 p-6"
+        className="bg-white rounded-xl shadow-md border border-gray-200 p-6"
       >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <Label htmlFor="search" className="text-gray-700 text-sm font-medium">
+            <Label htmlFor="search" className="text-gray-700 font-medium text-sm mb-2 block">
               Pretraži opremu
             </Label>
-            <div className="relative mt-1">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
                 id="search"
-                placeholder="Naziv, vlasnik, mjesto korištenja..."
+                placeholder="Naziv, vlasnik, mjesto..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-white border-gray-200 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 shadow-sm"
+                className="pl-10 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-sm transition-all"
               />
             </div>
           </div>
 
           <div>
-            <Label htmlFor="filterVlasnik" className="text-gray-700 text-sm font-medium">
+            <Label htmlFor="filterVlasnik" className="text-gray-700 font-medium text-sm mb-2 block">
               Vlasnik
             </Label>
             <select
               id="filterVlasnik"
               value={filterVlasnik}
               onChange={(e) => setFilterVlasnik(e.target.value)}
-              className="w-full mt-1 p-3 border border-gray-200 rounded-lg bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 shadow-sm"
+              className="w-full p-3 border border-gray-200 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-sm transition-all"
             >
               <option value="">Svi vlasnici</option>
               {uniqueVlasnici.map((vlasnik) => (
@@ -395,36 +366,36 @@ export default function OstalaOpremaPage() {
                 setSearchTerm('');
                 setFilterVlasnik('');
               }}
-              variant="outline"
-              className="w-full bg-white hover:bg-gray-50 border-gray-300 text-gray-700 hover:text-gray-900 shadow-sm"
+              className="bg-gray-100 hover:bg-gray-200 text-gray-900 border border-gray-300 transition-all duration-200 px-4 py-2 w-full font-medium"
             >
-              Resetuj filtere
+              Očisti filtere
             </Button>
           </div>
         </div>
       </motion.div>
 
       {/* Results */}
-      <motion.div 
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        {filteredOprema.length === 0 ? (
-          <div className="col-span-full flex flex-col items-center justify-center py-16 bg-white rounded-xl border border-dashed border-gray-300 shadow-sm">
-            <Wrench className="h-16 w-16 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-800 mb-2">Nema pronađene opreme</h3>
-            <p className="text-gray-500 text-center">
-              {searchTerm || filterVlasnik 
-                ? 'Pokušajte sa drugačijim kriterijuma pretrage'
-                : 'Dodajte novu opremu klikom na dugme "Nova Oprema"'
-              }
-            </p>
-          </div>
-        ) : (
-          filteredOprema.map((oprema, index) => (
-            <motion.div key={oprema.id} variants={itemVariants}>
+      {filteredOprema.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 bg-white rounded-xl border border-dashed border-gray-300 shadow-sm">
+          <Wrench className="h-16 w-16 text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium text-gray-800 mb-2">Nema pronađene opreme</h3>
+          <p className="text-gray-500 text-center">
+            {searchTerm || filterVlasnik
+              ? 'Pokušajte sa drugačijim kriterijuma pretrage'
+              : 'Dodajte novu opremu klikom na dugme "Nova Oprema"'
+            }
+          </p>
+        </div>
+      ) : (
+        <motion.div
+          className="columns-1 md:columns-2 lg:columns-3 gap-6"
+          style={{ columnGap: '24px' }}
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          {filteredOprema.map((oprema) => (
+            <motion.div key={oprema.id} variants={itemVariants} className="break-inside-avoid mb-6">
               <OstalaOpremaCard
                 oprema={oprema}
                 onEdit={handleEdit}
@@ -432,9 +403,9 @@ export default function OstalaOpremaPage() {
                 onGeneratePDF={handleGeneratePDF}
               />
             </motion.div>
-          ))
-        )}
-      </motion.div>
+          ))}
+        </motion.div>
+      )}
 
       {/* Form Modal */}
       <OstalaOpremaForm

@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getFixedTanks, getFixedTankHistory, getTotalFixedTankIntake, getAllFixedTankIntakesList, getTotalFuelSummary } from '@/lib/apiService';
 import type { FixedStorageTank, TankTransaction } from '@/types/fuel';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { Badge } from '@/components/ui/badge';
@@ -411,179 +410,164 @@ export default function FixedTanksReport() {
   };
 
   if (loading) return (
-    <div className="flex justify-center items-center h-64 bg-gradient-to-br from-[#2c2c2c] to-[#1a1a1a] rounded-xl shadow-lg border border-white/5">
-      <div className="flex flex-col items-center">
-        <Loader2 className="h-10 w-10 animate-spin text-[#F08080]" />
-        <span className="mt-4 text-white font-medium">Učitavanje izvještaja o fiksnim tankovima...</span>
-      </div>
+    <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+      <Loader2 className="h-12 w-12 animate-spin text-slate-600 mx-auto mb-4" />
+      <p className="text-gray-600 font-medium">Učitavanje izvještaja o fiksnim tankovima...</p>
     </div>
   );
-  
+
   if (error) return (
-    <div className="relative overflow-hidden rounded-xl border border-white/10 backdrop-blur-md bg-gradient-to-br from-[#4d4c4c] to-[#1a1a1a] shadow-lg p-6">
-      <div className="absolute top-0 right-0 w-64 h-64 bg-red-500 rounded-full filter blur-3xl opacity-5 -translate-y-1/2 translate-x-1/4 z-0"></div>
-      <div className="absolute bottom-0 left-0 w-64 h-64 bg-red-500 rounded-full filter blur-3xl opacity-5 translate-y-1/2 -translate-x-1/4 z-0"></div>
-      <div className="flex items-center relative z-10">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
-        <span className="text-white font-medium">Greška: {error}</span>
-      </div>
-    </div>
-  );
-  
-  if (tanks.length === 0) return (
-    <div className="relative overflow-hidden rounded-xl border border-white/10 backdrop-blur-md bg-gradient-to-br from-[#4d4c4c] to-[#1a1a1a] shadow-lg p-6">
-      <div className="absolute top-0 right-0 w-64 h-64 bg-[#4FC3C7] rounded-full filter blur-3xl opacity-5 -translate-y-1/2 translate-x-1/4 z-0"></div>
-      <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#4FC3C7] rounded-full filter blur-3xl opacity-5 translate-y-1/2 -translate-x-1/4 z-0"></div>
-      <div className="flex items-center relative z-10">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#4FC3C7] mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <span className="text-white font-medium">Nema dostupnih fiksnih tankova.</span>
+    <div className="bg-white rounded-lg border border-red-200 p-6">
+      <div className="flex items-start gap-4">
+        <div className="flex-shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold text-red-900 mb-1">Greška pri učitavanju</h3>
+          <p className="text-red-700">{error}</p>
+        </div>
       </div>
     </div>
   );
 
+  if (tanks.length === 0) return (
+    <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <p className="text-gray-600 font-medium">Nema dostupnih fiksnih tankova.</p>
+    </div>
+  );
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl overflow-hidden max-w-full">
-      {/* Header with glassmorphism effect */}
-      <div className="relative overflow-hidden rounded-xl border border-white/10 backdrop-blur-md bg-gradient-to-br from-[#4d4c4c] to-[#1a1a1a] shadow-lg p-6">
-        {/* Subtle red shadows in corners */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-[#F08080] rounded-full filter blur-3xl opacity-5 -translate-y-1/2 translate-x-1/4 z-0"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#F08080] rounded-full filter blur-3xl opacity-5 translate-y-1/2 -translate-x-1/4 z-0"></div>
-        
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 relative z-10">
+    <div className="bg-white rounded-lg overflow-hidden max-w-full border border-gray-200">
+      {/* Header - Clean, minimal design */}
+      <div className="bg-gradient-to-r from-[#4d4c4c] to-[#1a1a1a] p-6 sm:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="text-2xl md:text-3xl font-bold text-white flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mr-2 text-[#F08080]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mr-3 text-[#4FC3C7]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
               Izvještaj o Fiksnim Rezervoarima Goriva
             </h2>
-            <p className="text-gray-300 mt-1 ml-10">Pregled stanja i historije transakcija fiksnih rezervoara</p>
+            <p className="text-gray-400 mt-2">Pregled stanja i historije transakcija fiksnih rezervoara</p>
           </div>
         </div>
       </div>
       
-      <div className="p-2 sm:p-4 md:p-6">
-        {/* Summary Section */}
-        <Card className="shadow-lg mb-6 bg-[#1a1a1a]/90 backdrop-blur-md border border-white/10">
-          <CardHeader className="bg-transparent">
-            <CardTitle className="text-2xl font-semibold text-black">Sažetak Stanja Goriva tipa JET A-1</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6 p-6 bg-transparent">
-            <div className="bg-[#1a1a1a]/90 backdrop-blur-md border border-white/10 p-4 rounded-lg shadow">
-              <h3 className="text-lg font-semibold text-white flex items-center">
-                <BeakerIcon className="h-5 w-5 mr-2 text-[#F08080]" />
-                Ukupno Stanje Goriva
-                                  <button 
-                    onClick={fetchFuelSummary} 
-                    className="ml-2 text-white hover:text-white/70"
-                    disabled={summaryLoading}
-                    title="Osvježi podatke"
-                  >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </button>
-              </h3>
-              <div className="mt-4">
-                {summaryLoading ? (
-                  <div className="flex justify-center items-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+      <div className="p-4 sm:p-6 md:p-8">
+        {/* Summary Section - Minimal, clean design */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl sm:text-2xl font-semibold text-gray-900">Sažetak Stanja Goriva</h3>
+            <button
+              onClick={fetchFuelSummary}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              disabled={summaryLoading}
+              title="Osvježi podatke"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+          </div>
+
+          {summaryLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          ) : summaryError ? (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+              {summaryError}
+            </div>
+          ) : fuelSummary ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-5 bg-slate-50 border border-slate-200 rounded-lg hover:shadow-md transition-shadow">
+                <div className="flex items-start space-x-3">
+                  <div className="p-2.5 bg-slate-100 rounded-lg">
+                    <svg className="w-6 h-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
                   </div>
-                ) : summaryError ? (
-                  <div className="text-red-400 py-2">
-                    {summaryError}
+                  <div>
+                    <p className="text-sm text-gray-600 font-medium">Fiksni Tankovi</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">
+                      {fuelSummary?.fixedTanksTotal != null ? fuelSummary.fixedTanksTotal.toLocaleString('bs-BA', { maximumFractionDigits: 0 }) : '0'} L
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {fuelSummary?.fixedTanksTotalKg != null ? fuelSummary.fixedTanksTotalKg.toLocaleString('bs-BA', { maximumFractionDigits: 0 }) : '0'} kg
+                    </p>
                   </div>
-                ) : fuelSummary ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="p-4 bg-[#F08080]/30 rounded-xl border border-[#F08080]/20">
-                      <div className="flex items-center space-x-3">
-                        <svg className="w-8 h-8 text-[#F08080]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M20 6H4C2.89543 6 2 6.89543 2 8V16C2 17.1046 2.89543 18 4 18H20C21.1046 18 22 17.1046 22 16V8C22 6.89543 21.1046 6 20 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M12 14C13.1046 14 14 13.1046 14 12C14 10.8954 13.1046 10 12 10C10.8954 10 10 10.8954 10 12C10 13.1046 10.8954 14 12 14Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        <div>
-                          <p className="text-sm text-white/70">Fiksni Tankovi</p>
-                          <p className="text-2xl font-bold text-white">
-                            {fuelSummary?.fixedTanksTotal != null ? fuelSummary.fixedTanksTotal.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} L
-                          </p>
-                          <p className="text-sm text-white/70">
-                            {fuelSummary?.fixedTanksTotalKg != null ? fuelSummary.fixedTanksTotalKg.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} kg
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="p-4 bg-[#90EE90]/30 rounded-xl border border-[#90EE90]/20">
-                      <div className="flex items-center space-x-3">
-                        <svg className="w-8 h-8 text-[#90EE90]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M19.7 11H18.3C17.91 11 17.58 11.33 17.5 11.72L17 14H7L6.5 11.72C6.42 11.33 6.09 11 5.7 11H4.3C3.84 11 3.5 11.5 3.66 11.93L4.65 15.59C4.79 16.35 5.47 16.91 6.25 16.91H17.75C18.53 16.91 19.21 16.35 19.35 15.59L20.34 11.93C20.5 11.5 20.16 11 19.7 11Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M9 6.5V9.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M15 6.5V9.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M12 4V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        <div>
-                          <p className="text-sm text-white/70">Mobilni Tankovi</p>
-                          <p className="text-2xl font-bold text-white">
-                            {fuelSummary?.mobileTanksTotal != null ? fuelSummary.mobileTanksTotal.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} L
-                          </p>
-                          <p className="text-sm text-white/70">
-                            {fuelSummary?.mobileTanksTotalKg != null ? fuelSummary.mobileTanksTotalKg.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} kg
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="p-4 bg-[#87CEEB]/30 rounded-xl border border-[#87CEEB]/20">
-                      <div className="flex items-center space-x-3">
-                        <svg className="w-8 h-8 text-[#87CEEB]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M3 6H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        <div>
-                          <p className="text-sm text-white/70">Ukupno</p>
-                          <p className="text-2xl font-bold text-white">
-                            {fuelSummary?.grandTotal != null ? fuelSummary.grandTotal.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} L
-                          </p>
-                          <p className="text-sm text-white/70">
-                            {fuelSummary?.grandTotalKg != null ? fuelSummary.grandTotalKg.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} kg
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="p-4 bg-[#DDA0DD]/30 rounded-xl border border-[#DDA0DD]/20">
-                      <div className="flex items-center space-x-3">
-                        <svg className="w-8 h-8 text-[#DDA0DD]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        <div>
-                          <p className="text-sm text-white/70">Prosječna gustoća</p>
-                          <p className="text-2xl font-bold text-white">
-                            {fuelSummary?.grandTotal && fuelSummary?.grandTotalKg ? 
-                              (fuelSummary.grandTotalKg / fuelSummary.grandTotal).toLocaleString('bs-BA', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) : 
-                              '0.0000'
-                            }
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                </div>
+              </div>
+
+              <div className="p-5 bg-stone-50 border border-stone-200 rounded-lg hover:shadow-md transition-shadow">
+                <div className="flex items-start space-x-3">
+                  <div className="p-2.5 bg-stone-100 rounded-lg">
+                    <svg className="w-6 h-6 text-stone-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
                   </div>
-                ) : (
-                  <div className="text-white/70 py-2">
-                    Nema podataka o ukupnom stanju goriva.
+                  <div>
+                    <p className="text-sm text-gray-600 font-medium">Mobilni Tankovi</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">
+                      {fuelSummary?.mobileTanksTotal != null ? fuelSummary.mobileTanksTotal.toLocaleString('bs-BA', { maximumFractionDigits: 0 }) : '0'} L
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {fuelSummary?.mobileTanksTotalKg != null ? fuelSummary.mobileTanksTotalKg.toLocaleString('bs-BA', { maximumFractionDigits: 0 }) : '0'} kg
+                    </p>
                   </div>
-                )}
+                </div>
+              </div>
+
+              <div className="p-5 bg-zinc-50 border border-zinc-200 rounded-lg hover:shadow-md transition-shadow">
+                <div className="flex items-start space-x-3">
+                  <div className="p-2.5 bg-zinc-100 rounded-lg">
+                    <svg className="w-6 h-6 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 font-medium">Ukupno</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">
+                      {fuelSummary?.grandTotal != null ? fuelSummary.grandTotal.toLocaleString('bs-BA', { maximumFractionDigits: 0 }) : '0'} L
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {fuelSummary?.grandTotalKg != null ? fuelSummary.grandTotalKg.toLocaleString('bs-BA', { maximumFractionDigits: 0 }) : '0'} kg
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-5 bg-neutral-50 border border-neutral-200 rounded-lg hover:shadow-md transition-shadow">
+                <div className="flex items-start space-x-3">
+                  <div className="p-2.5 bg-neutral-100 rounded-lg">
+                    <svg className="w-6 h-6 text-neutral-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 font-medium">Gustoća</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">
+                      {fuelSummary?.grandTotal && fuelSummary?.grandTotalKg ?
+                        (fuelSummary.grandTotalKg / fuelSummary.grandTotal).toLocaleString('bs-BA', { minimumFractionDigits: 3, maximumFractionDigits: 3 }) :
+                        '0.000'
+                      }
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">kg/L</p>
+                  </div>
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          ) : (
+            <div className="p-6 bg-gray-50 rounded-lg text-gray-600 text-center">
+              Nema podataka o ukupnom stanju goriva.
+            </div>
+          )}
+        </div>
         
         <div className="grid gap-6">
           {tanks.map(tank => {
@@ -600,78 +584,76 @@ export default function FixedTanksReport() {
                 : 'bg-green-500';
                 
             return (
-              <div 
-                key={tank.id} 
-                className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden"
+              <div
+                key={tank.id}
+                className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow duration-200"
               >
-                <div className="p-5 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                {/* Card header with teal accent */}
+                <div className="h-1 bg-gradient-to-r from-[#4FC3C7] to-teal-400"></div>
+
+                <div className="p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+                    <div className="flex-1">
+                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3">
                         {tank.tank_name}
                       </h3>
-                        <div className="mt-1 flex flex-wrap gap-1 sm:gap-2">
-                        <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300 hover:bg-indigo-200 text-xs sm:text-sm">
+                      <div className="flex flex-wrap gap-2">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
                           {tank.fuel_type}
-                        </Badge>
-                        <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 hover:bg-blue-200 text-xs sm:text-sm">
+                        </span>
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
                           Kap: {tank.capacity_liters.toLocaleString()} L
-                        </Badge>
+                        </span>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center gap-4">
-                      {/* Fill level indicator */}
-                      {typeof tank.current_quantity_liters === 'number' && (
-                        <div className="hidden sm:flex flex-col items-center">
-                          <div className="w-20 h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full ${fillColorClass} rounded-full`} 
+
+                    {/* Action button */}
+                    <button
+                      onClick={() => toggleHistory(tank.id)}
+                      className="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 whitespace-nowrap"
+                    >
+                      {tank.showHistory
+                        ? <ChevronUp className="h-4 w-4" />
+                        : <ChevronDown className="h-4 w-4" />
+                      }
+                      {tank.historyLoading
+                        ? 'Učitavanje...'
+                        : (tank.showHistory ? 'Sakrij' : 'Prikaži')
+                      }
+                    </button>
+                  </div>
+
+                  {/* Current quantity section */}
+                  {typeof tank.current_quantity_liters === 'number' && (
+                    <div className="space-y-4">
+                      <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                        <div className="flex items-baseline justify-between">
+                          <div>
+                            <p className="text-sm text-gray-600 font-medium mb-1">Trenutno stanje</p>
+                            <p className="text-3xl font-bold text-gray-900">
+                              {tank.current_quantity_liters.toLocaleString()}
+                              <span className="text-lg text-gray-600 ml-1">L</span>
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-gray-600 font-medium mb-1">Kapacitet</p>
+                            <p className="text-lg font-semibold text-gray-900">
+                              {tank.capacity_liters.toLocaleString()} L
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Progress bar */}
+                        <div className="mt-4">
+                          <div className="w-full h-2 bg-gray-300 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${fillColorClass}`}
                               style={{ width: `${fillPercentage}%` }}
                             ></div>
                           </div>
-                          <span className="mt-1 text-xs font-medium text-gray-600 dark:text-gray-400">
-                            {fillPercentage.toFixed(0)}% puno
-                          </span>
-                        </div>
-                      )}
-                      
-                      <button
-                        onClick={() => toggleHistory(tank.id)}
-                        className="backdrop-blur-md bg-gray-700/70 border border-white/20 text-white shadow-lg hover:bg-gray-600/70 transition-all font-medium rounded-xl flex items-center gap-2 px-3 py-1.5 text-xs sm:text-sm"
-                      >
-                        {tank.showHistory 
-                          ? <><ChevronUp className="h-4 w-4 mr-1" /></>
-                          : <><ChevronDown className="h-4 w-4 mr-1" /></>
-                        }
-                        {tank.historyLoading 
-                          ? 'Učitavanje...' 
-                          : (tank.showHistory ? 'Sakrij Historiju' : 'Prikaži Historiju')
-                        }
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {/* Current quantity display */}
-                  {typeof tank.current_quantity_liters === 'number' && (
-                    <div className="mt-4 flex items-center">
-                      <div className="flex-1">
-                        <div className="flex items-baseline">
-                          <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {tank.current_quantity_liters.toLocaleString()}
-                          </span>
-                          <span className="ml-1 text-gray-600 dark:text-gray-400">L</span>
-                          <span className="ml-2 text-sm text-gray-500 dark:text-gray-500">
-                            trenutno stanje
-                          </span>
-                        </div>
-                        
-                        {/* Mobile-only progress bar */}
-                        <div className="mt-2 sm:hidden w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full ${fillColorClass} rounded-full`} 
-                            style={{ width: `${fillPercentage}%` }}
-                          ></div>
+                          <p className="mt-2 text-sm text-gray-600 font-medium">
+                            {fillPercentage.toFixed(1)}% popunjeno
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -680,19 +662,19 @@ export default function FixedTanksReport() {
                 
                 {/* History section */}
                 {tank.showHistory && (
-                  <div className="border-t border-gray-200 dark:border-gray-700">
+                  <div className="border-t border-gray-200 bg-gray-50">
                     {/* Loading state */}
                     {tank.historyLoading && (
                       <div className="p-8 flex justify-center items-center">
-                        <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
-                        <span className="ml-3 text-gray-600 dark:text-gray-400">Učitavanje historije...</span>
+                        <Loader2 className="h-8 w-8 animate-spin text-slate-600" />
+                        <span className="ml-3 text-gray-600">Učitavanje historije...</span>
                       </div>
                     )}
-                    
+
                     {/* Error state */}
                     {tank.errorHistory && (
-                      <div className="p-4 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800">
-                        <div className="flex items-center text-red-600 dark:text-red-400">
+                      <div className="p-4 bg-red-50 border-b border-red-200 m-4 rounded-lg">
+                        <div className="flex items-center text-red-700">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                           </svg>
@@ -705,80 +687,81 @@ export default function FixedTanksReport() {
                     {!tank.historyLoading && !tank.errorHistory && (
                       <>
                         {/* Filter controls */}
-                        <CardContent>
+                        <div className="p-6 bg-white border-b border-gray-200">
                           {/* Filters Row */}
-                          <div className="flex flex-col md:flex-row md:space-x-2 space-y-2 md:space-y-0 mb-4 items-start md:items-end">
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                             {/* Start Date Filter */}
-                            <div className="flex-1">
-                              <label htmlFor={`start-date-${tank.id}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Početni datum:
+                            <div>
+                              <label htmlFor={`start-date-${tank.id}`} className="block text-sm font-medium text-gray-700 mb-2">
+                                Od datuma
                               </label>
-                              <Input 
-                                type="date" 
+                              <Input
+                                type="date"
                                 id={`start-date-${tank.id}`}
-                                value={tank.filterStartDate || ''} 
+                                value={tank.filterStartDate || ''}
                                 onChange={(e) => handleFilterDateChange(tank.id, 'startDate', e.target.value)}
-                                className="w-full"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
                               />
                             </div>
                             {/* End Date Filter */}
-                            <div className="flex-1">
-                              <label htmlFor={`end-date-${tank.id}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Krajnji datum:
+                            <div>
+                              <label htmlFor={`end-date-${tank.id}`} className="block text-sm font-medium text-gray-700 mb-2">
+                                Do datuma
                               </label>
-                              <Input 
-                                type="date" 
+                              <Input
+                                type="date"
                                 id={`end-date-${tank.id}`}
-                                value={tank.filterEndDate || ''} 
+                                value={tank.filterEndDate || ''}
                                 onChange={(e) => handleFilterDateChange(tank.id, 'endDate', e.target.value)}
-                                className="w-full"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
                               />
                             </div>
                             {/* Transaction Type Filter */}
-                            <div className="flex-1 md:mt-0 mt-2">
-                              <label htmlFor={`filter-type-${tank.id}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Tip transakcije:
+                            <div>
+                              <label htmlFor={`filter-type-${tank.id}`} className="block text-sm font-medium text-gray-700 mb-2">
+                                Tip transakcije
                               </label>
                               <select
                                 id={`filter-type-${tank.id}`}
                                 value={tank.filterTransactionType || 'all'}
                                 onChange={(e) => handleFilterTransactionTypeChange(tank.id, e.target.value as TankTransaction['type'] | 'all')}
-                                className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
                               >
                                 <option value="all">Svi tipovi</option>
                                 <option value="intake">Ulaz</option>
                                 <option value="transfer_to_mobile">Izlaz (Mob.)</option>
                                 <option value="fuel_drain">Drenirano</option>
-                                <option value="fuel_return">Povrat filtriranog goriva</option>
+                                <option value="fuel_return">Povrat filtriranog</option>
                                 <option value="internal_transfer_in">Interni Ulaz</option>
                                 <option value="internal_transfer_out">Interni Izlaz</option>
                               </select>
                             </div>
                             {/* Action Buttons */}
-                            <div className="flex items-end space-x-2 md:mt-0 mt-2">
-                              <button onClick={() => toggleHistory(tank.id, true)} className="backdrop-blur-md bg-[#e53e3e]/80 border border-white/20 text-white shadow-lg hover:bg-[#e53e3e]/90 transition-all font-medium rounded-xl flex items-center gap-2 px-3 py-1.5 text-xs sm:text-sm whitespace-nowrap">
-                                <Filter size={14} className="mr-1 sm:mr-2" />
-                                <span className="hidden sm:inline">Primijeni Filtere i Osvježi</span>
-                                <span className="inline sm:hidden">Osvježi</span>
+                            <div className="flex items-end gap-2">
+                              <button onClick={() => toggleHistory(tank.id, true)} className="flex-1 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                                <Filter size={16} />
+                                <span className="hidden sm:inline">Osvježi</span>
                               </button>
                               {tank.history && tank.history.length > 0 && (
-                                <button onClick={() => handleExportToPdf(tank)} className="backdrop-blur-md bg-[#e53e3e]/80 border border-white/20 text-white shadow-lg hover:bg-[#e53e3e]/90 transition-all font-medium rounded-xl flex items-center gap-2 px-3 py-1.5 text-xs sm:text-sm">
-                                  <FileDown size={14} className="mr-1 sm:mr-2" />
-                                  <span className="hidden sm:inline">Izvezi u PDF</span>
-                                  <span className="inline sm:hidden">PDF</span>
+                                <button onClick={() => handleExportToPdf(tank)} className="flex-1 px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                                  <FileDown size={16} />
+                                  <span className="hidden sm:inline">PDF</span>
                                 </button>
                               )}
                             </div>
                           </div>
-                        </CardContent>
+                        </div>
 
                         {/* No data message */}
                         {(!tank.history || tank.history.length === 0) ? (
-                          <div className="p-8 text-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <p className="mt-4 text-gray-600 dark:text-gray-400">Nema historije transakcija za odabrani period.</p>
+                          <div className="p-12 text-center bg-white">
+                            <div className="mx-auto w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            </div>
+                            <p className="text-gray-600 font-medium">Nema historije transakcija</p>
+                            <p className="text-gray-500 text-sm mt-1">Odaberite period ili primijeni filtere da vidjete transakcije.</p>
                           </div>
                         ) : (
                           <div className="overflow-x-auto -mx-2 sm:mx-0 px-2 sm:px-0">
@@ -876,80 +859,87 @@ export default function FixedTanksReport() {
       </div>
 
       {/* Total Intake Summary Section */}
-      <div className="mt-12 pt-8 border-t">
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-2xl font-semibold text-gray-800 dark:text-gray-200">Ukupan Ulaz Goriva</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6 p-6">
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg shadow">
-              <h3 className="text-base sm:text-lg font-medium text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">Ukupan ulaz goriva (po periodu):</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4 items-end">
-                <div>
-                  <label htmlFor="totalIntakeStartDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Od datuma:</label>
-                  <Input
-                    type="date"
-                    id="totalIntakeStartDate"
-                    value={totalIntakeStartDate}
-                    onChange={(e) => setTotalIntakeStartDate(e.target.value)}
-                    className="w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="totalIntakeEndDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Do datuma:</label>
-                  <Input
-                    type="date"
-                    id="totalIntakeEndDate"
-                    value={totalIntakeEndDate}
-                    onChange={(e) => setTotalIntakeEndDate(e.target.value)}
-                    className="w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
-                  />
-                </div>
+      <div className="mt-12 pt-8 border-t border-gray-200">
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Ukupan Ulaz Goriva</h2>
+
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div>
+                <label htmlFor="totalIntakeStartDate" className="block text-sm font-medium text-gray-700 mb-2">Od datuma</label>
+                <Input
+                  type="date"
+                  id="totalIntakeStartDate"
+                  value={totalIntakeStartDate}
+                  onChange={(e) => setTotalIntakeStartDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+                />
               </div>
-              <button 
-                onClick={fetchCombinedIntakeData} 
-                disabled={totalIntakeLoading || !totalIntakeStartDate || !totalIntakeEndDate} 
-                className="backdrop-blur-md bg-[#e53e3e]/80 border border-white/20 text-white shadow-lg hover:bg-[#e53e3e]/90 transition-all font-medium rounded-xl flex items-center gap-2 px-4 py-2 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {totalIntakeLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Filter className="h-4 w-4" />} 
-                <span className="hidden sm:inline">Osvježi Ukupan Ulaz</span>
-                <span className="inline sm:hidden">Osvježi</span>
-              </button>
-              
-              {totalIntakeLoading && (
-                <div className="mt-4 flex items-center justify-center text-gray-500 dark:text-gray-400 py-3">
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  <span>Dohvaćam ukupan ulaz...</span>
-                </div>
-              )}
-              {totalIntakeError && (
-                <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 dark:bg-red-900/30 dark:border-red-700 dark:text-red-400 rounded-md">
-                  <p>Greška: {totalIntakeError}</p>
-                </div>
-              )}
-              {!totalIntakeLoading && totalIntakeAmount !== null && !totalIntakeError && (
-                <p className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-2 sm:mt-4">
-                  {totalIntakeAmount ? parseFloat(String(totalIntakeAmount)).toFixed(2) : '0'} L
-                </p>
-              )}
-              {!totalIntakeLoading && totalIntakeAmount === null && !totalIntakeError && totalIntakeStartDate && totalIntakeEndDate && (
-                 <p className="mt-4 text-gray-500 dark:text-gray-400 py-3">Nema podataka o ulazu za odabrani period ili datumi nisu validni.</p>
-              )}
-               {!totalIntakeLoading && totalIntakeAmount === null && !totalIntakeError && (!totalIntakeStartDate || !totalIntakeEndDate) && (
-                 <p className="mt-4 text-gray-500 dark:text-gray-400 py-3">Molimo odaberite period za prikaz ukupnog ulaza.</p>
-              )}
+              <div>
+                <label htmlFor="totalIntakeEndDate" className="block text-sm font-medium text-gray-700 mb-2">Do datuma</label>
+                <Input
+                  type="date"
+                  id="totalIntakeEndDate"
+                  value={totalIntakeEndDate}
+                  onChange={(e) => setTotalIntakeEndDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+                />
+              </div>
+              <div className="flex items-end">
+                <button
+                  onClick={fetchCombinedIntakeData}
+                  disabled={totalIntakeLoading || !totalIntakeStartDate || !totalIntakeEndDate}
+                  className="w-full px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {totalIntakeLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Filter className="h-4 w-4" />}
+                  <span className="hidden sm:inline">Osvježi</span>
+                </button>
+              </div>
             </div>
 
-            {/* Section for Combined Intake List */}
-            {(totalIntakeStartDate && totalIntakeEndDate) && (
-              <AllIntakesList 
-                startDate={totalIntakeStartDate} 
-                endDate={totalIntakeEndDate} 
+            {totalIntakeLoading && (
+              <div className="flex items-center justify-center text-gray-500 py-6">
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                <span>Dohvaćam ukupan ulaz...</span>
+              </div>
+            )}
+            {totalIntakeError && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 mb-4">
+                <p>Greška: {totalIntakeError}</p>
+              </div>
+            )}
+            {!totalIntakeLoading && totalIntakeAmount !== null && !totalIntakeError && (
+              <div className="p-6 bg-slate-50 rounded-lg border border-slate-200">
+                <p className="text-sm text-gray-600 font-medium mb-2">Ukupan ulaz za odabrani period</p>
+                <p className="text-4xl font-bold text-slate-900">
+                  {totalIntakeAmount ? parseFloat(String(totalIntakeAmount)).toFixed(2) : '0'}
+                  <span className="text-xl text-slate-600 ml-2">L</span>
+                </p>
+              </div>
+            )}
+            {!totalIntakeLoading && totalIntakeAmount === null && !totalIntakeError && totalIntakeStartDate && totalIntakeEndDate && (
+              <div className="p-6 bg-gray-50 rounded-lg text-gray-600 text-center">
+                Nema podataka o ulazu za odabrani period.
+              </div>
+            )}
+            {!totalIntakeLoading && totalIntakeAmount === null && !totalIntakeError && (!totalIntakeStartDate || !totalIntakeEndDate) && (
+              <div className="p-6 bg-gray-50 rounded-lg text-gray-600 text-center">
+                Molimo odaberite period za prikaz ukupnog ulaza.
+              </div>
+            )}
+          </div>
+
+          {/* Section for Combined Intake List */}
+          {(totalIntakeStartDate && totalIntakeEndDate) && (
+            <div className="mt-8">
+              <AllIntakesList
+                startDate={totalIntakeStartDate}
+                endDate={totalIntakeEndDate}
                 title="Lista Svih Prijema Goriva u Fiksne Rezervoare (za odabrani period)"
               />
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

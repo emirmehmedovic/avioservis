@@ -40,7 +40,7 @@ const MRNBreakdownChart: React.FC<{
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-4">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#F08080]"></div>
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
       </div>
     );
   }
@@ -48,7 +48,7 @@ const MRNBreakdownChart: React.FC<{
   if (!customsData || customsData.length === 0) {
     return (
       <div className="text-center py-4">
-        <div className="text-xs text-gray-400">Nema MRN podataka</div>
+        <div className="text-xs text-gray-500">Nema MRN podataka</div>
       </div>
     );
   }
@@ -92,8 +92,8 @@ const MRNBreakdownChart: React.FC<{
   const totalKg = validCustomsData.reduce((sum, item) => sum + (item.remaining_quantity_kg || 0), 0);
 
   return (
-    <div className="mt-2">
-      <div className="text-xs text-gray-300 mb-1">MRN Raspodjela Goriva</div>
+    <div className="mt-2 relative z-50">
+      <div className="text-xs text-gray-300 mb-2">MRN Raspodjela Goriva</div>
       <div className="flex flex-col items-center">
         <PieChart width={120} height={100}>
           <Pie
@@ -115,20 +115,19 @@ const MRNBreakdownChart: React.FC<{
             formatter={(value: number, _name: string, entry: any) => {
               const kgValue = entry.payload.kg;
               return [
-                `${value.toLocaleString()} L${kgValue ? ` / ${kgValue.toLocaleString()} kg` : ''}`, 
+                `${value.toLocaleString()} L${kgValue ? ` / ${kgValue.toLocaleString()} kg` : ''}`,
                 `MRN: ${entry.payload.fullMrn || entry.payload.name}`
               ];
             }}
-            position={{ x: 0, y: 0 }}
             cursor={{ fill: 'transparent' }}
-            wrapperStyle={{ 
-              zIndex: 1000, 
-              position: 'fixed', 
-              backgroundColor: 'rgba(35, 35, 35, 0.95)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+            wrapperStyle={{
+              zIndex: 9999,
+              position: 'fixed',
+              backgroundColor: 'rgba(255, 255, 255, 0.98)',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
               borderRadius: '8px',
               padding: '8px 12px',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
               pointerEvents: 'none'
             }}
           />
@@ -840,93 +839,137 @@ export default function TankManagement() {
 
   return (
     <>
-      <div className="container mx-auto px-4 py-8">
-      <div className="relative overflow-hidden rounded-xl border border-white/10 backdrop-blur-md bg-gradient-to-br from-[#4d4c4c] to-[#1a1a1a] shadow-lg p-6 mb-6">
-        {/* Subtle red shadows in corners */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-[#F08080] rounded-full filter blur-3xl opacity-5 -translate-y-1/2 translate-x-1/4 z-0"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#F08080] rounded-full filter blur-3xl opacity-5 translate-y-1/2 -translate-x-1/4 z-0"></div>
-        
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 relative z-10">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center">
-              <TruckIcon className="h-6 w-6 mr-2" />
-              Upravljanje tipovima goriva (Izvoz/Domaće tržište)
-            </h1>
-            <p className="text-gray-300 mt-1 ml-8">
-              Upravljanje tipovima goriva (Izvoz/Domaće tržište)
-            </p>
-          </div>
-          <button
-            onClick={() => {
-              resetForm();
-              setShowAddModal(true);
-            }}
-            className="backdrop-blur-md bg-[#F08080]/30 border border-white/20 text-white shadow-lg hover:bg-[#F08080]/40 transition-all font-medium py-2 px-4 rounded-xl flex items-center gap-2 text-sm"
-          >
-            <PlusIcon className="h-5 w-5" />
-            <span>Dodaj Novi Tank</span>
-          </button>
-        </div>
-      </div>
-      
+      <div className="w-full px-4 sm:px-6 md:px-8 py-6 md:py-8 max-w-none">
       {/* Fuel Summary Component */}
-      <div className="bg-white shadow overflow-hidden rounded-xl mb-6 border border-gray-100">
-        <div className="px-4 py-5 sm:px-6 bg-gradient-to-br from-[#4d4c4c]/90 to-[#1a1a1a]/90 backdrop-blur-sm text-white">
-          <h3 className="text-lg leading-6 font-medium flex items-center">
-            <BeakerIcon className="h-5 w-5 mr-2 text-white" />
-            Ukupno Stanje Goriva
-            <button 
-              onClick={fetchFuelSummary} 
-              className="ml-2 backdrop-blur-md bg-white/10 border border-white/20 text-white shadow-sm hover:bg-white/20 transition-all p-1 rounded-lg"
-              disabled={summaryLoading}
-              title="Osvježi podatke"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </button>
-          </h3>
+      <div className="bg-gradient-to-br from-[#0f0f0f] to-[#1a1a1a] shadow overflow-hidden rounded-xl mb-6 border border-white/10">
+        <div className="px-4 py-5 sm:px-6 border-b border-white/10 bg-gradient-to-br from-[#4d4c4c] to-[#1a1a1a] backdrop-blur-md rounded-tl-xl rounded-tr-xl">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg leading-6 font-semibold text-white flex items-center">
+              <div className="p-2 bg-white/10 rounded-lg mr-3 flex-shrink-0">
+                <BeakerIcon className="h-5 w-5 text-white/70" />
+              </div>
+              Ukupno Stanje Goriva
+            </h3>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={fetchFuelSummary}
+                className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                disabled={summaryLoading}
+                title="Osvježi podatke"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${summaryLoading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+              <button
+                onClick={() => {
+                  resetForm();
+                  setShowAddModal(true);
+                }}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-gradient-to-r from-[#E60026] to-[#800014] hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#E60026] transition-all"
+              >
+                <PlusIcon className="-ml-0.5 mr-2 h-5 w-5" />
+                <span className="hidden sm:inline">Dodaj Tank</span>
+                <span className="inline sm:hidden">Dodaj</span>
+              </button>
+            </div>
+          </div>
         </div>
-        <div className="border-t border-white/5 px-4 py-5 sm:p-6 bg-gradient-to-br from-[#1a1a1a]/80 to-[#333333]/80 backdrop-blur-sm">
+        <div className="px-4 py-5 sm:p-6">
           {summaryLoading ? (
-            <div className="flex justify-center items-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#F08080]"></div>
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
           ) : fuelSummary ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="backdrop-blur-md bg-[#F08080]/10 border border-white/10 p-4 rounded-xl shadow-lg relative overflow-hidden group hover:bg-[#F08080]/15 transition-all">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[#F08080] rounded-full filter blur-3xl opacity-5 -translate-y-1/2 translate-x-1/4 group-hover:opacity-10 transition-opacity"></div>
-                <div className="text-sm font-medium text-gray-300">Fiksni Tankovi</div>
-                <div className="mt-1 text-2xl font-semibold text-white">
-                  {fuelSummary.fixedTanksTotal != null ? fuelSummary.fixedTanksTotal.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} L
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Fixed Tanks Card */}
+              <div className="relative overflow-hidden bg-gradient-to-br from-[#1a1a1a]/90 to-[#333333]/90 backdrop-blur-sm rounded-xl border border-white/5 shadow-lg hover:shadow-xl transition-all duration-300 p-6">
+                <div className="flex items-start justify-between mb-5">
+                  <div>
+                    <p className="text-sm font-medium text-gray-300 uppercase tracking-wide">Fiksni Tankovi</p>
+                  </div>
+                  <div className="p-3 bg-white/10 rounded-lg">
+                    <BeakerIcon className="h-6 w-6 text-white/70" />
+                  </div>
                 </div>
-                <div className="mt-1 text-sm font-medium text-gray-400">
-                  {fuelSummary.fixedTanksTotalKg != null ? fuelSummary.fixedTanksTotalKg.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} kg
+
+                <div className="mb-4">
+                  <div className="flex items-baseline gap-2">
+                    <div className="text-4xl font-bold text-white">
+                      {fuelSummary.fixedTanksTotal != null ? fuelSummary.fixedTanksTotal.toLocaleString('bs-BA', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0'}
+                    </div>
+                    <p className="text-xl text-gray-400 font-semibold">L</p>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-700">
+                  <p className="text-sm text-gray-400">
+                    <span className="font-medium text-white">{fuelSummary.fixedTanksTotalKg != null ? fuelSummary.fixedTanksTotalKg.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'}</span> kg
+                  </p>
                 </div>
               </div>
-              <div className="backdrop-blur-md bg-[#F08080]/10 border border-white/10 p-4 rounded-xl shadow-lg relative overflow-hidden group hover:bg-[#F08080]/15 transition-all">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[#F08080] rounded-full filter blur-3xl opacity-5 -translate-y-1/2 translate-x-1/4 group-hover:opacity-10 transition-opacity"></div>
-                <div className="text-sm font-medium text-gray-300">Mobilni Tankovi</div>
-                <div className="mt-1 text-2xl font-semibold text-white">
-                  {fuelSummary.mobileTanksTotal != null ? fuelSummary.mobileTanksTotal.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} L
+
+              {/* Mobile Tanks Card */}
+              <div className="relative overflow-hidden bg-gradient-to-br from-[#1a1a1a]/90 to-[#333333]/90 backdrop-blur-sm rounded-xl border border-white/5 shadow-lg hover:shadow-xl transition-all duration-300 p-6">
+                <div className="flex items-start justify-between mb-5">
+                  <div>
+                    <p className="text-sm font-medium text-gray-300 uppercase tracking-wide">Mobilni Tankovi</p>
+                  </div>
+                  <div className="p-3 bg-white/10 rounded-lg">
+                    <TruckIcon className="h-6 w-6 text-white/70" />
+                  </div>
                 </div>
-                <div className="mt-1 text-sm font-medium text-gray-400">
-                  {fuelSummary.mobileTanksTotalKg != null ? fuelSummary.mobileTanksTotalKg.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} kg
+
+                <div className="mb-4">
+                  <div className="flex items-baseline gap-2">
+                    <div className="text-4xl font-bold text-white">
+                      {fuelSummary.mobileTanksTotal != null ? fuelSummary.mobileTanksTotal.toLocaleString('bs-BA', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0'}
+                    </div>
+                    <p className="text-xl text-gray-400 font-semibold">L</p>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-700">
+                  <p className="text-sm text-gray-400">
+                    <span className="font-medium text-white">{fuelSummary.mobileTanksTotalKg != null ? fuelSummary.mobileTanksTotalKg.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'}</span> kg
+                  </p>
                 </div>
               </div>
-              <div className="backdrop-blur-md bg-[#F08080]/20 border border-white/10 p-4 rounded-xl shadow-lg relative overflow-hidden group hover:bg-[#F08080]/25 transition-all">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[#F08080] rounded-full filter blur-3xl opacity-10 -translate-y-1/2 translate-x-1/4 group-hover:opacity-15 transition-opacity"></div>
-                <div className="text-sm font-medium text-gray-300">Ukupno</div>
-                <div className="mt-1 text-2xl font-semibold text-white">
-                  {fuelSummary.grandTotal != null ? fuelSummary.grandTotal.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} L
-                </div>
-                <div className="mt-1 text-sm font-medium text-gray-400">
-                  {fuelSummary.grandTotalKg != null ? fuelSummary.grandTotalKg.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'} kg
+
+              {/* Total Card - Highlighted */}
+              <div className="relative overflow-hidden bg-gradient-to-br from-slate-700 to-slate-800 rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-6 text-white">
+                {/* Subtle accent */}
+                <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full filter blur-3xl -mr-20 -mt-20"></div>
+
+                <div className="relative z-10">
+                  <div className="flex items-start justify-between mb-5">
+                    <div>
+                      <p className="text-sm font-medium text-white/80 uppercase tracking-wide">Ukupno Gorivo</p>
+                    </div>
+                    <div className="p-3 bg-white/15 rounded-lg">
+                      <BeakerIcon className="h-6 w-6 text-white" />
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <div className="flex items-baseline gap-2">
+                      <div className="text-4xl font-bold text-white">
+                        {fuelSummary.grandTotal != null ? fuelSummary.grandTotal.toLocaleString('bs-BA', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0'}
+                      </div>
+                      <p className="text-xl text-white/90 font-semibold">L</p>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-white/20">
+                    <p className="text-sm text-white/80">
+                      <span className="font-medium text-white">{fuelSummary.grandTotalKg != null ? fuelSummary.grandTotalKg.toLocaleString('bs-BA', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'}</span> kg
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="text-gray-500 text-center py-4">
+            <div className="text-gray-600 text-center py-8">
               Nije moguće učitati podatke o ukupnom stanju goriva.
             </div>
           )}
@@ -985,9 +1028,9 @@ export default function TankManagement() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
-                  className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#333333]/90 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden border border-white/5 hover:shadow-xl transition-all duration-300 relative group p-6"
+                  className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#333333]/90 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 relative group" style={{ overflow: 'visible' }}
                 >
-                  <div className="flex flex-col h-full">
+                  <div className="flex flex-col h-full p-6">
                     <div className="flex-1 relative overflow-hidden">
                       <div className="w-full h-48 mb-2">
                         {tank.image_url ? (
@@ -1018,7 +1061,7 @@ export default function TankManagement() {
                     {/* Fuel gauge visualization */}
                     <div className="mt-4">
                       <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                        <div 
+                        <div
                           className={`h-full rounded-full transition-all duration-500 ease-out ${status.color}`}
                           style={{ width: `${fillPercentage}%` }}
                         ></div>
@@ -1028,29 +1071,29 @@ export default function TankManagement() {
                     {/* Tank details in a grid */}
                     <div className="grid grid-cols-2 gap-4 mt-4">
                        <div className="backdrop-blur-md bg-white/5 border border-white/10 p-3 rounded-xl">
-                         <p className="text-xs text-gray-300 mb-0">Tip Goriva</p>
+                         <p className="text-xs text-gray-300 mb-2">Tip Goriva</p>
                          <div className="flex items-start pt-0">
                           {tank.fuel_type.toLowerCase() === 'jet a-1'.toLowerCase() ? (
-                            <img 
-                              src="/JET A-1.svg" 
-                              alt="JET A-1" 
-                              className="w-14 h-14 object-contain" 
+                            <img
+                              src="/JET A-1.svg"
+                              alt="JET A-1"
+                              className="w-14 h-14 object-contain"
                             />
                           ) : (
                             <>
-                              <span className="w-3 h-3 rounded-full bg-[#E60026] mr-2"></span>
+                              <span className="w-3 h-3 rounded-full bg-[#E60026] mr-2 mt-1"></span>
                               <p className="font-medium text-gray-900">{tank.fuel_type}</p>
                             </>
                           )}
                         </div>
                        </div>
-                      
+
                       <div className="backdrop-blur-md bg-white/5 border border-white/10 p-3 rounded-xl">
                         <p className="text-xs text-gray-300 mb-1">Kapacitet</p>
                         <p className="font-medium text-white">{tank.capacity_liters.toLocaleString()} L</p>
                       </div>
 
-                      
+
                       <div className="backdrop-blur-md bg-white/5 border border-white/10 p-3 rounded-xl col-span-2">
                         <p className="text-xs text-gray-300 mb-1">Trenutna Količina</p>
                         <p className="font-medium text-white text-lg">
@@ -1074,10 +1117,10 @@ export default function TankManagement() {
                                 <span className="text-yellow-300">
                                   {Number(finalKg).toFixed(1)} kg
                                 </span>
-                                {tank.calculated_kg !== undefined && 
+                                {tank.calculated_kg !== undefined &&
                                   <span className="text-xs text-gray-400 ml-2">(izračunato)</span>
                                 }
-                                {tank.current_kg && !tank.calculated_kg && 
+                                {tank.current_kg && !tank.calculated_kg &&
                                   <span className="text-xs text-gray-400 ml-2">(backend kg)</span>
                                 }
                               </p>
@@ -1123,7 +1166,7 @@ export default function TankManagement() {
                         {(() => {
                           const customsDataForTank = adaptCustomsDataFormat(tanksCustomsData[tank.id] || []);
                           const orphanedLiters = getOrphanedLiters(customsDataForTank, tank);
-                          
+
                           if (orphanedLiters > 0.1) {
                             return (
                               <div className="mt-2 p-2 bg-amber-500/20 border border-amber-500/30 rounded-lg">
@@ -1154,7 +1197,7 @@ export default function TankManagement() {
                           <ArrowUpCircleIcon className="mr-1.5 h-5 w-5" />
                           Dopuni
                         </button>
-                        
+
                         <button
                           onClick={() => openEditModal(tank)}
                           className="flex items-center justify-center px-3 py-2 backdrop-blur-md bg-white/10 border border-white/20 text-white shadow-lg hover:bg-white/20 transition-all rounded-xl"
@@ -1162,7 +1205,7 @@ export default function TankManagement() {
                           <PencilIcon className="mr-1.5 h-4 w-4" />
                           Uredi
                         </button>
-                        
+
                         <button
                           onClick={() => handleDeleteTank(tank.id)}
                           className="flex items-center justify-center px-3 py-2 backdrop-blur-md bg-white/10 border border-white/20 text-white shadow-lg hover:bg-red-500/20 transition-all rounded-xl"
@@ -1273,14 +1316,12 @@ export default function TankManagement() {
       )}
       
       {/* Transaction History Section */}
-      <div className="mt-10 bg-white shadow-lg overflow-hidden rounded-xl border border-gray-100">
-          <div className="relative overflow-hidden p-6 rounded-t-xl shadow-md">
-            {/* Background gradient */}
-            <div className="absolute inset-0 bg-gradient-to-br from-[#4d4c4c] to-[#1a1a1a] backdrop-blur-md border-b border-white/10 z-0"></div>
-            {/* Subtle red shadows in corners */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[#F08080] rounded-full filter blur-3xl opacity-5 -translate-y-1/2 translate-x-1/4 z-0"></div>
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#F08080] rounded-full filter blur-3xl opacity-5 translate-y-1/2 -translate-x-1/4 z-0"></div>
-            
+      <div className="mt-10 bg-white shadow-md overflow-hidden rounded-xl border border-gray-200">
+          <div className="relative overflow-hidden p-6 rounded-t-xl shadow-sm bg-gradient-to-br from-[#4d4c4c] to-[#1a1a1a] border-b border-white/10">
+            {/* Subtle shadows in corners */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-gray-600 rounded-full filter blur-3xl opacity-10 -translate-y-1/2 translate-x-1/4 z-0"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-gray-800 rounded-full filter blur-3xl opacity-10 translate-y-1/2 -translate-x-1/4 z-0"></div>
+
             <div className="relative z-10">
               <h3 className="text-xl font-bold text-white flex items-center">
                 <ClockIcon className="h-6 w-6 mr-2" />
@@ -1300,7 +1341,7 @@ export default function TankManagement() {
               <input
                 type="date"
                 id="start-date-filter"
-                className="shadow-sm focus:ring-[#F08080] focus:border-[#F08080] block w-full sm:text-sm border-gray-300 rounded-xl"
+                className="shadow-sm focus:ring-gray-400 focus:border-gray-400 block w-full sm:text-sm border border-gray-300 rounded-lg bg-white"
                 value={startDateFilter}
                 onChange={(e) => {
                   setStartDateFilter(e.target.value);
@@ -1308,13 +1349,13 @@ export default function TankManagement() {
                 }}
               />
             </div>
-            
+
             <div>
               <label htmlFor="end-date-filter" className="block text-sm font-medium text-gray-700 mb-1">Do datuma</label>
               <input
                 type="date"
                 id="end-date-filter"
-                className="shadow-sm focus:ring-[#F08080] focus:border-[#F08080] block w-full sm:text-sm border-gray-300 rounded-xl"
+                className="shadow-sm focus:ring-gray-400 focus:border-gray-400 block w-full sm:text-sm border border-gray-300 rounded-lg bg-white"
                 value={endDateFilter}
                 onChange={(e) => {
                   setEndDateFilter(e.target.value);
@@ -1322,12 +1363,12 @@ export default function TankManagement() {
                 }}
               />
             </div>
-            
+
             <div>
               <label htmlFor="type-filter" className="block text-sm font-medium text-gray-700 mb-1">Tip transakcije</label>
               <select
                 id="type-filter"
-                className="shadow-sm focus:ring-[#F08080] focus:border-[#F08080] block w-full sm:text-sm border-gray-300 rounded-xl"
+                className="shadow-sm focus:ring-gray-400 focus:border-gray-400 block w-full sm:text-sm border border-gray-300 rounded-lg bg-white"
                 value={typeFilter}
                 onChange={(e) => {
                   setTypeFilter(e.target.value);
@@ -1341,12 +1382,12 @@ export default function TankManagement() {
                 <option value="adjustment">Korekcija količine</option>
               </select>
             </div>
-            
+
             <div>
               <label htmlFor="tank-filter" className="block text-sm font-medium text-gray-700 mb-1">Aviocisterna</label>
               <select
                 id="tank-filter"
-                className="shadow-sm focus:ring-[#F08080] focus:border-[#F08080] block w-full sm:text-sm border-gray-300 rounded-xl"
+                className="shadow-sm focus:ring-gray-400 focus:border-gray-400 block w-full sm:text-sm border border-gray-300 rounded-lg bg-white"
                 value={tankFilter}
                 onChange={(e) => {
                   setTankFilter(e.target.value);
@@ -1363,7 +1404,7 @@ export default function TankManagement() {
             <div className="flex items-end md:col-span-4">
               <button
                 type="button"
-                className="inline-flex items-center px-4 py-2 backdrop-blur-md bg-[#F08080]/30 border border-white/20 text-white shadow-lg hover:bg-[#F08080]/40 transition-all font-medium rounded-xl"
+                className="inline-flex items-center px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-900 shadow-sm hover:shadow-md transition-all font-medium rounded-lg border border-gray-400"
                 onClick={() => {
                   setStartDateFilter(getFirstDayOfMonth());
                   setEndDateFilter(getLastDayOfMonth());
@@ -1379,7 +1420,7 @@ export default function TankManagement() {
           {/* Tablica transakcija */}
           {loadingTransactions ? (
             <div className="flex justify-center items-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#F08080]"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               <p className="ml-2 text-gray-600">Učitavanje transakcija...</p>
             </div>
           ) : filteredTransactions.length === 0 ? (

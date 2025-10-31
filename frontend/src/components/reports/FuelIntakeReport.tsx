@@ -1773,83 +1773,65 @@ const FuelIntakeReport: React.FC = () => {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl overflow-hidden">
-      {/* Header with glassmorphism effect */}
-      <div className="relative overflow-hidden rounded-xl border border-white/10 backdrop-blur-md bg-gradient-to-br from-[#4d4c4c] to-[#1a1a1a] shadow-lg p-6">
-        {/* Subtle red shadows in corners */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-[#e53e3e] rounded-full filter blur-3xl opacity-5 -translate-y-1/2 translate-x-1/4 z-0"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#e53e3e] rounded-full filter blur-3xl opacity-5 translate-y-1/2 -translate-x-1/4 z-0"></div>
-        
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 relative z-10">
+    <div className="bg-white rounded-lg overflow-hidden border border-gray-200 max-w-full">
+      {/* Header - Clean, minimal design */}
+      <div className="bg-gradient-to-r from-[#4d4c4c] to-[#1a1a1a] p-6 sm:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="text-2xl md:text-3xl font-bold text-white flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mr-3 text-[#e53e3e]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mr-3 text-[#FBBF24]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
               </svg>
               Izvještaj o Ulazu Goriva
             </h2>
-            <p className="text-gray-300 mt-1 ml-11">Pregled svih zapisa o ulazu goriva i pratećih dokumenata</p>
+            <p className="text-gray-400 mt-2">Pregled svih zapisa o ulazu goriva i pratećih dokumenata</p>
           </div>
         </div>
       </div>
       
-      <div className="p-6">
-        <div className="mb-6">
-          <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="p-4 sm:p-6 md:p-8">
+        <div className="mb-8">
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="p-6 bg-gray-50 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                 </svg>
                 Filteri izvještaja
               </h3>
             </div>
-            
-            <div className="p-5 bg-white dark:bg-gray-800">
+
+            <div className="p-6 bg-white">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <label htmlFor="startDateFilter" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Datum od:</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <Input
-                      type="date"
-                      id="startDateFilter"
-                      className="pl-10 bg-gray-50 dark:bg-gray-900"
-                      value={filters.startDate}
-                      onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                    />
-                  </div>
+                <div>
+                  <label htmlFor="startDateFilter" className="block text-sm font-medium text-gray-700 mb-2">Datum od:</label>
+                  <Input
+                    type="date"
+                    id="startDateFilter"
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+                    value={filters.startDate}
+                    onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                  />
                 </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="endDateFilter" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Datum do:</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <Input
-                      type="date"
-                      id="endDateFilter"
-                      className="pl-10 bg-gray-50 dark:bg-gray-900"
-                      value={filters.endDate}
-                      onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                    />
-                  </div>
+
+                <div>
+                  <label htmlFor="endDateFilter" className="block text-sm font-medium text-gray-700 mb-2">Datum do:</label>
+                  <Input
+                    type="date"
+                    id="endDateFilter"
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+                    value={filters.endDate}
+                    onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                  />
                 </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="fuelTypeFilterReport" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Tip Goriva:</label>
+
+                <div>
+                  <label htmlFor="fuelTypeFilterReport" className="block text-sm font-medium text-gray-700 mb-2">Tip Goriva:</label>
                   <select
                     id="fuelTypeFilterReport"
                     value={filters.fuel_type}
                     onChange={(e) => handleFilterChange('fuel_type', e.target.value as FuelType | 'all')}
-                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
                   >
                     <option value="all">Svi tipovi</option>
                     {Object.values(FuelType).map(type => (
@@ -1857,87 +1839,66 @@ const FuelIntakeReport: React.FC = () => {
                     ))}
                   </select>
                 </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="categoryFilterReport" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Kategorija:</label>
+
+                <div>
+                  <label htmlFor="categoryFilterReport" className="block text-sm font-medium text-gray-700 mb-2">Kategorija:</label>
                   <select
                     id="categoryFilterReport"
                     value={filters.fuel_category}
                     onChange={(e) => handleFilterChange('fuel_category', e.target.value)}
-                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
                   >
                     <option value="all">Sve kategorije</option>
                     <option value="Izvoz">Izvoz</option>
                     <option value="Domaće tržište">Domaće tržište</option>
                   </select>
                 </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="refineryFilter" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Rafinerija:</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
-                    </div>
-                    <Input
-                      type="text"
-                      id="refineryFilter"
-                      className="pl-10 bg-gray-50 dark:bg-gray-900"
-                      placeholder="Naziv rafinerije"
-                      value={filters.refinery_name}
-                      onChange={(e) => handleFilterChange('refinery_name', e.target.value)}
-                    />
-                  </div>
+
+                <div>
+                  <label htmlFor="refineryFilter" className="block text-sm font-medium text-gray-700 mb-2">Rafinerija:</label>
+                  <Input
+                    type="text"
+                    id="refineryFilter"
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+                    placeholder="Naziv rafinerije"
+                    value={filters.refinery_name}
+                    onChange={(e) => handleFilterChange('refinery_name', e.target.value)}
+                  />
                 </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="mrnFilter" className="block text-sm font-medium text-gray-700 dark:text-gray-300">MRN:</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <Input
-                      type="text"
-                      id="mrnFilter"
-                      className="pl-10 bg-gray-50 dark:bg-gray-900"
-                      placeholder="MRN broj"
-                      value={filters.customs_declaration_number}
-                      onChange={(e) => handleFilterChange('customs_declaration_number', e.target.value)}
-                    />
-                  </div>
+
+                <div>
+                  <label htmlFor="mrnFilter" className="block text-sm font-medium text-gray-700 mb-2">MRN:</label>
+                  <Input
+                    type="text"
+                    id="mrnFilter"
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+                    placeholder="MRN broj"
+                    value={filters.customs_declaration_number}
+                    onChange={(e) => handleFilterChange('customs_declaration_number', e.target.value)}
+                  />
                 </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="currencyFilter" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Valuta:</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <Input
-                      type="text"
-                      id="currencyFilter"
-                      className="pl-10 bg-gray-50 dark:bg-gray-900"
-                      placeholder="Valuta (npr. EUR, BAM)"
-                      value={filters.currency}
-                      onChange={(e) => handleFilterChange('currency', e.target.value)}
-                    />
-                  </div>
+
+                <div>
+                  <label htmlFor="currencyFilter" className="block text-sm font-medium text-gray-700 mb-2">Valuta:</label>
+                  <Input
+                    type="text"
+                    id="currencyFilter"
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+                    placeholder="Valuta (npr. EUR, BAM)"
+                    value={filters.currency}
+                    onChange={(e) => handleFilterChange('currency', e.target.value)}
+                  />
                 </div>
                 
                 <div className="flex items-end">
-                  <Button 
-                    onClick={fetchIntakeRecords} 
+                  <Button
+                    onClick={fetchIntakeRecords}
                     disabled={loading}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                    className="w-full bg-slate-600 hover:bg-slate-700 text-white py-2 rounded-lg font-medium transition-colors"
                   >
                     {loading ? (
                       <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
@@ -1945,7 +1906,7 @@ const FuelIntakeReport: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                         </svg>
                         Primijeni filtere
@@ -1960,120 +1921,122 @@ const FuelIntakeReport: React.FC = () => {
 
 
 
-        <div className="mb-6">
-          <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="mb-8">
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="p-6 bg-gray-50 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 Pregled ulaza goriva
               </h3>
             </div>
-            
+
             {loading && !records.length ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <svg className="animate-spin h-10 w-10 text-blue-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <div className="flex flex-col items-center justify-center py-12 bg-white">
+                <svg className="animate-spin h-10 w-10 text-slate-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <p className="text-gray-500 dark:text-gray-400">Učitavanje podataka...</p>
+                <p className="text-gray-500">Učitavanje podataka...</p>
               </div>
             ) : error && !records.length ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="flex flex-col items-center justify-center py-12 bg-white">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-red-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <p className="text-gray-700 dark:text-gray-300 font-medium">Greška pri učitavanju podataka</p>
-                <p className="text-gray-500 dark:text-gray-400 mt-1">{error}</p>
+                <p className="text-gray-900 font-medium">Greška pri učitavanju podataka</p>
+                <p className="text-gray-500 mt-1">{error}</p>
               </div>
             ) : !records.length ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                </svg>
-                <p className="text-gray-700 dark:text-gray-300 font-medium">Nema podataka za prikaz</p>
-                <p className="text-gray-500 dark:text-gray-400 mt-1">Podesite filtere i pokušajte ponovo</p>
+              <div className="flex flex-col items-center justify-center py-12 bg-white">
+                <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                  </svg>
+                </div>
+                <p className="text-gray-900 font-medium">Nema podataka za prikaz</p>
+                <p className="text-gray-500 mt-1">Podesite filtere i pokušajte ponovo</p>
               </div>
             ) : (
               <>
                 <div className="overflow-x-auto w-full">
-                  <table className="w-full table-auto divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="bg-gray-50 dark:bg-gray-800">
+                  <table className="w-full table-auto divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
                       <tr>
-                        <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-20">Datum</th>
-                        <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-16">MRN</th>
-                        <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-16">Tip Goriva</th>
-                        <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-16">Kategorija</th>
-                        <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-16">Količina (L)</th>
-                        <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-16">Količina (kg)</th>
-                        <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-20">Stanje MRN (L/KG)</th>
-                        <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-16">Cijena/KG</th>
-                        <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-12">Valuta</th>
-                        <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-16">Ukupno</th>
-                        <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-20">Rafinerija</th>
-                        <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-20">Dobavljač</th>
-                        <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-16">Br. Otpr.</th>
-                        <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-12">Akcije</th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider w-20 border-b border-gray-200">Datum</th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider w-16 border-b border-gray-200">MRN</th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider w-16 border-b border-gray-200">Tip Goriva</th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider w-16 border-b border-gray-200">Kategorija</th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider w-16 border-b border-gray-200">Količina (L)</th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider w-16 border-b border-gray-200">Količina (kg)</th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider w-20 border-b border-gray-200">Stanje MRN (L/KG)</th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider w-16 border-b border-gray-200">Cijena/KG</th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider w-12 border-b border-gray-200">Valuta</th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider w-16 border-b border-gray-200">Ukupno</th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider w-20 border-b border-gray-200">Rafinerija</th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider w-20 border-b border-gray-200">Dobavljač</th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider w-16 border-b border-gray-200">Br. Otpr.</th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider w-12 border-b border-gray-200">Akcije</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    <tbody className="bg-white divide-y divide-gray-200">
                       {records.map((record) => (
                         <React.Fragment key={record.id}>
-                          <tr className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                            <td className="px-2 py-2 break-words text-xs text-gray-700 dark:text-gray-300">{formatDateForReport(record.intake_datetime)}</td>
-                            <td className="px-2 py-2 break-words text-xs text-gray-700 dark:text-gray-300">{record.customs_declaration_number || 'N/A'}</td>
-                            <td className="px-2 py-2">
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${record.fuel_type === FuelType.JET_A1 ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100' : 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'}`}>
+                          <tr className="hover:bg-gray-50 transition-colors border-b border-gray-200">
+                            <td className="px-4 py-3 break-words text-xs text-gray-700">{formatDateForReport(record.intake_datetime)}</td>
+                            <td className="px-4 py-3 break-words text-xs text-gray-700">{record.customs_declaration_number || 'N/A'}</td>
+                            <td className="px-4 py-3">
+                              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${record.fuel_type === FuelType.JET_A1 ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
                                 {record.fuel_type}
                               </span>
                             </td>
-                            <td className="px-2 py-2">
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${(record.fuel_category === 'Izvoz') ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' : 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100'}`}>
+                            <td className="px-4 py-3">
+                              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${(record.fuel_category === 'Izvoz') ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
                                 {record.fuel_category || 'Domaće tržište'}
                               </span>
                             </td>
-                            <td className="px-2 py-2 break-words text-xs text-gray-700 dark:text-gray-300 font-medium">
+                            <td className="px-4 py-3 break-words text-xs text-gray-700 font-medium">
                               {record.quantity_liters_received.toLocaleString('hr-HR')} L
                             </td>
-                            <td className="px-2 py-2 break-words text-xs text-gray-700 dark:text-gray-300 font-medium">
+                            <td className="px-4 py-3 break-words text-xs text-gray-700 font-medium">
                               {record.quantity_kg_received ? Math.round(parseFloat(record.quantity_kg_received) || 0).toString() + ' kg' : 'N/A'}
                             </td>
-                            <td className="px-2 py-2 break-words text-xs text-gray-700 dark:text-gray-300">
-                              {record.customs_declaration_number && mrnBalances[record.customs_declaration_number] ? 
+                            <td className="px-4 py-3 break-words text-xs text-gray-700">
+                              {record.customs_declaration_number && mrnBalances[record.customs_declaration_number] ?
                                 <span className={`font-medium ${
-                                  mrnBalances[record.customs_declaration_number].remainingFuel > 0 
-                                    ? 'text-green-600 dark:text-green-400' 
+                                  mrnBalances[record.customs_declaration_number].remainingFuel > 0
+                                    ? 'text-green-700'
                                     : mrnBalances[record.customs_declaration_number].remainingFuel === 0
-                                    ? 'text-gray-600 dark:text-gray-400'
-                                    : 'text-red-600 dark:text-red-400'
+                                    ? 'text-gray-700'
+                                    : 'text-red-700'
                                 }`}>
-                                  {typeof mrnBalances[record.customs_declaration_number].remainingFuel === 'number' 
-                                    ? Math.round(mrnBalances[record.customs_declaration_number].remainingFuel).toLocaleString('hr-HR') 
-                                    : '0'} L / 
-                                  {typeof mrnBalances[record.customs_declaration_number].remainingFuelKg === 'number' 
+                                  {typeof mrnBalances[record.customs_declaration_number].remainingFuel === 'number'
+                                    ? Math.round(mrnBalances[record.customs_declaration_number].remainingFuel).toLocaleString('hr-HR')
+                                    : '0'} L /
+                                  {typeof mrnBalances[record.customs_declaration_number].remainingFuelKg === 'number'
                                     ? Math.round(mrnBalances[record.customs_declaration_number].remainingFuelKg).toLocaleString('hr-HR')
                                     : '0'} KG
                                   {mrnBalances[record.customs_declaration_number].remainingFuel <= 0 && (
                                     <span className="ml-1 text-xs">(depleted)</span>
                                   )}
-                                </span> : 
+                                </span> :
                                 'N/A'
                               }
                             </td>
-                            <td className="px-2 py-2 break-words text-xs text-gray-700 dark:text-gray-300">
+                            <td className="px-4 py-3 break-words text-xs text-gray-700">
                               {typeof record.price_per_kg === 'number' ? record.price_per_kg.toLocaleString('bs-BA', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'N/A'}
                             </td>
-                            <td className="px-2 py-2 break-words text-xs text-gray-700 dark:text-gray-300">
+                            <td className="px-4 py-3 break-words text-xs text-gray-700">
                               {record.currency || 'N/A'}
                             </td>
-                            <td className="px-2 py-2 break-words text-xs text-gray-700 dark:text-gray-300">
+                            <td className="px-4 py-3 break-words text-xs text-gray-700">
                               {typeof record.total_price === 'number' ? record.total_price.toLocaleString('bs-BA', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'N/A'}
                             </td>
-                            <td className="px-2 py-2 break-words text-xs text-gray-700 dark:text-gray-300">{record.refinery_name || 'N/A'}</td>
-                            <td className="px-2 py-2 break-words text-xs text-gray-700 dark:text-gray-300">{record.supplier_name}</td>
-                            <td className="px-2 py-2 break-words text-xs text-gray-700 dark:text-gray-300">{record.delivery_note_number}</td>
-                            <td className="px-2 py-2 text-xs text-gray-500 dark:text-gray-400 flex flex-col space-y-1">
+                            <td className="px-4 py-3 break-words text-xs text-gray-700">{record.refinery_name || 'N/A'}</td>
+                            <td className="px-4 py-3 break-words text-xs text-gray-700">{record.supplier_name}</td>
+                            <td className="px-4 py-3 break-words text-xs text-gray-700">{record.delivery_note_number}</td>
+                            <td className="px-4 py-3 text-xs text-gray-600 flex flex-col space-y-1">
                               {record.documents && record.documents.length > 0 && (
                                 <Button 
                                   variant="outline" 

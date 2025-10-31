@@ -5,7 +5,6 @@ import { toast } from 'react-hot-toast';
 import dayjs from 'dayjs';
 import { fetchWithAuth } from '@/lib/apiService';
 import { motion } from 'framer-motion';
-import { Card } from '@/components/ui/Card';
 import SimpleFuelOverview from './SimpleFuelOverview';
 
 // Import trend analysis components
@@ -381,138 +380,128 @@ export default function FuelReports() {
       transition={{ duration: 0.5 }}
       className="space-y-6"
     >
-      <div className="relative overflow-hidden rounded-xl border border-white/10 backdrop-blur-md bg-gradient-to-br from-[#4d4c4c] to-[#1a1a1a] shadow-lg p-6">
-        {/* Subtle red shadows in corners */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-[#e53e3e] rounded-full filter blur-3xl opacity-5 -translate-y-1/2 translate-x-1/4 z-0"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#e53e3e] rounded-full filter blur-3xl opacity-5 translate-y-1/2 -translate-x-1/4 z-0"></div>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 relative z-10">
-          <div className="flex items-center">
-            <div className="mr-4 p-3 bg-[#e53e3e]/20 backdrop-blur-md rounded-xl border border-white/10 shadow-lg">
-              <ChartBarIcon className="h-8 w-8 text-[#e53e3e]" />
-            </div>
+      {/* Header Card */}
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="bg-gradient-to-r from-[#4d4c4c] to-[#1a1a1a] p-6 sm:p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <ChartBarIcon className="h-8 w-8 text-red-500" />
             <div>
               <h2 className="text-2xl md:text-3xl font-bold text-white">Izvještaji o Potrošnji Goriva</h2>
-              <p className="text-gray-300 mt-1">Analiza i praćenje potrošnje goriva</p>
+              <p className="text-gray-300 text-sm mt-1">Analiza i praćenje potrošnje goriva</p>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-            <div>
-              <label htmlFor="startDate" className="block text-sm font-medium text-white mb-1">
-                Od datuma
-              </label>
-              <input
-                type="date"
-                id="startDate"
-                name="startDate"
-                value={dateRange.startDate}
-                onChange={handleDateChange}
-                className="shadow-sm focus:ring-[#e53e3e] focus:border-[#e53e3e] block w-full sm:text-sm border-white/20 bg-white/90 backdrop-blur-md rounded-xl"
-              />
-            </div>
-            <div>
-              <label htmlFor="endDate" className="block text-sm font-medium text-white mb-1">
-                Do datuma
-              </label>
-              <input
-                type="date"
-                id="endDate"
-                name="endDate"
-                value={dateRange.endDate}
-                onChange={handleDateChange}
-                className="shadow-sm focus:ring-[#e53e3e] focus:border-[#e53e3e] block w-full sm:text-sm border-white/20 bg-white/90 backdrop-blur-md rounded-xl"
-              />
-            </div>
-            <div>
-              <label htmlFor="airlineId" className="block text-sm font-medium text-white mb-1">
-                Avio kompanija
-              </label>
-              <select
-                id="airlineId"
-                value={selectedAirlineId}
-                onChange={handleAirlineChange}
-                className="shadow-sm focus:ring-[#e53e3e] focus:border-[#e53e3e] block w-full sm:text-sm border-white/20 bg-white/90 backdrop-blur-md rounded-xl"
-              >
-                <option value="all">Sve avio kompanije</option>
-                {airlines && airlines.length > 0 && airlines.map(airline => (
-                  <option key={airline.id} value={airline.id}>
-                    {airline.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-end">
-              <button
-                onClick={handleExportCSV}
-                className="backdrop-blur-md bg-[#e53e3e]/80 border border-white/20 text-white shadow-lg hover:bg-[#e53e3e]/90 transition-all font-medium rounded-xl flex items-center gap-2 px-4 py-2"
-              >
-                <ArrowDownTrayIcon className="h-5 w-5" />
-                <span>Izvoz CSV</span>
-              </button>
-            </div>
+        </div>
+      </div>
+
+      {/* Filter Section */}
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
+              Od datuma
+            </label>
+            <input
+              type="date"
+              id="startDate"
+              name="startDate"
+              value={dateRange.startDate}
+              onChange={handleDateChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-500 hover:border-gray-400 transition-all"
+            />
+          </div>
+          <div>
+            <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-2">
+              Do datuma
+            </label>
+            <input
+              type="date"
+              id="endDate"
+              name="endDate"
+              value={dateRange.endDate}
+              onChange={handleDateChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-500 hover:border-gray-400 transition-all"
+            />
+          </div>
+          <div>
+            <label htmlFor="airlineId" className="block text-sm font-medium text-gray-700 mb-2">
+              Avio kompanija
+            </label>
+            <select
+              id="airlineId"
+              value={selectedAirlineId}
+              onChange={handleAirlineChange}
+              className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 hover:border-gray-400 transition-all"
+            >
+              <option value="all">Sve avio kompanije</option>
+              {airlines && airlines.length > 0 && airlines.map(airline => (
+                <option key={airline.id} value={airline.id}>
+                  {airline.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-end">
+            <button
+              onClick={handleExportCSV}
+              className="w-full px-4 py-2 border border-gray-300 text-gray-900 font-medium rounded-lg hover:border-gray-400 hover:bg-stone-100 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+            >
+              <ArrowDownTrayIcon className="h-5 w-5" />
+              <span>Izvoz CSV</span>
+            </button>
           </div>
         </div>
       </div>
 
       {/* Tab Navigation */}
-      <div className="bg-gradient-to-br from-[#2c2c2c] to-[#1a1a1a] rounded-xl shadow-lg overflow-hidden border border-white/5">
-        <div className="p-2 relative overflow-hidden">
-          {/* Subtle gradient background for tabs */}
-          <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent z-0"></div>
-          
-          <nav className="flex space-x-2 overflow-x-auto relative z-10 px-1" aria-label="Tabs">
-            {            [
-              // NOVI JEDNOSTAVAN PREGLED TAB
-              { id: 'pregled', name: 'Pregled', icon: <ChartBarIcon className="h-4 w-4" />, color: '#4FC3C7' },
-              { id: 'details', name: 'Detaljni Prikazi', icon: <DocumentArrowDownIcon className="h-4 w-4" />, color: '#8B5CF6' },
-              { id: 'trendAnalysis', name: 'Trend Analiza', icon: <TrendingUp className="h-4 w-4" />, color: '#3B82F6' },
-              { id: 'comparativeAnalysis', name: 'Komparativna Analiza', icon: <BarChart3 className="h-4 w-4" />, color: '#10B981' },
-              { id: 'forecasting', name: 'Prognoze', icon: <BrainCircuit className="h-4 w-4" />, color: '#8B5CF6' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                style={{
-                  background: activeTab === tab.id ? `linear-gradient(135deg, ${tab.color}20, ${tab.color}40)` : 'transparent',
-                  borderBottom: activeTab === tab.id ? `2px solid ${tab.color}` : 'none'
-                }}
-                className={`whitespace-nowrap py-3 px-5 text-sm font-medium transition-all duration-200 ease-in-out flex items-center gap-2 rounded-xl backdrop-blur-md ${
-                  activeTab === tab.id
-                    ? 'text-white shadow-md border border-white/10'
-                    : 'text-gray-300 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <span style={{ color: tab.color }}>{tab.icon}</span>
-                <span>{tab.name}</span>
-              </button>
-            ))}
-          </nav>
-        </div>
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <nav className="flex flex-wrap overflow-x-auto border-b border-gray-200" aria-label="Tabs">
+          {[
+            { id: 'pregled', name: 'Pregled', icon: <ChartBarIcon className="h-4 w-4" /> },
+            { id: 'details', name: 'Detaljni Prikazi', icon: <DocumentArrowDownIcon className="h-4 w-4" /> },
+            { id: 'trendAnalysis', name: 'Trend Analiza', icon: <TrendingUp className="h-4 w-4" /> },
+            { id: 'comparativeAnalysis', name: 'Komparativna Analiza', icon: <BarChart3 className="h-4 w-4" /> },
+            { id: 'forecasting', name: 'Prognoze', icon: <BrainCircuit className="h-4 w-4" /> },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 sm:px-6 py-4 text-sm font-medium flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'text-gray-900 border-b-slate-500'
+                  : 'text-gray-700 border-b-transparent hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              {tab.icon}
+              <span>{tab.name}</span>
+            </button>
+          ))}
+        </nav>
       </div>
 
       {loading || !statsToUse ? (
-        <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-slate-400"></div>
         </div>
       ) : (
-        <div className="p-6 space-y-6">
+        <div className="space-y-6">
           {/* Key metrics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="bg-white rounded-xl p-4 shadow-lg border-l-4 border-indigo-500">
-              <h4 className="text-sm font-medium uppercase tracking-wider text-indigo-600">Ukupno Natočeno Gorivo</h4>
-              <p className="text-3xl font-bold text-gray-800">{formatNumber(statsToUse.totalFuelDispensed)} L</p>
-            </Card>
-            <Card className="bg-white rounded-xl p-4 shadow-lg border-l-4 border-emerald-500">
-              <h4 className="text-sm font-medium uppercase tracking-wider text-emerald-600">Prosječno Dnevno</h4>
-              <p className="text-3xl font-bold text-gray-800">
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-700">Ukupno Natočeno Gorivo</h4>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{formatNumber(statsToUse.totalFuelDispensed)} L</p>
+            </div>
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-700">Prosječno Dnevno</h4>
+              <p className="text-3xl font-bold text-gray-900 mt-2">
                 {formatNumber(statsToUse.totalFuelDispensed / Math.max((statsToUse.fuelByDay || []).length, 1))} L
               </p>
-            </Card>
-            <Card className="bg-white rounded-xl p-4 shadow-lg border-l-4 border-purple-500">
-              <h4 className="text-sm font-medium uppercase tracking-wider text-purple-600">Najveći Potrošač</h4>
-              <p className="text-3xl font-bold text-gray-800 break-words">
+            </div>
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-700">Najveći Potrošač</h4>
+              <p className="text-2xl font-bold text-gray-900 mt-2 break-words">
                 {(statsToUse.fuelByAirline && statsToUse.fuelByAirline.length > 0) ? statsToUse.fuelByAirline[0].airlineName : 'N/A'}
               </p>
-            </Card>
+            </div>
           </div>
 
           {/* Tab Content */}
@@ -524,8 +513,8 @@ export default function FuelReports() {
           {/* STARI OVERVIEW SADRŽAJ OBRISANO - novi jednostavan pregled */}
           {false && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="p-5 rounded-xl shadow-md">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Potrošnja po Avio Kompaniji</h3>
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Potrošnja po Avio Kompaniji</h3>
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -645,10 +634,10 @@ export default function FuelReports() {
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-              </Card>
-              
-              <Card className="p-5 rounded-xl shadow-md">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Potrošnja po Destinaciji</h3>
+              </div>
+
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Potrošnja po Destinaciji</h3>
                 <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={destinationChartData} {...animationProps}>
@@ -660,10 +649,10 @@ export default function FuelReports() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-              </Card>
-              
-              <Card className="p-5 rounded-xl shadow-md">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Dnevna Potrošnja</h3>
+              </div>
+
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Dnevna Potrošnja</h3>
                 <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={dayChartData} {...animationProps}>
@@ -682,10 +671,10 @@ export default function FuelReports() {
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
-              </Card>
-              
-              <Card className="p-5 rounded-xl shadow-md">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Stanje Mobilnih Tankera (%)</h3>
+              </div>
+
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Stanje Mobilnih Tankera (%)</h3>
                 <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={tankChartData} {...animationProps}>
@@ -697,15 +686,15 @@ export default function FuelReports() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-              </Card>
+              </div>
             </div>
           )}
 
           {/* PRIVREMENO ZAKOMENTRARISANO za debug */}
           {false && activeTab === 'consumptionAnalysis' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="p-5 rounded-xl shadow-md">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Potrošnja po Tipu Saobraćaja</h3>
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Potrošnja po Tipu Saobraćaja</h3>
                 <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -728,9 +717,9 @@ export default function FuelReports() {
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-              </Card>
-              <Card className="p-5 rounded-xl shadow-md">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Potrošnja po Tipu Kompanije</h3>
+              </div>
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Potrošnja po Tipu Kompanije</h3>
                 <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -753,14 +742,14 @@ export default function FuelReports() {
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-              </Card>
+              </div>
             </div>
           )}
 
           {activeTab === 'details' && (
-            <Card className="rounded-xl shadow-md overflow-hidden">
-              <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-                <h3 className="text-lg font-medium leading-6 text-gray-900">Detalji po Destinaciji</h3>
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">Detalji po Destinaciji</h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
@@ -794,7 +783,7 @@ export default function FuelReports() {
                   </tbody>
                 </table>
               </div>
-            </Card>
+            </div>
           )}
 
           {/* New Trend Analysis Tabs */}

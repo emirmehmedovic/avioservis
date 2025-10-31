@@ -283,131 +283,167 @@ const FuelDrainReport = () => {
     doc.save('izvjestaj_drenirano_gorivo.pdf');
   };
 
-  if (loading) return <p>Učitavanje podataka o dreniranom gorivu...</p>;
-  if (error) return <p>Greška: {error}</p>;
+  if (loading) return (
+    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-gradient-to-r from-[#4d4c4c] to-[#1a1a1a] p-6 sm:p-8">
+        <h2 className="text-white text-2xl md:text-3xl font-bold">Evidencija Dreniranog Goriva</h2>
+      </div>
+      <div className="p-6 flex items-center justify-center">
+        <div className="flex flex-col items-center">
+          <div className="h-12 w-12 rounded-full border-4 border-gray-300 border-t-slate-600 animate-spin mb-4"></div>
+          <p className="text-gray-700 font-medium">Učitavanje podataka o dreniranom gorivu...</p>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (error) return (
+    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-gradient-to-r from-[#4d4c4c] to-[#1a1a1a] p-6 sm:p-8">
+        <h2 className="text-white text-2xl md:text-3xl font-bold">Evidencija Dreniranog Goriva</h2>
+      </div>
+      <div className="p-6 flex items-center justify-center">
+        <div className="flex flex-col items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-red-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-gray-700 font-medium">Greška: {error}</p>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
-    <Card>
-      <div className="relative overflow-hidden rounded-xl border border-white/10 backdrop-blur-md bg-gradient-to-br from-[#4d4c4c] to-[#1a1a1a] shadow-lg">
-        {/* Subtle red shadows in corners */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-[#e53e3e] rounded-full filter blur-3xl opacity-5 -translate-y-1/2 translate-x-1/4 z-0"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#e53e3e] rounded-full filter blur-3xl opacity-5 translate-y-1/2 -translate-x-1/4 z-0"></div>
-        
-        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between relative z-10 text-white">
-          <div>
-            <CardTitle className="text-2xl md:text-3xl font-bold text-white flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mr-3 text-[#e53e3e]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-              </svg>
-              Evidencija Dreniranog Goriva
-            </CardTitle>
-            <p className="text-gray-300 mt-1 ml-11">Pregled svih zapisa o dreniranom gorivu</p>
-          </div>
-          <Button 
-            onClick={handleExportAllToPdf} 
-            variant="outline" 
-            size="sm" 
-            disabled={filteredData.length === 0}
-            className="backdrop-blur-md bg-[#e53e3e]/80 border border-white/20 text-white shadow-lg hover:bg-[#e53e3e]/90 transition-all mt-4 md:mt-0"
-          >
-            <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
-            Preuzmi PDF (filtrirano)
-          </Button>
-        </CardHeader>
-      </div>
-      <CardContent>
-        {/* Combined Filters Row */}
-        <div className="flex flex-wrap gap-4 mb-6 p-4 border border-white/20 rounded-xl backdrop-blur-md bg-white/5 dark:bg-gray-800/30 shadow-lg items-end">
-          {/* Date Filters */}
-          <div>
-            <Label htmlFor="startDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Od datuma:</Label>
-            <Input type="date" id="startDate" name="startDate" value={startDate} onChange={handleStartDateChange} className="mt-1 block w-full rounded-xl border-white/20 shadow-sm focus:border-[#e53e3e] focus:ring-[#e53e3e] sm:text-sm backdrop-blur-md bg-white/5 dark:bg-gray-800/30" />
-          </div>
-          <div>
-            <Label htmlFor="endDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Do datuma:</Label>
-            <Input type="date" id="endDate" name="endDate" value={endDate} onChange={handleEndDateChange} className="mt-1 block w-full rounded-xl border-white/20 shadow-sm focus:border-[#e53e3e] focus:ring-[#e53e3e] sm:text-sm backdrop-blur-md bg-white/5 dark:bg-gray-800/30" />
-          </div>
-          <Button onClick={resetDateFilters} variant="outline" className="self-end backdrop-blur-md bg-[#e53e3e]/80 border border-white/20 text-white shadow-lg hover:bg-[#e53e3e]/90 transition-all rounded-xl">Poništi datume</Button>
-
-          {/* Source Type Filter */}
-          <div className="ml-auto">
-            <Label htmlFor="sourceTypeFilter" className="block text-sm font-medium text-gray-700 mb-1">Tip izvora:</Label>
-            <select
-              id="sourceTypeFilter"
-              value={selectedSourceType}
-              onChange={(e) => handleSourceTypeChange(e.target.value)}
-              className="w-[200px] bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="bg-gradient-to-r from-[#4d4c4c] to-[#1a1a1a] p-6 sm:p-8">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
+            <div>
+              <h2 className="text-white flex items-center text-2xl md:text-3xl font-bold">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mr-3 text-[#e53e3e]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                </svg>
+                Evidencija Dreniranog Goriva
+              </h2>
+              <p className="text-gray-300 mt-1 ml-11 text-sm">Pregled svih zapisa o dreniranom gorivu</p>
+            </div>
+            <Button
+              onClick={handleExportAllToPdf}
+              variant="outline"
+              size="sm"
+              disabled={filteredData.length === 0}
+              className="border-gray-300 text-gray-900 hover:border-gray-400 hover:bg-red-50 hover:text-gray-900 whitespace-nowrap transition-all mt-4 md:mt-0"
             >
-              <option value="all">Svi izvori</option>
-              <option value="fixed">Fiksni tank</option>
-              <option value="mobile">Mobilni tank (cisterna)</option>
-            </select>
+              <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
+              Preuzmi PDF (filtrirano)
+            </Button>
           </div>
-          {/* TODO: Add dropdown for specific source ID here */}
-          <Button onClick={resetSourceFilters} variant="outline" className="self-end backdrop-blur-md bg-[#e53e3e]/80 border border-white/20 text-white shadow-lg hover:bg-[#e53e3e]/90 transition-all rounded-xl">Poništi filter izvora</Button>
+        </div>
+      <div className="p-6">
+        {/* Combined Filters Row */}
+        <div className="mb-6 p-6 bg-gray-50 border border-gray-200 rounded-lg">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {/* Date Filters */}
+            <div>
+              <Label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">Od datuma:</Label>
+              <Input type="date" id="startDate" name="startDate" value={startDate} onChange={handleStartDateChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 hover:border-gray-400 transition-all" />
+            </div>
+            <div>
+              <Label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-2">Do datuma:</Label>
+              <Input type="date" id="endDate" name="endDate" value={endDate} onChange={handleEndDateChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 hover:border-gray-400 transition-all" />
+            </div>
+
+            {/* Source Type Filter */}
+            <div>
+              <Label htmlFor="sourceTypeFilter" className="block text-sm font-medium text-gray-700 mb-2">Tip izvora:</Label>
+              <select
+                id="sourceTypeFilter"
+                value={selectedSourceType}
+                onChange={(e) => handleSourceTypeChange(e.target.value)}
+                className="w-full bg-white border border-gray-300 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-500 hover:border-gray-400 transition-all"
+              >
+                <option value="all">Svi izvori</option>
+                <option value="fixed">Fiksni tank</option>
+                <option value="mobile">Mobilni tank (cisterna)</option>
+              </select>
+            </div>
+
+            <div className="flex items-end gap-2">
+              <Button onClick={resetDateFilters} variant="outline" className="flex-1 border-gray-300 text-gray-900 hover:border-gray-400 hover:bg-gray-200 hover:text-gray-900 transition-all rounded-lg">Poništi datume</Button>
+              <Button onClick={resetSourceFilters} variant="outline" className="flex-1 border-gray-300 text-gray-900 hover:border-gray-400 hover:bg-gray-200 hover:text-gray-900 transition-all rounded-lg">Poništi filter</Button>
+            </div>
+          </div>
         </div>
 
         {filteredData.length === 0 ? (
-          <p>Nema evidentiranih podataka o dreniranom gorivu za odabrane filtere.</p>
+          <div className="flex flex-col items-center justify-center py-12">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+            </svg>
+            <p className="text-gray-700 font-medium">Nema evidentiranih podataka o dreniranom gorivu za odabrane filtere.</p>
+          </div>
         ) : (
           <>
-            <div className="mb-4 text-right font-semibold">
-              Ukupno drenirano (filtrirano): {calculateTotalDrained().toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} L
+            <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+              <p className="text-right font-semibold text-gray-900">
+                Ukupno drenirano (filtrirano): <span className="text-slate-600">{calculateTotalDrained().toLocaleString('bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> L
+              </p>
             </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Datum</TableHead>
-                  <TableHead>Izvor (Tank/Vozilo)</TableHead>
-                  <TableHead>Lokacija</TableHead>
-                  <TableHead>Količina (L)</TableHead>
-                  <TableHead>Napomena</TableHead>
-                  <TableHead>Korisnik</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredData.map((item) => {
-                  let sourceDisplay = item.sourceName || '-'; 
-                  if (item.sourceType === 'fixed' && item.sourceFixedTank) {
-                    sourceDisplay = item.sourceFixedTank.tank_name 
-                      ? `${item.sourceFixedTank.tank_name} (${item.sourceFixedTank.tank_identifier || '-'})` 
-                      : (item.sourceFixedTank.tank_identifier || '-'); 
-                  } else if (item.sourceType === 'mobile' && item.sourceMobileTank) {
-                    const mobileName = item.sourceMobileTank.name || item.sourceMobileTank.vehicle_name;
-                    const mobileIdentifier = item.sourceMobileTank.identifier || item.sourceMobileTank.registration_number;
-                    sourceDisplay = mobileName 
-                      ? `${mobileName} (${mobileIdentifier || '-'})` 
-                      : (mobileIdentifier || '-');
-                  } else if (item.sourceName) {
-                      sourceDisplay = item.sourceName;
-                  }
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Datum</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Izvor (Tank/Vozilo)</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Lokacija</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Količina (L)</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Napomena</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Korisnik</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {filteredData.map((item) => {
+                      let sourceDisplay = item.sourceName || '-';
+                      if (item.sourceType === 'fixed' && item.sourceFixedTank) {
+                        sourceDisplay = item.sourceFixedTank.tank_name
+                          ? `${item.sourceFixedTank.tank_name} (${item.sourceFixedTank.tank_identifier || '-'})`
+                          : (item.sourceFixedTank.tank_identifier || '-');
+                      } else if (item.sourceType === 'mobile' && item.sourceMobileTank) {
+                        const mobileName = item.sourceMobileTank.name || item.sourceMobileTank.vehicle_name;
+                        const mobileIdentifier = item.sourceMobileTank.identifier || item.sourceMobileTank.registration_number;
+                        sourceDisplay = mobileName
+                          ? `${mobileName} (${mobileIdentifier || '-'})`
+                          : (mobileIdentifier || '-');
+                      } else if (item.sourceName) {
+                        sourceDisplay = item.sourceName;
+                      }
 
-                  let locationDisplay = '-';
-                  if (item.sourceType === 'fixed' && item.sourceFixedTank) {
-                    locationDisplay = item.sourceFixedTank.location_description || item.sourceFixedTank.tank_identifier;
-                  } else if (item.sourceType === 'mobile' && item.sourceMobileTank) {
-                    locationDisplay = item.sourceMobileTank.current_location || item.sourceMobileTank.vehicle_name || '-';
-                  }
+                      let locationDisplay = '-';
+                      if (item.sourceType === 'fixed' && item.sourceFixedTank) {
+                        locationDisplay = item.sourceFixedTank.location_description || item.sourceFixedTank.tank_identifier;
+                      } else if (item.sourceType === 'mobile' && item.sourceMobileTank) {
+                        locationDisplay = item.sourceMobileTank.current_location || item.sourceMobileTank.vehicle_name || '-';
+                      }
 
-                  return (
-                    <TableRow key={item.id}>
-                      <TableCell>
-                        {formatDateTimeBosnian(item.dateTime)}
-                      </TableCell>
-                      <TableCell>{sourceDisplay}</TableCell>
-                      <TableCell>{locationDisplay}</TableCell>
-                      <TableCell>{item.quantityLiters.toLocaleString('bs-BA')}</TableCell>
-                      <TableCell>{item.notes || '-'}</TableCell>
-                      <TableCell>{item.userName || item.user.username || '-'}</TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                      return (
+                        <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-4 py-3 text-sm text-gray-700">{formatDateTimeBosnian(item.dateTime)}</td>
+                          <td className="px-4 py-3 text-sm text-gray-700">{sourceDisplay}</td>
+                          <td className="px-4 py-3 text-sm text-gray-700">{locationDisplay}</td>
+                          <td className="px-4 py-3 text-sm text-gray-700">{item.quantityLiters.toLocaleString('bs-BA')}</td>
+                          <td className="px-4 py-3 text-sm text-gray-700">{item.notes || '-'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-700">{item.userName || item.user.username || '-'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 

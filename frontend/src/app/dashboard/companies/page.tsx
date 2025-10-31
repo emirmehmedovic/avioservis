@@ -92,18 +92,14 @@ const CompaniesPage = () => {
       transition={{ duration: 0.5 }}
     >
       {/* Header Section */}
-      <div className="relative overflow-hidden rounded-xl border border-white/10 backdrop-blur-md bg-gradient-to-br from-[#4d4c4c] to-[#1a1a1a] shadow-lg p-6">
-        {/* Subtle red shadows in corners */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-[#e53e3e] rounded-full filter blur-3xl opacity-5 -translate-y-1/2 translate-x-1/4 z-0"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#e53e3e] rounded-full filter blur-3xl opacity-5 translate-y-1/2 -translate-x-1/4 z-0"></div>
-        
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 relative z-10">
-          <div className="flex items-center">
-            <div className="mr-4 p-3 bg-[#e53e3e]/20 backdrop-blur-md rounded-xl border border-white/10 shadow-lg">
-              <FaBuilding className="h-8 w-8 text-[#e53e3e]" />
-            </div>
+      <div className="relative overflow-hidden rounded-xl border border-white/10 backdrop-blur-md bg-gradient-to-br from-[#4d4c4c] to-[#1a1a1a] shadow-lg p-6 mb-6">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gray-600 rounded-full filter blur-3xl opacity-10 -translate-y-1/2 translate-x-1/4"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gray-800 rounded-full filter blur-3xl opacity-10 translate-y-1/2 -translate-x-1/4"></div>
+
+        <div className="relative z-10">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
-              <motion.h1 
+              <motion.h1
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
@@ -111,7 +107,7 @@ const CompaniesPage = () => {
               >
                 Upravljanje Firmama
               </motion.h1>
-              <motion.p 
+              <motion.p
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.1 }}
@@ -120,182 +116,161 @@ const CompaniesPage = () => {
                 Pregled, dodavanje i uređivanje kompanija u sistemu
               </motion.p>
             </div>
+            <Link href="/dashboard/companies/new">
+              <Button
+                variant="default"
+                className="backdrop-blur-md bg-slate-600/80 hover:bg-slate-700 border border-white/20 text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all font-medium duration-200 flex items-center gap-2"
+              >
+                <FaPlus className="h-4 w-4" />
+                <span className="hidden sm:inline">Nova Firma</span>
+              </Button>
+            </Link>
           </div>
-          <Link href="/dashboard/companies/new">
-            <Button 
-              variant="default"
-              className="backdrop-blur-md bg-[#e53e3e]/80 border border-white/20 text-white shadow-lg hover:bg-[#e53e3e]/90 transition-all font-medium rounded-xl flex items-center gap-2 px-4 py-2"
-            >
-              <FaPlus className="h-4 w-4" />
-              Dodaj Novu Firmu
-            </Button>
-          </Link>
         </div>
       </div>
 
       {error && (
-        <div className="bg-[#e53e3e]/20 backdrop-blur-md border border-white/10 shadow-lg p-4 rounded-xl">
-          <div className="flex items-center">
-            <div className="mr-3 p-2 bg-[#e53e3e]/20 backdrop-blur-md rounded-xl border border-white/10 shadow-lg">
-              <FaExclamationTriangle className="text-[#e53e3e]" />
+        <div className="bg-red-50 border border-red-200 shadow-md p-4 rounded-xl">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-red-100 rounded-lg flex-shrink-0">
+              <FaExclamationTriangle className="text-red-600" />
             </div>
-            <p className="text-white">{error}</p>
+            <p className="text-red-900 font-medium">{error}</p>
           </div>
         </div>
       )}
 
       {/* Search Box */}
-      <div className="relative overflow-hidden border border-white/10 backdrop-blur-md bg-gradient-to-br from-white/60 to-white/20 shadow-md rounded-xl p-4">
-        <div className="flex items-center space-x-3">
-          <div className="relative">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+        <div className="flex items-center">
+          <div className="relative flex-1">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <FaSearch className="text-white/70" />
+              <FaSearch className="text-gray-400" />
             </div>
             <input
               type="text"
               placeholder="Pretraži firme..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-white/20 rounded-xl backdrop-blur-md bg-white/10 text-white focus:outline-none focus:ring-2 focus:ring-[#e53e3e] focus:border-transparent"
+              className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 w-full text-sm transition-all"
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm('')}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-white/70 hover:text-white"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
               >
                 <FaTimesCircle />
               </button>
             )}
           </div>
-          <Link href="/dashboard/companies/add">
-            <Button className="backdrop-blur-md bg-[#e53e3e]/80 border border-white/20 text-white shadow-lg hover:bg-[#e53e3e]/90 transition-all font-medium rounded-xl flex items-center gap-2 px-4 py-2">
-              <FaPlus size={16} />
-              <span>Dodaj Firmu</span>
-            </Button>
-          </Link>
         </div>
       </div>
 
       {/* Companies List */}
-      <div className="relative overflow-hidden border border-white/10 backdrop-blur-md bg-gradient-to-br from-[#2c2c2c] to-[#1a1a1a] shadow-lg rounded-xl">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-[#4FC3C7] rounded-full filter blur-3xl opacity-5 -translate-y-1/2 translate-x-1/4"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#4FC3C7] rounded-full filter blur-3xl opacity-5 translate-y-1/2 -translate-x-1/4"></div>
-        
-        <div className="relative z-10">
-          {filteredCompanies.length === 0 && !loading ? (
-            <div className="text-center py-16 px-4">
-              <div className="w-20 h-20 mx-auto bg-[#e53e3e]/20 backdrop-blur-md rounded-xl border border-white/10 shadow-lg flex items-center justify-center mb-6">
-                <FaBuilding className="h-10 w-10 text-[#e53e3e]" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3 text-white">
-                Nema pronađenih firmi
-              </h3>
-              {companies.length > 0 && searchTerm && (
-                <p className="text-white/70 max-w-md mx-auto mb-4">
-                  Pokušajte sa drugim terminom pretrage.
-                </p>
-              )}
-              {companies.length === 0 && !searchTerm && (
-                <p className="text-white/70 max-w-md mx-auto mb-4">
-                  Nema unesenih firmi. Kliknite na dugme ispod da dodate novu.
-                </p>
-              )}
-              
-              <Link href="/dashboard/companies/new" className="inline-block mt-2">
-                <Button 
-                  variant="default"
-                  className="backdrop-blur-md bg-[#e53e3e]/80 border border-white/20 text-white shadow-lg hover:bg-[#e53e3e]/90 transition-all font-medium rounded-xl flex items-center gap-2 px-4 py-2"
-                >
-                  <FaPlus className="h-4 w-4" />
-                  Dodaj Novu Firmu
-                </Button>
-              </Link>
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+        {filteredCompanies.length === 0 && !loading ? (
+          <div className="text-center py-16 px-4">
+            <div className="w-20 h-20 mx-auto bg-gray-100 rounded-xl flex items-center justify-center mb-6">
+              <FaBuilding className="h-10 w-10 text-gray-400" />
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-white/5 backdrop-blur-md">
-                  <tr>
-                    <th className="px-6 py-4 text-sm font-semibold text-white uppercase tracking-wider">Naziv Firme</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-white uppercase tracking-wider">ID Broj</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-white uppercase tracking-wider">Grad</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-white uppercase tracking-wider">Adresa</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-white uppercase tracking-wider">Kontakt Osoba</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-white uppercase tracking-wider">Telefon</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-white uppercase tracking-wider text-center">Broj Vozila</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-white uppercase tracking-wider text-center">Akcije</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredCompanies.map((company, index) => (
-                    <motion.tr 
-                      key={company.id} 
-                      className="border-b border-white/10 hover:bg-white/5 transition-colors duration-200"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05, duration: 0.3 }}
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          <div className="mr-3 p-1.5 bg-[#4FC3C7]/20 backdrop-blur-md rounded-lg border border-white/10 shadow-sm">
-                            <FaBuilding className="text-[#4FC3C7]" />
-                          </div>
-                          <span className="font-medium text-white">{company.name}</span>
+            <h3 className="text-xl font-semibold mb-3 text-gray-900">
+              Nema pronađenih firmi
+            </h3>
+            {companies.length > 0 && searchTerm && (
+              <p className="text-gray-600 max-w-md mx-auto mb-4">
+                Pokušajte sa drugim terminom pretrage.
+              </p>
+            )}
+            {companies.length === 0 && !searchTerm && (
+              <p className="text-gray-600 max-w-md mx-auto mb-4">
+                Nema unesenih firmi. Kliknite na dugme u headeru da dodate novu.
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-4 text-sm font-semibold text-gray-900 uppercase tracking-wider">Naziv Firme</th>
+                  <th className="px-6 py-4 text-sm font-semibold text-gray-900 uppercase tracking-wider">ID Broj</th>
+                  <th className="px-6 py-4 text-sm font-semibold text-gray-900 uppercase tracking-wider">Grad</th>
+                  <th className="px-6 py-4 text-sm font-semibold text-gray-900 uppercase tracking-wider">Adresa</th>
+                  <th className="px-6 py-4 text-sm font-semibold text-gray-900 uppercase tracking-wider">Kontakt Osoba</th>
+                  <th className="px-6 py-4 text-sm font-semibold text-gray-900 uppercase tracking-wider">Telefon</th>
+                  <th className="px-6 py-4 text-sm font-semibold text-gray-900 uppercase tracking-wider text-center">Broj Vozila</th>
+                  <th className="px-6 py-4 text-sm font-semibold text-gray-900 uppercase tracking-wider text-center">Akcije</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredCompanies.map((company, index) => (
+                  <motion.tr
+                    key={company.id}
+                    className="border-b border-gray-200 hover:bg-gray-50 transition-colors duration-200"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05, duration: 0.3 }}
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-1.5 bg-blue-100 rounded-lg flex-shrink-0">
+                          <FaBuilding className="text-blue-600" />
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-white/80">{company.taxId || '-'}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-white/80">{company.city || '-'}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-white/80">{company.address || '-'}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-white/80">{company.contactPersonName || '-'}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-white/80">{company.contactPersonPhone || '-'}</span>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex items-center justify-center">
-                          <div className="backdrop-blur-sm bg-[#e53e3e]/20 border border-white/20 rounded-full px-3 py-1 inline-flex items-center">
-                            <FaCar className="mr-2 text-[#e53e3e] h-3 w-3" />
-                            <span className="text-white">{company.vehicles ? company.vehicles.length : '0'}</span>
-                          </div>
+                        <span className="font-medium text-gray-900">{company.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-gray-600">{company.taxId || '-'}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-gray-600">{company.city || '-'}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-gray-600">{company.address || '-'}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-gray-600">{company.contactPersonName || '-'}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-gray-600">{company.contactPersonPhone || '-'}</span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex items-center justify-center">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-1 inline-flex items-center gap-2">
+                          <FaCar className="text-blue-600 h-3 w-3" />
+                          <span className="text-blue-900 font-medium text-sm">{company.vehicles ? company.vehicles.length : '0'}</span>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex items-center justify-center space-x-2">
-                          <Link href={`/dashboard/companies/edit/${company.id}`}>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-[#4FC3C7] hover:text-[#4FC3C7] border border-white/10 hover:bg-[#4FC3C7]/20 backdrop-blur-md"
-                              aria-label="Uredi firmu"
-                            >
-                              <FaEdit size={16} />
-                            </Button>
-                          </Link>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <Link href={`/dashboard/companies/edit/${company.id}`}>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-[#e53e3e] hover:text-[#e53e3e] border border-white/10 hover:bg-[#e53e3e]/20 backdrop-blur-md"
-                            onClick={() => openDeleteModal(company)}
-                            aria-label="Obriši firmu"
+                            className="h-8 w-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-gray-300"
+                            aria-label="Uredi firmu"
                           >
-                            <FaTrash size={16} />
+                            <FaEdit size={16} />
                           </Button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                        </Link>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-100 border border-red-300"
+                          onClick={() => openDeleteModal(company)}
+                          aria-label="Obriši firmu"
+                        >
+                          <FaTrash size={16} />
+                        </Button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {showConfirmModal && companyToDelete && (

@@ -168,29 +168,25 @@ export function PlanKalibracijeCard({ plan, onEdit, onDelete, onGeneratePDF, onG
   ];
 
   return (
-    <Card 
-      className="group relative bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden cursor-pointer"
+    <Card
+      className="group relative bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 overflow-hidden cursor-pointer"
       onClick={() => onViewDetails(plan)}
     >
-      {/* Gradient border effect */}
-      <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-      
-      {/* Subtle background patterns */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full filter blur-3xl opacity-30 -mr-16 -mt-16"></div>
-      <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full filter blur-3xl opacity-30 -ml-20 -mb-20"></div>
+      {/* Subtle accent bar */}
+      <div className="absolute top-0 left-0 h-1 bg-blue-600" style={{ width: '4px' }}></div>
       
       <CardHeader className="relative z-10 pb-4 border-b border-gray-100">
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center space-x-3 min-w-0">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-lg">
-              <Settings2 className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <Settings2 className="w-5 h-5 text-blue-600" />
             </div>
             <div className="min-w-0">
               <span className="block text-lg font-bold text-gray-900 truncate">{plan.naziv_opreme}</span>
-              <span className="text-sm text-gray-500">#{plan.identifikacijski_broj}</span>
+              <span className="text-xs text-gray-500 font-medium">#{plan.identifikacijski_broj}</span>
             </div>
           </div>
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${statusColors.bg} ${statusColors.text} ${statusColors.border} border flex-shrink-0 shadow-sm`}>
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold ${statusColors.bg} ${statusColors.text} ${statusColors.border} border flex-shrink-0`}>
             <span className={statusColors.icon}>{getStatusIcon(statusInfo.status)}</span>
             {statusInfo.status.replace('_', ' ').toUpperCase()}
           </div>
@@ -200,30 +196,28 @@ export function PlanKalibracijeCard({ plan, onEdit, onDelete, onGeneratePDF, onG
       <CardContent className="relative z-10 p-6 space-y-6">
         {/* Basic Info Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="group/item relative p-4 rounded-xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200">
-            <div className="absolute top-0 right-0 w-8 h-8 bg-blue-100 rounded-full filter blur-xl opacity-50 -mr-2 -mt-2 group-hover/item:bg-blue-200 transition-colors duration-200"></div>
-            <div className="flex items-center space-x-3 relative z-10">
-              <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0 group-hover/item:bg-blue-200 transition-colors duration-200">
+          <div className="p-4 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100/80 hover:shadow-sm transition-all">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
                 <User className="w-4 h-4 text-blue-600" />
               </div>
               <div className="min-w-0">
-                <span className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Vlasnik</span>
-                <p className="text-gray-900 font-semibold truncate" title={plan.vlasnik_opreme}>
+                <span className="block text-xs font-medium text-gray-500 uppercase">Vlasnik</span>
+                <p className="text-gray-900 font-medium text-sm truncate" title={plan.vlasnik_opreme}>
                   {plan.vlasnik_opreme}
                 </p>
               </div>
             </div>
           </div>
-          
-          <div className="group/item relative p-4 rounded-xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white shadow-sm hover:shadow-md hover:border-green-200 transition-all duration-200">
-            <div className="absolute top-0 right-0 w-8 h-8 bg-green-100 rounded-full filter blur-xl opacity-50 -mr-2 -mt-2 group-hover/item:bg-green-200 transition-colors duration-200"></div>
-            <div className="flex items-center space-x-3 relative z-10">
-              <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0 group-hover/item:bg-green-200 transition-colors duration-200">
-                <MapPin className="w-4 h-4 text-green-600" />
+
+          <div className="p-4 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100/80 hover:shadow-sm transition-all">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
+                <MapPin className="w-4 h-4 text-gray-600" />
               </div>
               <div className="min-w-0">
-                <span className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Mjesto</span>
-                <p className="text-gray-900 font-semibold truncate" title={plan.mjesto_koristenja_opreme}>
+                <span className="block text-xs font-medium text-gray-500 uppercase">Mjesto</span>
+                <p className="text-gray-900 font-medium text-sm truncate" title={plan.mjesto_koristenja_opreme}>
                   {plan.mjesto_koristenja_opreme}
                 </p>
               </div>
@@ -232,8 +226,7 @@ export function PlanKalibracijeCard({ plan, onEdit, onDelete, onGeneratePDF, onG
         </div>
 
         {/* Status Section */}
-        <div className="relative p-5 rounded-xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white shadow-sm hover:shadow-md transition-all duration-200">
-          <div className="absolute top-0 right-0 w-16 h-16 bg-cyan-100 rounded-full filter blur-xl opacity-50 -mr-4 -mt-4"></div>
+        <div className="p-5 rounded-lg border border-gray-200 bg-gray-50 hover:shadow-sm transition-all">
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
               <h4 className="font-semibold text-gray-900 flex items-center gap-2">

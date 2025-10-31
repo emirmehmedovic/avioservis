@@ -76,9 +76,12 @@ const initCronProcess = async () => {
     logger.info('   - 05:00 - Notifikacije isteka dokumenata');
     logger.info('   - 06:00 - Azuriranje statusa XML faktura');
     logger.info('   - 06:30 - Azuriranje statusa Email faktura');
-    logger.info('   - 23:50 - Slanje email faktura');
-    logger.info('   - 23:55 - Slanje XML faktura (Wizz Air)');
-    logger.info('   - 23:57 - Ponovno slanje neuspjelih email faktura');
+    logger.info('   - 00:40 - Slanje email faktura (TESTING TIME)');
+    logger.info('   - 00:45 - Slanje XML faktura - Wizz Air (TESTING TIME)');
+    logger.info('   - 00:50 - Ponovno slanje neuspjelih email faktura (TESTING TIME)');
+    logger.info('');
+    logger.info('NAPOMENA: Vremenski okviri su postavljeni za testiranje.');
+    logger.info('Trebati će vratiti na originalne nakon što testiranje bude uspješno.');
     logger.info('');
     logger.info('Process PID:', process.pid);
     logger.info('Za zaustavljanje: pm2 stop avioservis-cron');
@@ -93,4 +96,16 @@ const initCronProcess = async () => {
 
 // Start the cron process
 initCronProcess();
+
+// ✅ HEARTBEAT MONITORING - Svaki sat logira da je proces živ
+// Ovo pomaže u debugging-u ako se proces neočekivano zaustavi
+setInterval(() => {
+  const now = new Date();
+  console.log(`[${now.toISOString()}] 💓 CRON PROCESS HEARTBEAT - Still running (uptime: ${process.uptime().toFixed(0)}s)`);
+}, 60 * 60 * 1000); // Svaki sat (60 * 60 * 1000 ms)
+
+// Log uptime svaki put kada se CRON job pokreće
+process.on('beforeExit', () => {
+  console.log(`[${new Date().toISOString()}] Process exiting after ${process.uptime().toFixed(0)}s uptime`);
+});
 

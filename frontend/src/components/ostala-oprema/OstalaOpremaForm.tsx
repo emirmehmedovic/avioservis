@@ -118,14 +118,14 @@ export function OstalaOpremaForm({ isOpen, onClose, onSubmit, oprema }: OstalaOp
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-white/20 backdrop-blur-md bg-gradient-to-br from-gray-900/95 to-gray-800/95 shadow-2xl">
-        <CardHeader className="border-b border-white/10">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-xl border border-gray-200">
+        <CardHeader className="border-b border-gray-100 pb-4">
           <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg shadow-lg">
-                <Wrench className="h-6 w-6 text-white" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Wrench className="h-5 w-5 text-blue-600" />
               </div>
-              <span className="text-xl font-bold text-white">
+              <span className="text-xl font-bold text-gray-900">
                 {oprema ? 'Uredi Opremu' : 'Nova Oprema'}
               </span>
             </div>
@@ -133,7 +133,7 @@ export function OstalaOpremaForm({ isOpen, onClose, onSubmit, oprema }: OstalaOp
               onClick={onClose}
               variant="outline"
               size="sm"
-              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              className="border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-gray-900 h-8 w-8 p-0"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -144,14 +144,13 @@ export function OstalaOpremaForm({ isOpen, onClose, onSubmit, oprema }: OstalaOp
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Osnovni podaci */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">
                 Osnovni podaci
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="naziv" className="text-white font-medium">
+                  <Label htmlFor="naziv" className="text-gray-700 font-medium text-sm">
                     Naziv opreme *
                   </Label>
                   <Input
@@ -159,16 +158,16 @@ export function OstalaOpremaForm({ isOpen, onClose, onSubmit, oprema }: OstalaOp
                     type="text"
                     value={naziv}
                     onChange={(e) => setNaziv(e.target.value)}
-                    className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
+                    className="bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-sm transition-all"
                     placeholder="Unesite naziv opreme"
                   />
                   {errors.naziv && (
-                    <p className="text-red-400 text-sm">{errors.naziv}</p>
+                    <p className="text-red-600 text-sm font-medium">{errors.naziv}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="vlasnik" className="text-white font-medium">
+                  <Label htmlFor="vlasnik" className="text-gray-700 font-medium text-sm">
                     Vlasnik
                   </Label>
                   <Input
@@ -176,13 +175,13 @@ export function OstalaOpremaForm({ isOpen, onClose, onSubmit, oprema }: OstalaOp
                     type="text"
                     value={vlasnik}
                     onChange={(e) => setVlasnik(e.target.value)}
-                    className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
+                    className="bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-sm transition-all"
                     placeholder="Unesite vlasnika opreme"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="mestoKoristenja" className="text-white font-medium">
+                  <Label htmlFor="mestoKoristenja" className="text-gray-700 font-medium text-sm">
                     Mjesto korištenja
                   </Label>
                   <Input
@@ -190,13 +189,13 @@ export function OstalaOpremaForm({ isOpen, onClose, onSubmit, oprema }: OstalaOp
                     type="text"
                     value={mestoKoristenja}
                     onChange={(e) => setMestoKoristenja(e.target.value)}
-                    className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
+                    className="bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-sm transition-all"
                     placeholder="Unesite mjesto korištenja"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="standardOpreme" className="text-white font-medium">
+                  <Label htmlFor="standardOpreme" className="text-gray-700 font-medium text-sm">
                     Standard opreme
                   </Label>
                   <Input
@@ -204,7 +203,7 @@ export function OstalaOpremaForm({ isOpen, onClose, onSubmit, oprema }: OstalaOp
                     type="text"
                     value={standardOpreme}
                     onChange={(e) => setStandardOpreme(e.target.value)}
-                    className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
+                    className="bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-sm transition-all"
                     placeholder="Unesite standard opreme"
                   />
                 </div>
@@ -213,14 +212,13 @@ export function OstalaOpremaForm({ isOpen, onClose, onSubmit, oprema }: OstalaOp
 
             {/* Specifikacije */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">
                 Specifikacije
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="snaga" className="text-white font-medium">
+                  <Label htmlFor="snaga" className="text-gray-700 font-medium text-sm">
                     Snaga
                   </Label>
                   <Input
@@ -228,13 +226,13 @@ export function OstalaOpremaForm({ isOpen, onClose, onSubmit, oprema }: OstalaOp
                     type="text"
                     value={snaga}
                     onChange={(e) => setSnaga(e.target.value)}
-                    className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
+                    className="bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-sm transition-all"
                     placeholder="Unesite snagu (npr. 5kW, 10HP)"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="protokKapacitet" className="text-white font-medium">
+                  <Label htmlFor="protokKapacitet" className="text-gray-700 font-medium text-sm">
                     Protok/kapacitet
                   </Label>
                   <Input
@@ -242,7 +240,7 @@ export function OstalaOpremaForm({ isOpen, onClose, onSubmit, oprema }: OstalaOp
                     type="text"
                     value={protokKapacitet}
                     onChange={(e) => setProtokKapacitet(e.target.value)}
-                    className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
+                    className="bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-sm transition-all"
                     placeholder="Unesite protok ili kapacitet"
                   />
                 </div>
@@ -251,14 +249,13 @@ export function OstalaOpremaForm({ isOpen, onClose, onSubmit, oprema }: OstalaOp
 
             {/* Sigurnosni podaci */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">
                 Sigurnosni podaci
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="sigurnosneSklopke" className="text-white font-medium">
+                  <Label htmlFor="sigurnosneSklopke" className="text-gray-700 font-medium text-sm">
                     Sigurnosne sklopke
                   </Label>
                   <Input
@@ -266,13 +263,13 @@ export function OstalaOpremaForm({ isOpen, onClose, onSubmit, oprema }: OstalaOp
                     type="text"
                     value={sigurnosneSklopke}
                     onChange={(e) => setSigurnosneSklopke(e.target.value)}
-                    className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
+                    className="bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-sm transition-all"
                     placeholder="Opis sigurnosnih sklopki"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="prinudnoZaustavljanje" className="text-white font-medium">
+                  <Label htmlFor="prinudnoZaustavljanje" className="text-gray-700 font-medium text-sm">
                     Prinudno zaustavljanje
                   </Label>
                   <Input
@@ -280,7 +277,7 @@ export function OstalaOpremaForm({ isOpen, onClose, onSubmit, oprema }: OstalaOp
                     type="text"
                     value={prinudnoZaustavljanje}
                     onChange={(e) => setPrinudnoZaustavljanje(e.target.value)}
-                    className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
+                    className="bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-sm transition-all"
                     placeholder="Opis prinudnog zaustavljanja"
                   />
                 </div>
@@ -289,7 +286,7 @@ export function OstalaOpremaForm({ isOpen, onClose, onSubmit, oprema }: OstalaOp
 
             {/* Napomene */}
             <div className="space-y-2">
-              <Label htmlFor="napomena" className="text-white font-medium">
+              <Label htmlFor="napomena" className="text-gray-700 font-medium text-sm">
                 Napomene
               </Label>
               <textarea
@@ -297,14 +294,14 @@ export function OstalaOpremaForm({ isOpen, onClose, onSubmit, oprema }: OstalaOp
                 value={napomena}
                 onChange={(e) => setNapomena(e.target.value)}
                 rows={4}
-                className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-sm transition-all resize-none"
                 placeholder="Unesite dodatne napomene..."
               />
             </div>
 
             {/* File Upload */}
             <div className="space-y-2">
-              <Label htmlFor="file" className="text-white font-medium">
+              <Label htmlFor="file" className="text-gray-700 font-medium text-sm">
                 Priloži dokument
               </Label>
               <div className="flex items-center gap-4">
@@ -313,27 +310,27 @@ export function OstalaOpremaForm({ isOpen, onClose, onSubmit, oprema }: OstalaOp
                   type="file"
                   onChange={handleFileChange}
                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif"
-                  className="bg-gray-700/50 border-gray-600 text-white file:bg-blue-600 file:text-white file:border-0 file:rounded file:px-3 file:py-1"
+                  className="bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm file:bg-blue-600 file:text-white file:border-0 file:rounded file:px-3 file:py-1 file:cursor-pointer"
                 />
                 {selectedFile && (
-                  <div className="flex items-center gap-2 text-green-400">
+                  <div className="flex items-center gap-2 text-green-600">
                     <FileText className="h-4 w-4" />
-                    <span className="text-sm">{selectedFile.name}</span>
+                    <span className="text-sm font-medium">{selectedFile.name}</span>
                   </div>
                 )}
               </div>
-              <p className="text-gray-400 text-xs">
+              <p className="text-gray-500 text-xs">
                 Podržani formati: PDF, Word, slike (max 10MB)
               </p>
             </div>
 
             {/* Submit Buttons */}
-            <div className="flex gap-3 pt-4 border-t border-white/10">
+            <div className="flex gap-3 pt-4 border-t border-gray-200">
               <Button
                 type="button"
                 onClick={onClose}
                 variant="outline"
-                className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700"
+                className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900 font-medium"
                 disabled={isSubmitting}
               >
                 Otkaži
@@ -341,7 +338,7 @@ export function OstalaOpremaForm({ isOpen, onClose, onSubmit, oprema }: OstalaOp
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
               >
                 {isSubmitting ? (
                   <div className="flex items-center gap-2">

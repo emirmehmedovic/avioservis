@@ -360,24 +360,24 @@ export default function PlanKalibracjePage() {
                     onChange={(e) => setReportLanguage(e.target.value as 'bs' | 'en')}
                     className="px-3 py-2 border border-white/20 rounded-lg bg-white/10 backdrop-blur-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                   >
-                    <option value="bs">🇧🇦 Bosanski</option>
-                    <option value="en">🇬🇧 English</option>
+                    <option value="bs">Bosanski</option>
+                    <option value="en">English</option>
                   </select>
                   <Button
                     onClick={handleGenerateFullReport}
                     disabled={filteredPlanovi.length === 0}
-                    className="bg-green-500 hover:bg-green-600 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-amber-600 hover:bg-amber-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 duration-200"
                   >
                     <FileText className="h-4 w-4 mr-2" />
-                    Ukupni Izvještaj
+                    Izvještaj
                   </Button>
                 </div>
                 <Button
                   onClick={() => setIsFormOpen(true)}
-                  className="bg-blue-500 hover:bg-blue-600 text-white font-medium"
+                  className="backdrop-blur-md bg-slate-600/80 hover:bg-slate-700 border border-white/20 text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all font-medium duration-200"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Novi Plan
+                  Novi
                 </Button>
               </div>
             </div>
@@ -388,68 +388,56 @@ export default function PlanKalibracjePage() {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <motion.div variants={itemVariants}>
-          <div className="group relative">
-            <div className="relative bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 opacity-0 group-hover:opacity-5 transition-opacity duration-300"></div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-500 text-sm font-medium">Aktivni</p>
-                  <p className="text-2xl font-bold text-gray-800">{summary.aktivan || 0}</p>
-                </div>
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <CheckCircle className="w-6 h-6 text-white" />
-                </div>
+          <div className="relative bg-white rounded-xl p-6 shadow-md border border-gray-200 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm font-medium">Aktivni</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{summary.aktivan || 0}</p>
+              </div>
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-blue-600" />
               </div>
             </div>
           </div>
         </motion.div>
 
         <motion.div variants={itemVariants}>
-          <div className="group relative">
-            <div className="relative bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 opacity-0 group-hover:opacity-5 transition-opacity duration-300"></div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-500 text-sm font-medium">Uskoro ističu</p>
-                  <p className="text-2xl font-bold text-gray-800">{summary.uskoro_istice || 0}</p>
-                </div>
-                <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <Clock className="w-6 h-6 text-white" />
-                </div>
+          <div className="relative bg-white rounded-xl p-6 shadow-md border border-gray-200 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm font-medium">Uskoro ističu</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{summary.uskoro_istice || 0}</p>
+              </div>
+              <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
+                <Clock className="w-6 h-6 text-amber-600" />
               </div>
             </div>
           </div>
         </motion.div>
 
         <motion.div variants={itemVariants}>
-          <div className="group relative">
-            <div className="relative bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-red-500 to-pink-600 opacity-0 group-hover:opacity-5 transition-opacity duration-300"></div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-500 text-sm font-medium">Istekli</p>
-                  <p className="text-2xl font-bold text-gray-800">{summary.istekao || 0}</p>
-                </div>
-                <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <XCircle className="w-6 h-6 text-white" />
-                </div>
+          <div className="relative bg-white rounded-xl p-6 shadow-md border border-gray-200 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm font-medium">Istekli</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{summary.istekao || 0}</p>
+              </div>
+              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                <XCircle className="w-6 h-6 text-red-600" />
               </div>
             </div>
           </div>
         </motion.div>
 
         <motion.div variants={itemVariants}>
-          <div className="group relative">
-            <div className="relative bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-gray-500 to-slate-600 opacity-0 group-hover:opacity-5 transition-opacity duration-300"></div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-500 text-sm font-medium">Nepotpuni</p>
-                  <p className="text-2xl font-bold text-gray-800">{summary.nepotpun || 0}</p>
-                </div>
-                <div className="w-12 h-12 bg-gradient-to-br from-gray-500 to-slate-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <AlertTriangle className="w-6 h-6 text-white" />
-                </div>
+          <div className="relative bg-white rounded-xl p-6 shadow-md border border-gray-200 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm font-medium">Nepotpuni</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{summary.nepotpun || 0}</p>
+              </div>
+              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-gray-600" />
               </div>
             </div>
           </div>
@@ -457,73 +445,66 @@ export default function PlanKalibracjePage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-        <div className="relative overflow-hidden p-6">
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-50 to-blue-50 z-0"></div>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/20 to-indigo-500/20 rounded-full filter blur-2xl -translate-y-1/2 translate-x-1/4 z-0"></div>
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-indigo-400/20 to-blue-500/20 rounded-full filter blur-xl translate-y-1/2 -translate-x-1/4 z-0"></div>
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center mr-3 shadow-lg">
-                <Filter className="h-4 w-4 text-white" />
-              </div>
-              <span className="font-medium text-gray-800 text-lg">Filteri</span>
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-all">
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <Filter className="h-5 w-5 text-gray-600" />
+            <h3 className="text-lg font-semibold text-gray-900">Filteri</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label className="text-gray-700 text-sm font-medium block mb-2">Status</Label>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="w-full p-3 border border-gray-200 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+              >
+                <option value="">Svi statusi</option>
+                <option value="aktivan">Aktivni</option>
+                <option value="uskoro_istice">Uskoro ističu</option>
+                <option value="istekao">Istekli</option>
+                <option value="nepotpun">Nepotpuni</option>
+              </select>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label className="text-gray-700 text-sm font-medium">Status</Label>
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="w-full mt-1 p-3 border border-gray-200 rounded-lg bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 shadow-sm"
-                >
-                  <option value="">Svi statusi</option>
-                  <option value="aktivan">Aktivni</option>
-                  <option value="uskoro_istice">Uskoro ističu</option>
-                  <option value="istekao">Istekli</option>
-                  <option value="nepotpun">Nepotpuni</option>
-                </select>
-              </div>
-              <div>
-                <Label className="text-gray-700 text-sm font-medium">Vlasnik</Label>
-                <select
-                  value={filterVlasnik}
-                  onChange={(e) => setFilterVlasnik(e.target.value)}
-                  className="w-full mt-1 p-3 border border-gray-200 rounded-lg bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 shadow-sm"
-                >
-                  <option value="">Svi vlasnici</option>
-                  {uniqueVlasnici.map(vlasnik => (
-                    <option key={vlasnik} value={vlasnik}>{vlasnik}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex items-end">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSearchTerm('');
-                    setFilterStatus('');
-                    setFilterVlasnik('');
-                  }}
-                  className="w-full bg-white hover:bg-gray-50 border-gray-300 text-gray-700 hover:text-gray-900 shadow-sm"
-                >
-                  Resetuj filtere
-                </Button>
-              </div>
+            <div>
+              <Label className="text-gray-700 text-sm font-medium block mb-2">Vlasnik</Label>
+              <select
+                value={filterVlasnik}
+                onChange={(e) => setFilterVlasnik(e.target.value)}
+                className="w-full p-3 border border-gray-200 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+              >
+                <option value="">Svi vlasnici</option>
+                {uniqueVlasnici.map(vlasnik => (
+                  <option key={vlasnik} value={vlasnik}>{vlasnik}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-end">
+              <Button
+                onClick={() => {
+                  setSearchTerm('');
+                  setFilterStatus('');
+                  setFilterVlasnik('');
+                }}
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 border border-gray-300 transition-all font-medium"
+              >
+                Resetuj filtere
+              </Button>
             </div>
           </div>
         </div>
       </div>
 
       {/* Results */}
-      <motion.div 
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+      <motion.div
+        className="columns-1 md:columns-2 lg:columns-3 gap-6"
+        style={{ columnGap: '24px' }}
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
         {filteredPlanovi.length === 0 ? (
-          <div className="col-span-full flex flex-col items-center justify-center py-16 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+          <div className="flex flex-col items-center justify-center py-16 bg-gray-50 rounded-lg border border-dashed border-gray-300 break-inside-avoid">
             <Settings2 className="h-16 w-16 text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-800 mb-2">Nema planova kalibracije</h3>
             <p className="text-gray-500 text-center">
@@ -534,7 +515,7 @@ export default function PlanKalibracjePage() {
           </div>
         ) : (
           filteredPlanovi.map(plan => (
-            <motion.div key={plan.id} variants={itemVariants}>
+            <motion.div key={plan.id} variants={itemVariants} className="break-inside-avoid mb-6">
               <PlanKalibracijeCard
                 plan={plan}
                 onEdit={handleEdit}
