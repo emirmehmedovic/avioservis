@@ -700,6 +700,132 @@ export const getMobileTankCustomsBreakdown = async (req: Request, res: Response,
   }
 };
 
+// GET /api/fuel/tanks/density/oldest-active-mrn - Get density of oldest active MRN in a tank
+export const getOldestActiveMrnDensity = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { tankIdentifier } = req.query;
+
+    if (!tankIdentifier || typeof tankIdentifier !== 'string') {
+      res.status(400).json({ message: 'Tank identifier is required and must be a string.' });
+      return;
+    }
+
+    // Pronađi tank po identifier-u
+    const tank = await (prisma as any).fuelTank.findUnique({
+      where: { identifier: tankIdentifier },
+      select: {
+        id: true,
+        identifier: true,
+        name: true,
+        fuel_type: true
+      }
+    });
+
+    if (!tank) {
+      res.status(404).json({
+        message: `Tank with identifier '${tankIdentifier}' not found.`,
+        data: null
+      });
+      return;
+    }
+
+    // Definiraj tip za rezultat upita
+    type OldestMrnRecord = {
+      id: number;
+      customs_declaration_number: string;
+      density_at_intake: string | number | null;
+      remaining_quantity_kg: string | number | null;
+      remaining_quantity_liters: string | number | null;
+      date_added: Date;
+    };
+
+    // Dohvati najstariji aktivni MRN zapis (FIFO - First In First Out)
+    const oldestMrnRecord = await prisma.$queryRaw<OldestMrnRecord[]>`
+      SELECT
+        mtc.id,
+        mtc.customs_declaration_number,
+        mtc.density_at_intake,
+        mtc.remaining_quantity_kg,
+        mtc.remaining_quantity_liters,
+        mtc.date_added
+      FROM "MobileTankCustoms" mtc
+      WHERE mtc.mobile_tank_id = ${tank.id}
+        AND mtc.remaining_quantity_kg > 0
+      ORDER BY mtc.date_added ASC
+      LIMIT 1
+    `;
+
+    // Ako nema aktivnog MRN-a
+    if (!oldestMrnRecord || oldestMrnRecord.length === 0) {
+      res.status(200).json({
+        tank: tank,
+        data: {
+          density: null,
+          mrn_number: null,
+          remaining_kg: null,
+          remaining_liters: null,
+          date_added: null
+        }
+      });
+      return;
+    }
+
+    const record = oldestMrnRecord[0];
+
+    // Sigurno parsiranje density_at_intake vrijednosti
+    let density = null;
+    if (record.density_at_intake !== null && record.density_at_intake !== undefined) {
+      try {
+        density = Number(Number(String(record.density_at_intake)).toFixed(4));
+      } catch (e) {
+        console.error('Error parsing density_at_intake', e);
+        density = null;
+      }
+    }
+
+    // Sigurno parsiranje remaining_quantity_kg
+    let remaining_kg = null;
+    if (record.remaining_quantity_kg !== null && record.remaining_quantity_kg !== undefined) {
+      try {
+        remaining_kg = Number(Number(String(record.remaining_quantity_kg)).toFixed(3));
+      } catch (e) {
+        console.error('Error parsing remaining_quantity_kg', e);
+        remaining_kg = null;
+      }
+    }
+
+    // Sigurno parsiranje remaining_quantity_liters
+    let remaining_liters = null;
+    if (record.remaining_quantity_liters !== null && record.remaining_quantity_liters !== undefined) {
+      try {
+        remaining_liters = Number(Number(String(record.remaining_quantity_liters)).toFixed(3));
+      } catch (e) {
+        console.error('Error parsing remaining_quantity_liters', e);
+        remaining_liters = null;
+      }
+    }
+
+    res.status(200).json({
+      tank: tank,
+      data: {
+        density: density,
+        mrn_number: record.customs_declaration_number,
+        remaining_kg: remaining_kg,
+        remaining_liters: remaining_liters,
+        date_added: record.date_added
+      }
+    });
+
+  } catch (error: any) {
+    console.error('[getOldestActiveMrnDensity] Error:', error);
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      res.status(500).json({ message: 'Database error.', details: error.message });
+      return;
+    }
+    next(error);
+  }
+};
+
 // GET /api/fuel/summary - Get total fuel summary with both liters and kilograms
 export const getTotalFuelSummary = async (req: Request, res: Response): Promise<void> => {
   try {

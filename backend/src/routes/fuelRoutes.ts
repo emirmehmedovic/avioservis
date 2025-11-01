@@ -36,6 +36,9 @@ router.get('/tanks/:id/transactions', authenticateToken, fuelTankController.getT
 // Fuel Tank Customs Breakdown (MRN) route
 router.get('/tanks/:id/customs-breakdown', authenticateToken, fuelTankController.getMobileTankCustomsBreakdown);
 
+// Fuel Tank Oldest Active MRN Density route - Get density of oldest active MRN in a tank by identifier
+router.get('/tanks/density/oldest-active-mrn', authenticateToken, fuelTankController.getOldestActiveMrnDensity);
+
 // Mount Fueling Operation routes
 router.use('/operations', authenticateToken, checkRole(['ADMIN', 'FUEL_OPERATOR']), fuelingOperationRoutes);
 

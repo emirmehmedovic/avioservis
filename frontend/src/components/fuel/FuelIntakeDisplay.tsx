@@ -48,7 +48,10 @@ export default function FuelIntakeDisplay() {
   const [error, setError] = useState<string | null>(null);
   const [totalFuelIntake, setTotalFuelIntake] = useState<number>(0);
   const [totalKg, setTotalKg] = useState<number>(0);
-  const [averageDensityLast5, setAverageDensityLast5] = useState<number>(0);
+  const [currentMrnDensity, setCurrentMrnDensity] = useState<number | null>(null);
+  const [currentMrnNumber, setCurrentMrnNumber] = useState<string | null>(null);
+  const [currentMrnRemainingKg, setCurrentMrnRemainingKg] = useState<number | null>(null);
+  const [loadingMrnDensity, setLoadingMrnDensity] = useState(false);
   const [filters, setFilters] = useState<Partial<FuelIntakeFilters>>({
     fuel_type: 'all',
     fuel_category: 'all',
@@ -66,32 +69,42 @@ export default function FuelIntakeDisplay() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedRecordForEdit, setSelectedRecordForEdit] = useState<FuelIntakeRecord | null>(null);
 
-  // Separate function to fetch last 5 records for average density calculation
-  const fetchLast5RecordsForDensity = useCallback(async () => {
+  // Fetch oldest active MRN density from tank WTR-8547
+  const fetchCurrentMrnDensity = useCallback(async () => {
     try {
-      // Fetch last 5 records without any filters, sorted by date descending
-      const url = `${API_URL}/api/fuel/intake-records?limit=5&sortBy=intake_datetime&sortOrder=desc`;
-      const data = await fetchWithAuth<FuelIntakeRecord[]>(
+      setLoadingMrnDensity(true);
+      const tankIdentifier = 'WTR-8547';
+      const url = `${API_URL}/api/fuel/tanks/density/oldest-active-mrn?tankIdentifier=${encodeURIComponent(tankIdentifier)}`;
+      const response = await fetchWithAuth<{
+        tank: { id: number; identifier: string; name: string; fuel_type: string };
+        data: {
+          density: number | null;
+          mrn_number: string | null;
+          remaining_kg: number | null;
+          remaining_liters: number | null;
+          date_added: string | null;
+        };
+      }>(
         url,
         { method: 'GET' }
       );
-      
-      // Calculate average density from these 5 records
-      const validDensityRecords = data.filter(record => 
-        record.specific_gravity && !isNaN(Number(record.specific_gravity))
-      );
-      
-      if (validDensityRecords.length > 0) {
-        const averageDensity = validDensityRecords.reduce((sum, record) => 
-          sum + Number(record.specific_gravity), 0
-        ) / validDensityRecords.length;
-        setAverageDensityLast5(averageDensity);
+
+      if (response.data && response.data.density !== null) {
+        setCurrentMrnDensity(response.data.density);
+        setCurrentMrnNumber(response.data.mrn_number);
+        setCurrentMrnRemainingKg(response.data.remaining_kg);
       } else {
-        setAverageDensityLast5(0);
+        setCurrentMrnDensity(null);
+        setCurrentMrnNumber(null);
+        setCurrentMrnRemainingKg(null);
       }
     } catch (error) {
-      console.error('Error fetching last 5 records for density:', error);
-      setAverageDensityLast5(0);
+      console.error('Error fetching current MRN density:', error);
+      setCurrentMrnDensity(null);
+      setCurrentMrnNumber(null);
+      setCurrentMrnRemainingKg(null);
+    } finally {
+      setLoadingMrnDensity(false);
     }
   }, []);
 
@@ -143,7 +156,6 @@ export default function FuelIntakeDisplay() {
       setRecords([]);
       setTotalFuelIntake(0);
       setTotalKg(0);
-      setAverageDensityLast5(0);
     } finally {
       setLoading(false);
     }
@@ -151,8 +163,8 @@ export default function FuelIntakeDisplay() {
 
   useEffect(() => {
     fetchRecords();
-    fetchLast5RecordsForDensity();
-  }, [fetchRecords, fetchLast5RecordsForDensity]);
+    fetchCurrentMrnDensity();
+  }, [fetchRecords, fetchCurrentMrnDensity]);
 
   const handleFilterChange = (filterName: keyof FuelIntakeFilters, value: any) => {
     setFilters(prev => ({ ...prev, [filterName]: value }));
@@ -322,22 +334,48 @@ export default function FuelIntakeDisplay() {
             <p className="text-sm opacity-80 mt-1">Pregled i upravljanje zapisima o ulazu goriva</p>
           </div>
           
-          {/* Average Density Block */}
-          <div className="bg-white/15 backdrop-blur-md rounded-xl p-4 border border-white/20 shadow-lg min-w-[200px]">
-            <div className="flex items-center gap-3">
-              <div className="bg-white/20 p-2 rounded-lg">
-                <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          {/* Current MRN Density Block */}
+          <div className="bg-gradient-to-br from-white/15 to-white/10 backdrop-blur-md rounded-xl p-5 border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="flex items-center gap-4">
+              {/* Icon */}
+              <div className="bg-gradient-to-br from-white/25 to-white/15 p-3 rounded-lg flex-shrink-0">
+                <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M7 17L17 7M17 7H10M17 7V14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/>
                 </svg>
               </div>
-              <div>
-                <p className="text-xs text-white/80 font-medium">Prosječna gustoća (zadnjih 5)</p>
-                <p className="text-lg font-bold text-white">
-                  {averageDensityLast5 > 0 ? averageDensityLast5.toFixed(4) : 'N/A'} 
-                  {averageDensityLast5 > 0 && <span className="text-xs opacity-80 ml-1">kg/L</span>}
+
+              {/* Header & Density Value */}
+              <div className="flex-1">
+                <p className="text-xs text-white/70 font-medium uppercase tracking-wide">Gustoća Carinske Deklaracije</p>
+                <p className="text-2xl font-bold text-white tracking-tight mt-1">
+                  {loadingMrnDensity ? (
+                    <span className="text-white/70">Učitavanje...</span>
+                  ) : (
+                    currentMrnDensity !== null ? `${Number(currentMrnDensity).toFixed(4)} kg/L` : <span className="text-white/50">N/A</span>
+                  )}
                 </p>
               </div>
+
+              {/* MRN Details */}
+              {currentMrnNumber ? (
+                <div className="bg-white/8 rounded-lg px-4 py-3 border border-white/10 flex items-center gap-4 flex-shrink-0">
+                  <div>
+                    <p className="text-xs text-white/60 font-medium">MRN</p>
+                    <p className="text-sm font-mono text-white/90">{currentMrnNumber}</p>
+                  </div>
+                  {currentMrnRemainingKg !== null && (
+                    <div className="border-l border-white/20 pl-4">
+                      <p className="text-xs text-white/60 font-medium">Preostalo</p>
+                      <p className="text-sm font-medium text-white/90">{currentMrnRemainingKg.toFixed(2)} kg</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-white/8 rounded-lg px-4 py-3 border border-white/10 flex-shrink-0">
+                  <p className="text-xs text-white/60 font-medium">Nema aktivne deklaracije</p>
+                </div>
+              )}
             </div>
           </div>
 
