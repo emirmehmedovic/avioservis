@@ -775,25 +775,21 @@ export const getOldestActiveMrnDensity = async (req: Request, res: Response, nex
 
     const record = oldestMrnRecord[0];
 
-    // Dohvati originalni specific_gravity sa FuelIntakeRecords preko TankFuelByCustoms
+    // Dohvati originalni specific_gravity direktno sa FuelIntakeRecords preko customs_declaration_number
     let originalSpecificGravity = null;
     try {
-      const fuelIntakeRecord = await (prisma as any).tankFuelByCustoms.findFirst({
+      const fuelIntakeRecord = await (prisma as any).fuelIntakeRecords.findFirst({
         where: {
-          customs_declaration_number: record.customs_declaration_number,
-          fuel_intake_record_id: { not: null }
+          customs_declaration_number: record.customs_declaration_number
         },
         select: {
-          fuelIntakeRecord: {
-            select: {
-              specific_gravity: true
-            }
-          }
+          specific_gravity: true
         }
       });
 
-      if (fuelIntakeRecord && fuelIntakeRecord.fuelIntakeRecord) {
-        originalSpecificGravity = fuelIntakeRecord.fuelIntakeRecord.specific_gravity;
+      if (fuelIntakeRecord) {
+        originalSpecificGravity = fuelIntakeRecord.specific_gravity;
+        console.log(`[getOldestActiveMrnDensity] Found original specific_gravity: ${originalSpecificGravity} for MRN: ${record.customs_declaration_number}`);
       }
     } catch (e) {
       console.error('Error fetching original specific_gravity:', e);
@@ -806,6 +802,7 @@ export const getOldestActiveMrnDensity = async (req: Request, res: Response, nex
     if (densityValue !== null && densityValue !== undefined) {
       try {
         density = Number(Number(String(densityValue)).toFixed(4));
+        console.log(`[getOldestActiveMrnDensity] Final density value: ${density} for MRN: ${record.customs_declaration_number}`);
       } catch (e) {
         console.error('Error parsing density value', e);
         density = null;
