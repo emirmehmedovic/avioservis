@@ -56,8 +56,8 @@ export default function FuelIntakeDisplay() {
     fuel_type: 'all',
     fuel_category: 'all',
     refinery_name: '',
-    startDate: dayjs().startOf('month').format('YYYY-MM-DD'),
-    endDate: dayjs().endOf('month').format('YYYY-MM-DD'),
+    startDate: dayjs().subtract(20, 'days').format('YYYY-MM-DD'),
+    endDate: dayjs().format('YYYY-MM-DD'),
   });
 
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);

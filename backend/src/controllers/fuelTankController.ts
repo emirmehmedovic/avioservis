@@ -740,6 +740,9 @@ export const getOldestActiveMrnDensity = async (req: Request, res: Response, nex
     };
 
     // Dohvati najstariji aktivni MRN zapis (FIFO - First In First Out)
+    // Primjedba: MobileTankCustoms se koristi za mobilne tankove, ali trebamo dohvatiti specific_gravity
+    // sa FuelIntakeRecords koja ima originalni intake specific_gravity
+    // Trebat ćemo da nađemo preko customs_declaration_number
     const oldestMrnRecord = await prisma.$queryRaw<OldestMrnRecord[]>`
       SELECT
         mtc.id,
@@ -772,13 +775,39 @@ export const getOldestActiveMrnDensity = async (req: Request, res: Response, nex
 
     const record = oldestMrnRecord[0];
 
-    // Sigurno parsiranje density_at_intake vrijednosti
+    // Dohvati originalni specific_gravity sa FuelIntakeRecords preko TankFuelByCustoms
+    let originalSpecificGravity = null;
+    try {
+      const fuelIntakeRecord = await (prisma as any).tankFuelByCustoms.findFirst({
+        where: {
+          customs_declaration_number: record.customs_declaration_number,
+          fuel_intake_record_id: { not: null }
+        },
+        select: {
+          fuelIntakeRecord: {
+            select: {
+              specific_gravity: true
+            }
+          }
+        }
+      });
+
+      if (fuelIntakeRecord && fuelIntakeRecord.fuelIntakeRecord) {
+        originalSpecificGravity = fuelIntakeRecord.fuelIntakeRecord.specific_gravity;
+      }
+    } catch (e) {
+      console.error('Error fetching original specific_gravity:', e);
+    }
+
+    // Koristi originalni specific_gravity ako postoji, inače pad back na density_at_intake
     let density = null;
-    if (record.density_at_intake !== null && record.density_at_intake !== undefined) {
+    const densityValue = originalSpecificGravity !== null ? originalSpecificGravity : record.density_at_intake;
+
+    if (densityValue !== null && densityValue !== undefined) {
       try {
-        density = Number(Number(String(record.density_at_intake)).toFixed(4));
+        density = Number(Number(String(densityValue)).toFixed(4));
       } catch (e) {
-        console.error('Error parsing density_at_intake', e);
+        console.error('Error parsing density value', e);
         density = null;
       }
     }
