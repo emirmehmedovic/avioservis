@@ -1,4 +1,4 @@
-import * as cron from 'node-cron';
+import cron from 'node-cron';
 import dayjs from 'dayjs';
 import { dispatchDay } from '../services/xmlInvoiceDispatch.service';
 
@@ -6,10 +6,10 @@ let job: { stop: () => void } | null = null;
 
 export function initWizzXmlInvoiceCron(): void {
   if (job) job.stop();
-  // Run at 00:45 every day (processes YESTERDAY's operations) - TESTING TIME
-  // NOTE: Scheduled after midnight to process the completed previous day's operations
-  // This avoids timezone issues with 23:55 scheduling and ensures all operations are finalized
-  const cronExpr = '45 0 * * *';
+  // Run at 06:40 every day (processes YESTERDAY's operations)
+  // NOTE: Scheduled after early morning maintenance (vacuum, backups)
+  // This ensures database is stable and all operations are finalized
+  const cronExpr = '40 6 * * *';
   const tz = process.env.TZ || 'Europe/Sarajevo';
 
   console.log(`[${new Date().toISOString()}] Zakazivanje Wizz XML invoice crona: ${cronExpr} TZ=${tz}`);

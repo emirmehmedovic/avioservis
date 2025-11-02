@@ -1,4 +1,4 @@
-import * as cron from 'node-cron';
+import cron from 'node-cron';
 import dayjs from 'dayjs';
 import timezone from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
@@ -10,10 +10,11 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 
 export function initEmailInvoiceCron(): void {
-  // Run at 00:40 every day (processes YESTERDAY's operations) - TESTING TIME
-  // NOTE: Scheduled after midnight to process the completed previous day's operations
-  // This avoids timezone issues with 23:50 scheduling and ensures all operations are finalized
-  const cronExpression = '40 0 * * *';
+  // Run at 06:35 every day (processes YESTERDAY's operations)
+  // NOTE: Scheduled after early morning maintenance (vacuum, backups)
+  // This ensures database is stable and all operations are finalized
+  // NOTE: After email payment status update (06:30) to avoid table locks
+  const cronExpression = '35 6 * * *';
   const tz = process.env.TZ || 'Europe/Sarajevo';
 
   console.log(`[${new Date().toISOString()}] Zakazivanje email invoice crona: ${cronExpression} TZ=${tz}`);
@@ -81,8 +82,8 @@ export function initEmailInvoiceCron(): void {
 
   console.log(`[${new Date().toISOString()}] ✅ Email invoice cron job scheduled: ${cronExpression} (timezone: ${tz})`);
 
-  // Retry failed emails at 00:50 (10 minutes after main cron) - TESTING TIME
-  const retryCronExpression = '50 0 * * *';
+  // Retry failed emails at 07:00 (25 minutes after main cron, after XML dispatch finishes)
+  const retryCronExpression = '0 7 * * *';
 
   cron.schedule(retryCronExpression, async () => {
     let isRetryProcessing = true;
