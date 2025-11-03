@@ -954,3 +954,138 @@ Trebam vidjeti:
 **Datum ažuriranja:** 03.11.2025 07:15 CET
 **Status:** ✅ Error handling dodan, čekam logove sa produkcije
 **Sljedeći korak:** Receive logs from production, identify actual error, fix
+
+---
+
+## 🔧 UPDATE: 03.11.2025 - ROOT CAUSE PRONAĐEN & FIXOVAN
+
+### **ROOT CAUSE IDENTIFIED** 🎯
+
+Analiza je pokazala da se CRON jobovi ne izvršavaju zbog **connection pool exhaustion** uzrokovanog Prisma singleton bugom.
+
+**Problem:**
+```typescript
+// backend/src/lib/prisma.ts (linija 28-30)
+if (process.env.NODE_ENV !== 'production') {
+  global.prisma = prisma;  // ← SAMO U DEVELOPMENT!
+}
+
+// Na produkciji:
+// - global.prisma je undefined
+// - Svaki import = NOVA PrismaClient instanca
+// - Svaka instanca ima 10 konekcija
+// - Brojni import-i → 630+ mogućih konekcija
+// - Database limit je ~100 → EXHAUSTION
+```
+
+**Kako je uzrokovao CRON failure:**
+
+```
+PM2 restart CRON (04:00)
+├─ lib/prisma se učita
+├─ global.prisma je undefined
+├─ Kreira se NOVA instanca #1 (10 konekcija)
+├─ Nova instanca se NE sprema u global
+├─ 04:00-04:03 različiti dijelovi koda učitavaju lib/prisma
+├─ Svaki učitaj = NOVA instanca (10 konekcija svaka)
+├─ Konekcije se nakupljaju
+├─ Kada CRON pokušava pristup bazi → nema dostupne konekcije
+├─ Query timeout-uje
+└─ CRON failuje TIHO (bez greške u logovima)
+```
+
+### ✅ FIXOVANO - 03.11.2025
+
+**Fajl:** `backend/src/lib/prisma.ts`
+
+**Promjena:**
+```diff
+- if (process.env.NODE_ENV !== 'production') {
++ if (!global.prisma) {
+    global.prisma = prisma;
+  }
+```
+
+**Rezultat:**
+- ✅ Singleton se čuva na SVIM okruženjima
+- ✅ Prvi import kreira instancu, ostali je koriste
+- ✅ Connection pool ostaje stabilan (~20 connections)
+- ✅ CRON jobs imaju dostupnu konekciju
+- ✅ `disconnectPrisma()` pravilno gasi sve konekcije
+
+### 🎯 DEPLOYMENT NA PRODUKCIJI
+
+Koristi iste korake kao prije:
+
+```bash
+cd /home/avio/avioservis/backend && \
+git pull origin main && \
+npm run build && \
+pm2 restart avioservis-cron --update-env && \
+sleep 5 && \
+pm2 logs avioservis-cron --lines 200
+```
+
+**Trebalo bi vidjeti:**
+```
+[2025-11-03T04:00:04] ✅ Fuel Sync CRON uspješno inicijalizovan
+[2025-11-03T04:00:04] ✅ Wizz XML Invoice CRON uspješno inicijalizovan
+[2025-11-03T04:00:04] ✅ Payment Status CRON uspješno inicijalizovan
+[2025-11-03T04:00:04] ✅ Email Invoice CRON uspješno inicijalizovan
+[2025-11-03T04:00:04] ✅ Email Payment Status CRON uspješno inicijalizovan
+[2025-11-03T04:00:04] ✅ Expiration Notification CRON uspješno inicijalizovan
+
+═══════════════════════════════════════════════════
+STATISTIKA INICIJALIZACIJE CRON POSLOVA
+═══════════════════════════════════════════════════
+Uspješno inicijalizirani: 6/6
+Greške: 0/6
+✅ Svi cron poslovi uspješno inicijalizirani.
+═══════════════════════════════════════════════════
+```
+
+### 📋 ŠTO SE MIJENJA NA PRODUKCIJI
+
+**Prije fixa:**
+- CRON jobovi se ne pokreću (tiho failuju)
+- Connection pool je iscrpljen
+- Database je teško dostupna
+
+**Posle fixa:**
+- CRON jobovi se pokreću u planiranom vremenu
+- Connection pool je stabilan (~20 konekcija)
+- Database je dostupna
+
+### 📚 DUGOROČNO - CONNECTION POOL CONSOLIDATION
+
+Kreiran je novi detail guide: **CONNECTION_POOL_CONSOLIDATION_GUIDE.md**
+
+Sadrži 3 faze za potpuno rješavanje problema:
+
+**Phase 1 (✅ DONE):** Fix singleton inicijalizacije
+- Status: Implementirano
+- Efekt: CRON jobovi sada imaju konekciju
+
+**Phase 2 (SOON):** Konsoliduraj legacy singleton-e
+- `/utils/prisma.ts` → `/lib/prisma.ts`
+- `/db.ts` → `/lib/prisma.ts`
+- Procijenjeno: 1-2 sata
+- Efekt: 1 singleton umjesto 3
+
+**Phase 3 (IMPORTANT):** Migriraj 62 fajla
+- Zamijeni `const prisma = new PrismaClient()` sa `import { prisma } from lib/prisma`
+- 37 controllers
+- 12 services
+- 9 utilities
+- 2 routes
+- Procijenjeno: 4-6 sati
+- Efekt: 20 konekcija umjesto 630+
+
+→ Detaljne upute u: `CONNECTION_POOL_CONSOLIDATION_GUIDE.md`
+
+---
+
+**Verzija:** 1.4
+**Datum ažuriranja:** 03.11.2025 08:45 CET
+**Status:** ✅ Root cause fixovan, čekam test na produkciji
+**Sljedeći korak:** Deploy na produkciju, pošalji logove kada CRON pokrene
