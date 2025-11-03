@@ -20,12 +20,16 @@ declare global {
 }
 
 export const prisma = global.prisma || new PrismaClient({
-  log: process.env.NODE_ENV === 'development' 
-    ? ['query', 'error', 'warn'] 
+  log: process.env.NODE_ENV === 'development'
+    ? ['query', 'error', 'warn']
     : ['error'],
 });
 
-if (process.env.NODE_ENV !== 'production') {
+// ✅ FIXOVANO: Spremi u global NA SVE OKRUŽENJA
+// Prije je spreman samo u development, što je uzrokovalo connection leaks na produkciji
+// Svaki import = nova PrismaClient instanca = nova konekcija na bazu
+// Sa ovim fixom - prvi import kreira, ostali koriste isti objekat iz global-a
+if (!global.prisma) {
   global.prisma = prisma;
 }
 
