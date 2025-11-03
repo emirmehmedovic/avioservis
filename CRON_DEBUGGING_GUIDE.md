@@ -730,3 +730,227 @@ pm2 logs avioservis-cron | grep -A5 "07:00"
 **Datum ažuriranja:** 02.11.2025 14:45 CET
 **Status:** ✅ Implementirano i dokumentirano
 **Finalni raspored:** 06:30 → 06:35 → 06:40 → 07:00 (bez overlap-a)
+
+---
+
+## 🔧 UPDATE: 03.11.2025 - Silent Failure Fix & Error Handling
+
+### **Problem Pronađen - 03.11.2025 07:15 CET**
+
+Analiza logova pokazala je da se CRON jobovi **uopće ne izvršavaju** uprkos tome što je proces running i heartbeat vidljiv.
+
+**Root cause:** `initAllCronJobs()` funkcija u `cron/index.ts` **NEMA ERROR HANDLING-A**.
+
+Ako bilo koja init funkcija baci grešku:
+- Ta funkcija failuje
+- Sve sljedeće funkcije se **NIKADA NE POZIVAJU**
+- Samo dio CRON jobova se registrira
+- Greška ostaje **NEVIDLJIVA** u logovima - samo se ispises "Svi poslovi uspješno inicijalizirani"
+
+**Scenarij:**
+```
+initFuelSyncCronJobs()           ✅ Okej
+initWizzXmlInvoiceCron()        ❌ ERROR: Invalid cron expression
+initPaymentStatusCron()         ❌ NIKADA POZVAN
+initEmailInvoiceCron()          ❌ NIKADA POZVAN
+initEmailPaymentStatusCron()    ❌ NIKADA POZVAN
+initExpirationNotificationCron() ❌ NIKADA POZVAN
+```
+
+### ✅ Implementirano - 03.11.2025
+
+**Fajl:** `backend/src/cron/index.ts`
+
+**Šta je dodano:**
+
+1. **Try-catch loops** - Svaki CRON job se inicijalizuje u svom try-catch bloku
+2. **Detaljno error reporting** - Točno vidiš koja init funkcija failuje
+3. **Statistics** - Kaže ti koliko je od 6 job-ova uspješno inicijalizovano
+4. **Stack traces** - Vidiš kompletan stack ako nešto failuje
+
+**Novi output će izgledati:**
+
+Ako sve radi:
+```
+[2025-11-03T04:00:04] Inicijalizacija cron poslova...
+[2025-11-03T04:00:04] Inicijalizacija Fuel Sync CRON...
+[2025-11-03T04:00:04] ✅ Fuel Sync CRON uspješno inicijalizovan
+[2025-11-03T04:00:04] Inicijalizacija Wizz XML Invoice CRON...
+[2025-11-03T04:00:04] ✅ Wizz XML Invoice CRON uspješno inicijalizovan
+[2025-11-03T04:00:04] ✅ Payment Status CRON uspješno inicijalizovan
+[2025-11-03T04:00:04] ✅ Email Invoice CRON uspješno inicijalizovan
+[2025-11-03T04:00:04] ✅ Email Payment Status CRON uspješno inicijalizovan
+[2025-11-03T04:00:04] ✅ Expiration Notification CRON uspješno inicijalizovan
+
+═══════════════════════════════════════════════════
+STATISTIKA INICIJALIZACIJE CRON POSLOVA
+═══════════════════════════════════════════════════
+Uspješno inicijalizirani: 6/6
+Greške: 0/6
+✅ Svi cron poslovi uspješno inicijalizirani.
+═══════════════════════════════════════════════════
+```
+
+Ako nešto failuje:
+```
+[2025-11-03T04:00:04] Inicijalizacija Wizz XML Invoice CRON...
+[2025-11-03T04:00:04] ❌ GREŠKA pri inicijalizaciji Wizz XML Invoice CRON: Invalid cron expression
+[2025-11-03T04:00:04] Stack: Error: Invalid cron expression '40 6 * * *' at ScheduleTask...
+
+═══════════════════════════════════════════════════
+STATISTIKA INICIJALIZACIJE CRON POSLOVA
+═══════════════════════════════════════════════════
+Uspješno inicijalizirani: 2/6
+Greške: 4/6
+Neuspješne inicijalizacije:
+  - Wizz XML Invoice CRON: Invalid cron expression
+  - Payment Status CRON: Database not connected
+  - ... [ostale greške]
+⚠️ UPOZORENJE: Samo 2 od 6 cron poslova je inicijalizirano!
+═══════════════════════════════════════════════════
+```
+
+---
+
+### 📋 PRODUCTION DEPLOYMENT UPUTE
+
+#### **Korak 1: Pull latest koda**
+
+```bash
+cd /home/avio/avioservis/backend
+git pull origin main
+```
+
+#### **Korak 2: Build novi kod**
+
+```bash
+npm run build
+```
+
+Trebalo bi da vidiš:
+```
+> prisma generate && tsc
+✔ Generated Prisma Client
+```
+
+#### **Korak 3: Restart CRON proces**
+
+```bash
+pm2 restart avioservis-cron --update-env
+```
+
+**Što radi `--update-env` flag?** (Detaljno objašnjenje dolje)
+
+#### **Korak 4: Čekaj 3-5 sekundi**
+
+```bash
+sleep 5
+```
+
+#### **Korak 5: Provjeri logove za nove detaljne poruke**
+
+```bash
+pm2 logs avioservis-cron --lines 150
+```
+
+Trebao bi da vidiš `STATISTIKA INICIJALIZACIJE CRON POSLOVA` sekciju.
+
+#### **Korak 6: Pošalji logove**
+
+Ako vidim greške, copy-paste kompletan output (od "Inicijalizacija cron poslova" do kraja `STATISTIKA` sekcije) u chat.
+
+---
+
+### 📚 OBJAŠNJENJE: `--update-env` FLAG
+
+**Šta je `--update-env`?**
+
+PM2 proces se pokreće sa **environment varijablama iz ekosistem konfiguracije** (`ecosystem.config.js`). Ako ne koristiš `--update-env` kada restartaš proces:
+
+```bash
+# ❌ BEZ --update-env
+pm2 restart avioservis-cron
+
+# Staroć:
+# - PM2 će koristiti STARE environment varijable iz prošle sesije
+# - .env promjene se NEĆE učitati
+# - TZ varijabla ostane stara
+# - NODE_ENV ostane stara
+```
+
+Sa `--update-env`:
+
+```bash
+# ✅ SA --update-env
+pm2 restart avioservis-cron --update-env
+
+# Novo:
+# - PM2 će PREUČITATI environment varijable iz ecosystem.config.js
+# - Nove TZ vrijednosti će se učitati
+# - Nove NODE_ENV vrijednosti će se učitati
+# - .env datoteka će se ponovno parsirati
+```
+
+**Zašto je ovo kritično za CRON:**
+
+Naš ecosystem.config.js ima:
+```javascript
+env: {
+  TZ: 'Europe/Sarajevo',     // ← CRITICAL za CRON vremenske pozicije
+  NODE_ENV: 'production'
+}
+```
+
+Ako TZ nije ispravno postavljeno, `cron.schedule()` koristi **sistem timezone** umjesto `Europe/Sarajevo`, što znači:
+
+- CRON job zakazan za 06:35 CET se pokreće u drugoj vremenskoj zoni
+- Job se nikada ne pokreće u pravo vrijeme
+- Ili se pokreće u pogrešno vrijeme
+
+**Analogy:**
+```
+Bez --update-env:  PM2 koristi staře sat (naprimjer 12:00 CET)
+                   CRON je zakazan za 06:35 sa TZ='Europe/Sarajevo'
+                   PM2 koristi stari TZ = sat je pogrešan
+                   Job se ne pokreće
+
+Sa --update-env:   PM2 učita novu konfiguraciju
+                   TZ je sada 'Europe/Sarajevo'
+                   Sat je ispravno sinhronizovan
+                   Job se pokreće tačno u 06:35
+```
+
+---
+
+### 🎯 QUICK REFERENCE - Production Deployment Command
+
+```bash
+# Sve u jednoj liniji:
+cd /home/avio/avioservis/backend && \
+git pull origin main && \
+npm run build && \
+pm2 restart avioservis-cron --update-env && \
+sleep 5 && \
+pm2 logs avioservis-cron --lines 200
+```
+
+---
+
+### ✅ ČEKAM LOGOVE OD TEBE
+
+Nakon što urediš ove korake na produkciji, pošalji mi output od:
+```bash
+pm2 logs avioservis-cron --lines 200
+```
+
+Trebam vidjeti:
+- `STATISTIKA INICIJALIZACIJE CRON POSLOVA` sekciju
+- Broj uspješno inicijalizovanih job-ova (trebalo bi 6/6)
+- Ako ima greške - kompletan stack trace
+
+---
+
+**Verzija:** 1.3
+**Datum ažuriranja:** 03.11.2025 07:15 CET
+**Status:** ✅ Error handling dodan, čekam logove sa produkcije
+**Sljedeći korak:** Receive logs from production, identify actual error, fix
