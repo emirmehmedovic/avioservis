@@ -26,17 +26,14 @@ export function initWizzXmlInvoiceCron(): void {
       }
     }, 15 * 60 * 1000); // 15 minutes timeout
 
-    // Process operations for the correct day
-    // If cron runs after midnight (00:00-05:59), process YESTERDAY's operations
-    // If cron runs before midnight (06:00-23:59), process TODAY's operations
+    // Process operations for YESTERDAY (runs at 06:40)
+    // This CRON job is scheduled for early morning (06:40)
+    // and always processes the previous day's operations
     const now = dayjs().tz(tz);
-    const currentHour = now.hour();
-    const targetDate = (currentHour >= 0 && currentHour < 6)
-      ? now.subtract(1, 'day').toDate()  // After midnight → yesterday
-      : now.toDate();                     // Before midnight → today
+    const targetDate = now.subtract(1, 'day').toDate();
 
     const targetDateStr = dayjs(targetDate).format('YYYY-MM-DD');
-    console.log(`[${new Date().toISOString()}] Wizz XML invoice cron start za dan ${targetDateStr} (current hour: ${currentHour})`);
+    console.log(`[${new Date().toISOString()}] Wizz XML invoice cron start za dan ${targetDateStr}`);
     try {
       console.log(`[${new Date().toISOString()}] Wizz XML invoice cron: pokretanje dispatchDay za ${targetDateStr}`);
       const result = await dispatchDay(targetDate);

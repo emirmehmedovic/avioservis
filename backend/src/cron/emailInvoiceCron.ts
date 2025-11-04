@@ -35,16 +35,13 @@ export function initEmailInvoiceCron(): void {
     try {
       console.log(`[${new Date().toISOString()}] Starting email invoice dispatch cron job...`);
 
-      // Process operations for the correct day
-      // If cron runs after midnight (00:00-05:59), process YESTERDAY's operations
-      // If cron runs before midnight (06:00-23:59), process TODAY's operations
+      // Process operations for YESTERDAY (runs at 06:35)
+      // This CRON job is scheduled for early morning (06:35)
+      // and always processes the previous day's operations
       const now = dayjs().tz(tz);
-      const currentHour = now.hour();
-      const targetDate = (currentHour >= 0 && currentHour < 6)
-        ? now.subtract(1, 'day').toDate()  // After midnight → yesterday
-        : now.toDate();                     // Before midnight → today
+      const targetDate = now.subtract(1, 'day').toDate();
 
-      console.log(`[${new Date().toISOString()}] Processing operations for date: ${dayjs(targetDate).format('YYYY-MM-DD')} (current hour: ${currentHour})`);
+      console.log(`[${new Date().toISOString()}] Processing operations for date: ${dayjs(targetDate).format('YYYY-MM-DD')}`);
 
       const result = await dispatchEmailRange(targetDate, targetDate);
 
@@ -96,16 +93,17 @@ export function initEmailInvoiceCron(): void {
     try {
       console.log(`[${new Date().toISOString()}] Starting email invoice retry cron job...`);
 
-      // Find failed email dispatches from today
+      // Find failed email dispatches from YESTERDAY (runs at 07:00)
+      // Retries operations that failed during yesterday's dispatch (06:35)
+      const yesterday = dayjs().tz(tz).subtract(1, 'day').startOf('day').toDate();
       const today = dayjs().tz(tz).startOf('day').toDate();
-      const tomorrow = dayjs().tz(tz).add(1, 'day').startOf('day').toDate();
 
       const failedDispatches = await prisma.emailInvoiceDispatch.findMany({
         where: {
           status: EmailDispatchStatus.FAILED,
           createdAt: {
-            gte: today,
-            lt: tomorrow
+            gte: yesterday,
+            lt: today
           },
           attempts: {
             lt: 3 // Only retry if less than 3 attempts
