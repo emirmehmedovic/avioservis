@@ -17,9 +17,9 @@ export interface FuelSyncCronConfig {
 const DEFAULT_CONFIG: FuelSyncCronConfig = {
   enableDailyCheck: true,
   enableWeeklySync: false, // Onemogućena sedmična automatska korekcija po zahtjevu korisnika
-  dailyCheckTime: "01:00", // 1:00 AM
+  dailyCheckTime: "00:00", // 00:00 UTC = 01:00 Sarajevo (zimi)
   weeklyFullSyncDay: 0,    // nedjelja
-  weeklyFullSyncTime: "03:00" // 3:00 AM
+  weeklyFullSyncTime: "02:00" // 02:00 UTC = 03:00 Sarajevo (zimi)
 };
 
 // Trenutna konfiguracija (može se dinamički mijenjati)
@@ -128,7 +128,7 @@ export function initFuelSyncCronJobs(config?: Partial<FuelSyncCronConfig>): void
   if (currentConfig.enableDailyCheck) {
     const dailyCronExpression = createCronExpression(currentConfig.dailyCheckTime);
     
-    console.log(`Zakazivanje dnevne provjere konzistentnosti goriva: ${dailyCronExpression}`);
+    console.log(`Zakazivanje dnevne provjere konzistentnosti goriva: ${dailyCronExpression} UTC (01:00 Sarajevo zimi)`);
     
     dailyCheckJob = cron.schedule(dailyCronExpression, async () => {
       let isProcessing = true;
@@ -146,8 +146,6 @@ export function initFuelSyncCronJobs(config?: Partial<FuelSyncCronConfig>): void
         isProcessing = false;
         clearTimeout(timeoutId);
       }
-    }, {
-      timezone: process.env.TZ || 'Europe/Sarajevo'
     });
   }
   
@@ -158,7 +156,7 @@ export function initFuelSyncCronJobs(config?: Partial<FuelSyncCronConfig>): void
       currentConfig.weeklyFullSyncDay
     );
     
-    console.log(`Zakazivanje sedmične pune sinhronizacije goriva: ${weeklyCronExpression}`);
+    console.log(`Zakazivanje sedmične pune sinhronizacije goriva: ${weeklyCronExpression} UTC (03:00 Sarajevo zimi)`);
     
     weeklyFullSyncJob = cron.schedule(weeklyCronExpression, async () => {
       let isProcessing = true;
@@ -176,8 +174,6 @@ export function initFuelSyncCronJobs(config?: Partial<FuelSyncCronConfig>): void
         isProcessing = false;
         clearTimeout(timeoutId);
       }
-    }, {
-      timezone: process.env.TZ || 'Europe/Sarajevo'
     });
   }
 }

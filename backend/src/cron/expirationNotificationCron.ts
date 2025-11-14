@@ -9,10 +9,10 @@ import { logger } from '../utils/logger';
 export function initExpirationNotificationCron(): void {
   const tz = process.env.TZ || 'Europe/Sarajevo';
 
-  console.log(`[${new Date().toISOString()}] Inicijalizacija cron posla za provjeru datuma isteka (timezone: ${tz})...`);
+  console.log(`[${new Date().toISOString()}] Inicijalizacija cron posla za provjeru datuma isteka: 0 4 * * * UTC (05:00 Sarajevo zimi)...`);
 
-  // Pokretanje svakog dana u 05:00
-  cron.schedule('0 5 * * *', async () => {
+  // Pokretanje svakog dana u 04:00 UTC = 05:00 Sarajevo (zimi)
+  cron.schedule('0 4 * * *', async () => {
     let isProcessing = true;
     const timeoutId = setTimeout(() => {
       if (isProcessing) {
@@ -30,8 +30,6 @@ export function initExpirationNotificationCron(): void {
       isProcessing = false;
       clearTimeout(timeoutId);
     }
-  }, {
-    timezone: tz
   });
 
   // Opciono: pokretanje svakog sata za testiranje (može se ukloniti u produkciji)
@@ -54,10 +52,8 @@ export function initExpirationNotificationCron(): void {
         isDevProcessing = false;
         clearTimeout(timeoutId);
       }
-    }, {
-      timezone: tz
     });
   }
 
-  console.log(`[${new Date().toISOString()}] ✅ Cron posao za provjeru datuma isteka uspješno inicijalizovan (timezone: ${tz})`);
+  console.log(`[${new Date().toISOString()}] ✅ Cron posao za provjeru datuma isteka uspješno inicijalizovan (UTC mode)`);
 }

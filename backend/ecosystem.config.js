@@ -59,7 +59,7 @@ module.exports = {
       watch: false,
       max_restarts: 10,
       min_uptime: '60s',  // Povećano sa 10s - daj procesu vremena za inicijalizaciju
-      cron_restart: '3 4 * * *', // Restart cron process daily at 04:03 (nakon main restarta)
+      cron_restart: '0 7,19 * * *', // 07:00 UTC (08:00 Sarajevo) i 19:00 UTC (20:00 Sarajevo) - 2x dnevno
       // Health check: ako proces krši u manje od 60s, PM2 će čekati prije nego što ga ponovno pokrene
       listen_timeout: 10000,  // Timeout za proces
       kill_timeout: 5000,  // Timeout za kill command

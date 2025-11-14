@@ -10,14 +10,14 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 
 export function initEmailInvoiceCron(): void {
-  // Run at 06:35 every day (processes YESTERDAY's operations)
+  // Run at 05:35 UTC = 06:35 Sarajevo (zimi) every day (processes YESTERDAY's operations)
   // NOTE: Scheduled after early morning maintenance (vacuum, backups)
   // This ensures database is stable and all operations are finalized
-  // NOTE: After email payment status update (06:30) to avoid table locks
-  const cronExpression = '35 6 * * *';
+  // NOTE: After email payment status update (05:30 UTC) to avoid table locks
+  const cronExpression = '35 5 * * *';
   const tz = process.env.TZ || 'Europe/Sarajevo';
 
-  console.log(`[${new Date().toISOString()}] Zakazivanje email invoice crona: ${cronExpression} TZ=${tz}`);
+  console.log(`[${new Date().toISOString()}] Zakazivanje email invoice crona: ${cronExpression} UTC (06:35 Sarajevo zimi)`);
 
   // Email dispatch main job
   cron.schedule(cronExpression, async () => {
@@ -73,14 +73,12 @@ export function initEmailInvoiceCron(): void {
       isProcessing = false;
       clearTimeout(timeoutId);
     }
-  }, {
-    timezone: tz  // ✅ EKSPLICITNO POSTAVLJENO
   });
 
-  console.log(`[${new Date().toISOString()}] ✅ Email invoice cron job scheduled: ${cronExpression} (timezone: ${tz})`);
+  console.log(`[${new Date().toISOString()}] ✅ Email invoice cron job scheduled: ${cronExpression} UTC`);
 
-  // Retry failed emails at 07:00 (25 minutes after main cron, after XML dispatch finishes)
-  const retryCronExpression = '0 7 * * *';
+  // Retry failed emails at 06:00 UTC = 07:00 Sarajevo (zimi) - 25 minutes after main cron, after XML dispatch finishes
+  const retryCronExpression = '0 6 * * *';
 
   cron.schedule(retryCronExpression, async () => {
     let isRetryProcessing = true;
@@ -157,11 +155,9 @@ export function initEmailInvoiceCron(): void {
       isRetryProcessing = false;
       clearTimeout(timeoutId);
     }
-  }, {
-    timezone: tz  // ✅ EKSPLICITNO POSTAVLJENO
   });
 
-  console.log(`[${new Date().toISOString()}] ✅ Email invoice retry cron job scheduled: ${retryCronExpression} (timezone: ${tz})`);
+  console.log(`[${new Date().toISOString()}] ✅ Email invoice retry cron job scheduled: ${retryCronExpression} UTC`);
 }
 
 // Function to manually trigger email dispatch for a specific date

@@ -6,13 +6,13 @@ let job: { stop: () => void } | null = null;
 
 export function initWizzXmlInvoiceCron(): void {
   if (job) job.stop();
-  // Run at 06:40 every day (processes YESTERDAY's operations)
+  // Run at 05:40 UTC = 06:40 Sarajevo (zimi) every day (processes YESTERDAY's operations)
   // NOTE: Scheduled after early morning maintenance (vacuum, backups)
   // This ensures database is stable and all operations are finalized
-  const cronExpr = '40 6 * * *';
+  const cronExpr = '40 5 * * *';
   const tz = process.env.TZ || 'Europe/Sarajevo';
 
-  console.log(`[${new Date().toISOString()}] Zakazivanje Wizz XML invoice crona: ${cronExpr} TZ=${tz}`);
+  console.log(`[${new Date().toISOString()}] Zakazivanje Wizz XML invoice crona: ${cronExpr} UTC (06:40 Sarajevo zimi)`);
 
   job = cron.schedule(cronExpr, async () => {
     console.log(`[${new Date().toISOString()}] 🔥🔥🔥 XML CRON CALLBACK TRIGGERED! 🔥🔥🔥`);
@@ -45,11 +45,9 @@ export function initWizzXmlInvoiceCron(): void {
       isProcessing = false;
       clearTimeout(timeoutId);
     }
-  }, {
-    timezone: tz  // ✅ EKSPLICITNO POSTAVLJENO
   });
 
-  console.log(`[${new Date().toISOString()}] ✅ Wizz XML invoice cron initialized (timezone: ${tz})`);
+  console.log(`[${new Date().toISOString()}] ✅ Wizz XML invoice cron initialized (UTC mode)`);
 }
 
 

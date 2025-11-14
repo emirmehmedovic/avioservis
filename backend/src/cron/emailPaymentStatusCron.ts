@@ -60,11 +60,11 @@ const updateExpiredAndOverdueEmailInvoices = async () => {
  * Initialize email payment status cron job
  */
 export function initEmailPaymentStatusCron(): void {
-  // Run every day at 06:30 to update email payment statuses (30 min after XML)
-  const cronExpression = '30 6 * * *';
+  // Run every day at 05:30 UTC = 06:30 Sarajevo (zimi)
+  const cronExpression = '30 5 * * *';
   const tz = process.env.TZ || 'Europe/Sarajevo';
 
-  console.log(`[${new Date().toISOString()}] Zakazivanje email payment status crona: ${cronExpression} TZ=${tz}`);
+  console.log(`[${new Date().toISOString()}] Zakazivanje email payment status crona: ${cronExpression} UTC (06:30 Sarajevo zimi)`);
 
   cron.schedule(cronExpression, async () => {
     let isProcessing = true;
@@ -84,11 +84,9 @@ export function initEmailPaymentStatusCron(): void {
       isProcessing = false;
       clearTimeout(timeoutId);
     }
-  }, {
-    timezone: tz
   });
 
-  console.log(`[${new Date().toISOString()}] ✅ Email payment status cron job scheduled: ${cronExpression} (timezone: ${tz})`);
+  console.log(`[${new Date().toISOString()}] ✅ Email payment status cron job scheduled: ${cronExpression} UTC`);
 }
 
 // Export the function for manual triggering

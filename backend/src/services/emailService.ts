@@ -36,6 +36,7 @@ export interface EmailOptions {
   html?: string;
   text?: string;
   attachments?: EmailAttachment[];
+  bcc?: string; // BCC recipients (comma-separated)
 }
 
 export class EmailService {
@@ -71,6 +72,7 @@ export class EmailService {
         subject: options.subject,
         html: options.html,
         text: options.text,
+        bcc: options.bcc, // Add BCC support
         attachments: options.attachments?.map(att => ({
           filename: att.filename,
           content: att.content,
