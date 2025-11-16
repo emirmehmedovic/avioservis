@@ -64,7 +64,7 @@ export class EmailService {
     });
   }
 
-  async sendEmail(options: EmailOptions): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  async sendEmail(options: EmailOptions): Promise<{ success: boolean; messageId?: string; error?: string; rejected?: string[] }> {
     try {
       const mailOptions = {
         from: this.config.from,
@@ -80,7 +80,36 @@ export class EmailService {
         })),
       };
 
+      // Enhanced logging before sending
+      console.log('═══════════════════════════════════════════════════');
+      console.log('📧 EMAIL SENDING DETAILS:');
+      console.log('═══════════════════════════════════════════════════');
+      console.log('FROM:    ', this.config.from);
+      console.log('TO:      ', options.to);
+      console.log('BCC:     ', options.bcc || '(none)');
+      console.log('SUBJECT: ', options.subject);
+      console.log('DATE:    ', new Date().toISOString());
+      console.log('ATTACHMENTS:', options.attachments?.length || 0);
+      if (options.attachments && options.attachments.length > 0) {
+        options.attachments.forEach((att, idx) => {
+          console.log(`  [${idx + 1}] ${att.filename} (${att.content.length} bytes, ${att.contentType})`);
+        });
+      }
+      console.log('═══════════════════════════════════════════════════');
+
       const info = await this.transporter.sendMail(mailOptions);
+      
+      // Enhanced logging after sending
+      console.log('═══════════════════════════════════════════════════');
+      console.log('📬 EMAIL SMTP RESPONSE:');
+      console.log('═══════════════════════════════════════════════════');
+      console.log('SUCCESS:    ', true);
+      console.log('MESSAGE_ID: ', info.messageId);
+      console.log('RESPONSE:   ', info.response);
+      console.log('ACCEPTED:   ', info.accepted?.join(', ') || 'N/A');
+      console.log('REJECTED:   ', info.rejected?.length > 0 ? info.rejected.join(', ') : 'none');
+      console.log('PENDING:    ', info.pending?.length > 0 ? info.pending.join(', ') : 'none');
+      console.log('═══════════════════════════════════════════════════');
       
       // Try to save email to Sent folder (not all SMTP servers support this)
       try {
@@ -90,9 +119,23 @@ export class EmailService {
         // Continue even if saving to Sent fails
       }
       
-      return { success: true, messageId: info.messageId };
+      // Return detailed response including rejected addresses
+      return { 
+        success: true, 
+        messageId: info.messageId,
+        rejected: info.rejected && info.rejected.length > 0 ? info.rejected : undefined
+      };
     } catch (error: any) {
-      console.error('Email sending failed:', error);
+      console.log('═══════════════════════════════════════════════════');
+      console.log('❌ EMAIL SENDING FAILED:');
+      console.log('═══════════════════════════════════════════════════');
+      console.error('ERROR:', error.message);
+      console.error('CODE:', error.code);
+      console.error('COMMAND:', error.command);
+      if (error.response) {
+        console.error('SMTP RESPONSE:', error.response);
+      }
+      console.log('═══════════════════════════════════════════════════');
       return { success: false, error: error.message };
     }
   }

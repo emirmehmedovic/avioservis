@@ -283,7 +283,7 @@ export async function dispatchOneEmailOperation(opId: number, force = false) {
       to: emailTo,
       subject: emailSubject,
       html: emailBody,
-      bcc: 'jasmin.omic@hifapetrol.ba, emirmehmedovic321@gmail.com', // Internal monitoring
+      bcc: 'jasmin.omic@hifapetrol.ba', // Internal monitoring (interna adresa za SPF kompatibilnost)
       attachments: [{
         filename: pdfFileName,
         content: mergedPdfBuffer,
@@ -292,6 +292,13 @@ export async function dispatchOneEmailOperation(opId: number, force = false) {
     });
 
     console.log(`📧 Email sent with merged PDF: ${pdfFileName} (${mergedPdfBuffer.length} bytes)`);
+
+    // Check for rejected recipients (BCC addresses that failed)
+    if (result.rejected && result.rejected.length > 0) {
+      console.warn(`⚠️ WARNING: Some recipients were REJECTED by mail server:`);
+      console.warn(`   Rejected addresses: ${result.rejected.join(', ')}`);
+      console.warn(`   This likely means BCC addresses did NOT receive the email!`);
+    }
 
     if (result.success) {
       const updated = await prisma.emailInvoiceDispatch.update({
