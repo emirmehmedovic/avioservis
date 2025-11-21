@@ -283,7 +283,7 @@ export async function dispatchOneEmailOperation(opId: number, force = false) {
       to: emailTo,
       subject: emailSubject,
       html: emailBody,
-      bcc: 'jasmin.omic@hifapetrol.ba', // Internal monitoring (interna adresa za SPF kompatibilnost)
+      bcc: 'jasmin.omic@hifapetrol.ba, airport.tuzla@hifapetrol.ba', // Internal monitoring + sender copy for inbox subfolder
       attachments: [{
         filename: pdfFileName,
         content: mergedPdfBuffer,
