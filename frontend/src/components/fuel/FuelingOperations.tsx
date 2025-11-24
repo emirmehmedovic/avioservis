@@ -66,6 +66,7 @@ export default function FuelingOperations() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedOperationForDetails, setSelectedOperationForDetails] = useState<ExtendedFuelingOperation | null>(null);
   const [selectedOperationForEdit, setSelectedOperationForEdit] = useState<ExtendedFuelingOperation | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // State for filters - default to last 7 days
   const [startDate, setStartDate] = useState<string | null>(() => dayjs().subtract(7, 'day').format('YYYY-MM-DD'));
@@ -469,7 +470,13 @@ export default function FuelingOperations() {
   // Handle adding a new operation
   const handleAddOperation = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    // Prevent duplicate submissions
+    if (isSubmitting) {
+      console.log('Submission već u toku, ignoriši klik');
+      return;
+    }
+
     // Validate form data
     if (!formData.aircraft_registration) {
       toast.error('Unesite registraciju aviona');
@@ -516,6 +523,8 @@ export default function FuelingOperations() {
       toast.error('Odaberite način plaćanja');
       return;
     }
+
+    setIsSubmitting(true);
 
     try {
       const submissionFormData = new FormData();
@@ -581,6 +590,8 @@ export default function FuelingOperations() {
     } catch (error) {
       console.error('Error adding fueling operation:', error);
       toast.error('Došlo je do greške prilikom dodavanja operacije točenja');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -954,7 +965,7 @@ export default function FuelingOperations() {
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-4 sm:p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Dodaj Operaciju Točenja Goriva</h3>
-              <AddOperationForm 
+              <AddOperationForm
                 formData={formData}
                 textInputs={textInputs}
                 handleInputChange={handleInputChange}
@@ -965,6 +976,7 @@ export default function FuelingOperations() {
                 airlines={airlines}
                 tanks={tanks}
                 fuelPriceRules={fuelPriceRules} // Pass fuelPriceRules to the form
+                isSubmitting={isSubmitting}
                 onCancel={() => { setShowAddModal(false); resetForm(); }}
               />
             </div>
