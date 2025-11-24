@@ -1203,14 +1203,15 @@ export default function NewFuelIntakeFormWizard() {
                   <div>
                     <Label htmlFor="quantity_liters_received" className="text-gray-700">Količina (L)</Label>
                     <div className="relative">
-                      <Input 
-                        id="quantity_liters_received" 
-                        name="quantity_liters_received" 
-                        type="number" 
+                      <Input
+                        id="quantity_liters_received"
+                        name="quantity_liters_received"
+                        type="number"
                         step="0.01"
                         min="0"
-                        value={formData.quantity_liters_received || ''} 
+                        value={formData.quantity_liters_received || ''}
                         onChange={handleInputChange}
+                        onWheel={(e) => e.currentTarget.blur()}
                         className={`mt-1 pl-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${formErrors.quantity_liters_received ? 'border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'}`}
                       />
                       <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 mt-1">
@@ -1228,14 +1229,15 @@ export default function NewFuelIntakeFormWizard() {
                   <div>
                     <Label htmlFor="quantity_kg_received" className="text-gray-700">Količina (KG)</Label>
                     <div className="relative">
-                      <Input 
-                        id="quantity_kg_received" 
-                        name="quantity_kg_received" 
-                        type="number" 
+                      <Input
+                        id="quantity_kg_received"
+                        name="quantity_kg_received"
+                        type="number"
                         step="0.01"
                         min="0"
-                        value={formData.quantity_kg_received || ''} 
+                        value={formData.quantity_kg_received || ''}
                         onChange={handleInputChange}
+                        onWheel={(e) => e.currentTarget.blur()}
                         className={`mt-1 pl-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${formErrors.quantity_kg_received ? 'border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'}`}
                       />
                       <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 mt-1">
@@ -1812,6 +1814,7 @@ export default function NewFuelIntakeFormWizard() {
                             type="number"
                             value={distribution.quantity_liters === undefined ? '' : distribution.quantity_liters}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleTankDistributionChange(index, 'quantity_liters', e.target.value)}
+                            onWheel={(e) => e.currentTarget.blur()}
                             placeholder="npr. 500"
                             step="0.01"
                             className={`mt-1 pl-9 ${qtyError ? 'border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'}`}
@@ -2079,6 +2082,7 @@ export default function NewFuelIntakeFormWizard() {
                             updated[index] = { ...updated[index], quantity_liters: parseFloat(e.target.value) || 0 };
                             setFormData({ ...formData, physical_tank_distributions: updated });
                           }}
+                          onWheel={(e) => e.currentTarget.blur()}
                           className={formErrors.physical_tank_distributions?.[index]?.quantity_liters ? 'border-red-500' : ''}
                         />
                         {formErrors.physical_tank_distributions?.[index]?.quantity_liters && (
