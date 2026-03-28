@@ -388,7 +388,7 @@ export const generateXMLInvoiceBackend = (operation: FuelingOperationForXml): st
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="ARN">${aircraftRegistration}</ItemDeliveryReferenceValue>
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="DTN">${destination}</ItemDeliveryReferenceValue>
         <ItemReferenceLocalDate ItemReferenceDateTypes="DTA">${serviceDateTime}</ItemReferenceLocalDate>
-        <ItemInvoiceAmount>${totalAmountTwoDecimals}</ItemInvoiceAmount>
+        <ItemInvoiceAmount>${totalAmount}</ItemInvoiceAmount>
         <SubItem>
           <SubItemProduct>
             <SubItemProductID>${operation.tank?.fuel_type || 'JETA1'}</SubItemProductID>
@@ -423,4 +423,3 @@ export const generateXMLInvoiceBackend = (operation: FuelingOperationForXml): st
 
   return xmlContent;
 };
-

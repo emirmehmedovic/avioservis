@@ -215,7 +215,7 @@ export const generateXMLInvoice = (operation: FuelingOperation): string => {
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="ARN">${aircraftRegistration}</ItemDeliveryReferenceValue>
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="DTN">${destination}</ItemDeliveryReferenceValue>
         <ItemReferenceLocalDate ItemReferenceDateTypes="DTA">${invoiceDateTime}</ItemReferenceLocalDate>
-        <ItemInvoiceAmount>${totalAmountTwoDecimals}</ItemInvoiceAmount>
+        <ItemInvoiceAmount>${totalAmount}</ItemInvoiceAmount>
         <SubItem>
           <SubItemProduct>
             <SubItemProductID>${operation.tank?.fuel_type || 'JETA1'}</SubItemProductID>
@@ -364,7 +364,7 @@ export const generateConsolidatedXMLInvoice = (operations: FuelingOperation[], f
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="ARN">${aircraftRegistration}</ItemDeliveryReferenceValue>
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="DTN">${destination}</ItemDeliveryReferenceValue>
         <ItemReferenceLocalDate ItemReferenceDateTypes="DTA">${operationDate}</ItemReferenceLocalDate>
-        <ItemInvoiceAmount>${formatAmountTwoDecimals(operation.total_amount || 0)}</ItemInvoiceAmount>
+        <ItemInvoiceAmount>${operation.total_amount || 0}</ItemInvoiceAmount>
         <SubItem>
           <SubItemProduct>
             <SubItemProductID>${operation.tank?.fuel_type || 'JETA1'}</SubItemProductID>
