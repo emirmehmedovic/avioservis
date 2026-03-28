@@ -7,6 +7,11 @@ const formatDecimal = (value: any): string => {
   return number.toFixed(6);
 };
 
+const formatAmountTwoDecimals = (value: any): string => {
+  const number = parseFloat(value || '0');
+  return number.toFixed(2);
+};
+
 // Map human-readable destination names to IATA 3-letter codes
 const normalizeDestination = (value: string): string => {
   return value
@@ -54,6 +59,7 @@ export const generateXMLInvoice = (operation: FuelingOperation): string => {
   const quantityLiters = formatDecimal(operation.quantity_liters);
   const quantityKg = formatDecimal(operation.quantity_kg);
   const totalAmount = formatDecimal(operation.total_amount);
+  const totalAmountTwoDecimals = formatAmountTwoDecimals(operation.total_amount);
   const pricePerKg = formatDecimal(operation.price_per_kg);
 
   // Format the date in YYYY-MM-DD format
@@ -174,7 +180,7 @@ export const generateXMLInvoice = (operation: FuelingOperation): string => {
       <TaxInvoiceNumber>INV-${operation.delivery_note_number || operation.id}-${new Date().getFullYear()}</TaxInvoiceNumber>
       <TaxPointDate>${taxPointDate}</TaxPointDate>
       <InvoiceCurrencyCode>${operation.currency || 'BAM'}</InvoiceCurrencyCode>
-      <InvoiceTotalAmount>${totalAmount}</InvoiceTotalAmount>
+      <InvoiceTotalAmount>${totalAmountTwoDecimals}</InvoiceTotalAmount>
       <InvoiceIDDetails InvoiceIDType="II">
         <InvoiceIDVATRegistrationNumber>4200468580006</InvoiceIDVATRegistrationNumber>
         <InvoiceIDName1>HIFA-PETROL d.o.o. Sarajevo</InvoiceIDName1>
@@ -206,7 +212,7 @@ export const generateXMLInvoice = (operation: FuelingOperation): string => {
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="ARN">${aircraftRegistration}</ItemDeliveryReferenceValue>
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="DTN">${destination}</ItemDeliveryReferenceValue>
         <ItemReferenceLocalDate ItemReferenceDateTypes="DTA">${invoiceDateTime}</ItemReferenceLocalDate>
-        <ItemInvoiceAmount>${totalAmount}</ItemInvoiceAmount>
+        <ItemInvoiceAmount>${totalAmountTwoDecimals}</ItemInvoiceAmount>
         <SubItem>
           <SubItemProduct>
             <SubItemProductID>${operation.tank?.fuel_type || 'JETA1'}</SubItemProductID>
@@ -272,6 +278,7 @@ export const generateConsolidatedXMLInvoice = (operations: FuelingOperation[], f
   
   // Calculate totals
   const totalAmount = operations.reduce((sum, op) => sum + (op.total_amount || 0), 0);
+  const totalAmountTwoDecimals = formatAmountTwoDecimals(totalAmount);
   
   // Calculate payment due date (15 days from issue date)
   const paymentDueDate = dayjs(invoiceDate).add(15, 'day').format('YYYY-MM-DDTHH:mm:ss[Z]');
@@ -354,7 +361,7 @@ export const generateConsolidatedXMLInvoice = (operations: FuelingOperation[], f
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="ARN">${aircraftRegistration}</ItemDeliveryReferenceValue>
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="DTN">${destination}</ItemDeliveryReferenceValue>
         <ItemReferenceLocalDate ItemReferenceDateTypes="DTA">${operationDate}</ItemReferenceLocalDate>
-        <ItemInvoiceAmount>${operation.total_amount || 0}</ItemInvoiceAmount>
+        <ItemInvoiceAmount>${formatAmountTwoDecimals(operation.total_amount || 0)}</ItemInvoiceAmount>
         <SubItem>
           <SubItemProduct>
             <SubItemProductID>${operation.tank?.fuel_type || 'JETA1'}</SubItemProductID>
@@ -401,7 +408,7 @@ export const generateConsolidatedXMLInvoice = (operations: FuelingOperation[], f
       <TaxInvoiceNumber>CONS-INV-${dayjs().format('YYYYMMDD')}-${new Date().getFullYear()}</TaxInvoiceNumber>
       <TaxPointDate>${taxPointDate}</TaxPointDate>
       <InvoiceCurrencyCode>${mostCommonCurrency}</InvoiceCurrencyCode>
-      <InvoiceTotalAmount>${totalAmount}</InvoiceTotalAmount>
+      <InvoiceTotalAmount>${totalAmountTwoDecimals}</InvoiceTotalAmount>
       <InvoiceIDDetails InvoiceIDType="II">
         <InvoiceIDVATRegistrationNumber>4200468580006</InvoiceIDVATRegistrationNumber>
         <InvoiceIDName1>HIFA-PETROL d.o.o. Sarajevo</InvoiceIDName1>

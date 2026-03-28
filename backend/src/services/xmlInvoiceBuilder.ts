@@ -23,6 +23,11 @@ const formatDecimal = (value: any): string => {
   return number.toFixed(6);
 };
 
+const formatAmountTwoDecimals = (value: any): string => {
+  const number = parseFloat(value || '0');
+  return number.toFixed(2);
+};
+
 // Copy of destination mapping logic used on frontend
 const normalizeDestination = (value: string): string => {
   return value
@@ -237,6 +242,7 @@ export const generateXMLInvoiceBackend = (operation: FuelingOperationForXml): st
   const quantityLiters = formatDecimal(operation.quantity_liters);
   const quantityKg = formatDecimal(operation.quantity_kg);
   const totalAmount = formatDecimal(operation.total_amount);
+  const totalAmountTwoDecimals = formatAmountTwoDecimals(operation.total_amount);
   const pricePerKg = formatDecimal(operation.price_per_kg);
 
   const invoiceDate = dayjs(operation.dateTime).format('YYYY-MM-DD');
@@ -349,7 +355,7 @@ export const generateXMLInvoiceBackend = (operation: FuelingOperationForXml): st
       <TaxInvoiceNumber>INV-${operation.delivery_note_number || operation.id}-${new Date().getFullYear()}</TaxInvoiceNumber>
       <TaxPointDate>${taxPointDateTime}</TaxPointDate>
       <InvoiceCurrencyCode>${operation.currency || 'BAM'}</InvoiceCurrencyCode>
-      <InvoiceTotalAmount>${totalAmount}</InvoiceTotalAmount>
+      <InvoiceTotalAmount>${totalAmountTwoDecimals}</InvoiceTotalAmount>
       <InvoiceIDDetails InvoiceIDType="II">
         <InvoiceIDVATRegistrationNumber>4200468580006</InvoiceIDVATRegistrationNumber>
         <InvoiceIDName1>HIFA-PETROL d.o.o. Sarajevo</InvoiceIDName1>
@@ -381,7 +387,7 @@ export const generateXMLInvoiceBackend = (operation: FuelingOperationForXml): st
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="ARN">${aircraftRegistration}</ItemDeliveryReferenceValue>
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="DTN">${destination}</ItemDeliveryReferenceValue>
         <ItemReferenceLocalDate ItemReferenceDateTypes="DTA">${serviceDateTime}</ItemReferenceLocalDate>
-        <ItemInvoiceAmount>${totalAmount}</ItemInvoiceAmount>
+        <ItemInvoiceAmount>${totalAmountTwoDecimals}</ItemInvoiceAmount>
         <SubItem>
           <SubItemProduct>
             <SubItemProductID>${operation.tank?.fuel_type || 'JETA1'}</SubItemProductID>
@@ -416,7 +422,6 @@ export const generateXMLInvoiceBackend = (operation: FuelingOperationForXml): st
 
   return xmlContent;
 };
-
 
 
 
