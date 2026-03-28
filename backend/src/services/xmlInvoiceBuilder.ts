@@ -107,6 +107,7 @@ const DESTINATION_IATA_MAP: Record<string, string> = {
   friedrichshafen: 'FDH',
   fuerteventura: 'FUE',
   gdansk: 'GDN',
+  goteborglandvetter: 'GOT',
   grancanaria: 'LPA',
   grenoble: 'GNB',
   groningen: 'GRQ',
@@ -422,6 +423,4 @@ export const generateXMLInvoiceBackend = (operation: FuelingOperationForXml): st
 
   return xmlContent;
 };
-
-
 

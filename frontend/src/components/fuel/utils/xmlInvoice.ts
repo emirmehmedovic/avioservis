@@ -28,11 +28,14 @@ const DESTINATION_IATA_MAP: Record<string, string> = {
   vienna: 'VIE',
   berlin: 'BER',
   frankfurthahn: 'HHN',
+  goteborglandvetter: 'GOT',
   cologne: 'CGN',
+  larnaca: 'LCA',
   malmo: 'MMX',
   malmoe: 'MMX',
   hamburg: 'HAM',
   maastricht: 'MST',
+  beauvais: 'BVA',
   parisbeauvais: 'BVA',
 };
 
