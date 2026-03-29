@@ -27,6 +27,7 @@ const DESTINATION_IATA_MAP: Record<string, string> = {
   basel: 'MLH',
   vienna: 'VIE',
   berlin: 'BER',
+  bratislava: 'BTS',
   frankfurthahn: 'HHN',
   goteborglandvetter: 'GOT',
   cologne: 'CGN',

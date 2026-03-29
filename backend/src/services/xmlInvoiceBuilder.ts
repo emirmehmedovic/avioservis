@@ -70,6 +70,7 @@ const DESTINATION_IATA_MAP: Record<string, string> = {
   bodrum: 'BJV',
   bordeaux: 'BOD',
   borgelarabalexandria: 'HBE',
+  bratislava: 'BTS',
   brasov: 'GHV',
   bremen: 'BRE',
   brno: 'BRQ',
