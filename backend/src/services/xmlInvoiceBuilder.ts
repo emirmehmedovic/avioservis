@@ -64,6 +64,8 @@ const DESTINATION_IATA_MAP: Record<string, string> = {
   belfastinternational: 'BFS',
   belgrade: 'BEG',
   berlin: 'BER',
+  berlinbrandenburg: 'BER',
+  berlinbrandenburgairport: 'BER',
   bergen: 'BGO',
   billund: 'BLL',
   bishkek: 'FRU',
