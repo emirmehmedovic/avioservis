@@ -32,6 +32,7 @@ const STEPS = {
 interface TankDistributionData {
   tank_id?: number;
   quantity_liters?: number;
+  quantity_kg?: number;
   // Potentially add tank_name or identifier here for easier display, but keep data minimal for submission
 }
 
@@ -134,6 +135,28 @@ function formatFileSize(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+function roundToTwo(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+const LITER_PRECISION = 6;
+const KG_PRECISION = 3;
+
+function roundToPrecision(value: number, decimals: number): number {
+  const factor = Math.pow(10, decimals);
+  return Math.round(value * factor) / factor;
+}
+
+function formatLiters(value?: number): string {
+  if (value === undefined || value === null) return '0.00';
+  return value.toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: LITER_PRECISION });
+}
+
+function formatKg(value?: number): string {
+  if (value === undefined || value === null) return '0.000';
+  return value.toLocaleString('hr-HR', { minimumFractionDigits: 3, maximumFractionDigits: KG_PRECISION });
+}
+
 export default function NewFuelIntakeFormWizard() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(STEPS.DELIVERY_DETAILS);
@@ -166,6 +189,7 @@ export default function NewFuelIntakeFormWizard() {
   const [showOptimalDistribution, setShowOptimalDistribution] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const specificGravity = formData.specific_gravity;
 
   // Fetch fixed tanks on component mount
   useEffect(() => {
@@ -414,7 +438,7 @@ export default function NewFuelIntakeFormWizard() {
         if (quantityForThisTank > 0) {
           newDistributions.push({
             tank_id: tank.tankId,
-            quantity_liters: parseFloat(quantityForThisTank.toFixed(2))
+            quantity_liters: roundToPrecision(quantityForThisTank, LITER_PRECISION)
           });
           
           remainingQuantity -= quantityForThisTank;
@@ -468,15 +492,25 @@ export default function NewFuelIntakeFormWizard() {
     setFormData(prev => {
       const newDistributions = [...(prev.tank_distributions || [])];
       const currentEntry = { ...newDistributions[index] };
+      const density = prev.specific_gravity && prev.specific_gravity > 0 ? prev.specific_gravity : undefined;
       
       if (field === 'quantity_liters') {
-        // Koristi Number umjesto parseFloat i zaokruži na 2 decimale za veću preciznost
         if (value === '') {
-          currentEntry[field] = undefined;
+          currentEntry.quantity_liters = undefined;
+          currentEntry.quantity_kg = undefined;
         } else {
-          // Pretvaranje u broj i zaokruživanje na 2 decimale
           const numValue = typeof value === 'string' ? Number(value) : value;
-          currentEntry[field] = Math.round(numValue * 100) / 100;
+          currentEntry.quantity_liters = roundToPrecision(numValue, LITER_PRECISION);
+          currentEntry.quantity_kg = density ? roundToPrecision(currentEntry.quantity_liters * density, KG_PRECISION) : undefined;
+        }
+      } else if (field === 'quantity_kg') {
+        if (value === '') {
+          currentEntry.quantity_kg = undefined;
+          currentEntry.quantity_liters = undefined;
+        } else {
+          const numValue = typeof value === 'string' ? Number(value) : value;
+          currentEntry.quantity_kg = roundToPrecision(numValue, KG_PRECISION);
+          currentEntry.quantity_liters = density ? roundToPrecision(currentEntry.quantity_kg / density, LITER_PRECISION) : undefined;
         }
       } else if (field === 'tank_id') {
         const tankId = value === '' ? undefined : parseInt(value as string, 10);
@@ -496,6 +530,8 @@ export default function NewFuelIntakeFormWizard() {
         const newTankErrors = { ...formErrors.tank_distributions };
         const newIndexErrors = { ...newTankErrors[index] };
         delete newIndexErrors[field];
+        if (field === 'quantity_liters') delete newIndexErrors.quantity_kg;
+        if (field === 'quantity_kg') delete newIndexErrors.quantity_liters;
         newTankErrors[index] = newIndexErrors;
         if (Object.keys(newTankErrors[index]).length === 0) delete newTankErrors[index];
         setFormErrors(prev => ({ ...prev, tank_distributions: newTankErrors }));
@@ -724,7 +760,7 @@ export default function NewFuelIntakeFormWizard() {
             }
           }
           if (tankDetails && dist.quantity_liters !== undefined && dist.quantity_liters > (tankDetails.capacity_liters - tankDetails.current_quantity_liters)) {
-            itemErrors.quantity_liters = `Količina premašuje slobodni kapacitet tanka (${(tankDetails.capacity_liters - tankDetails.current_quantity_liters).toFixed(2)} L).`;
+            itemErrors.quantity_liters = `Količina premašuje slobodni kapacitet tanka (${formatLiters(tankDetails.capacity_liters - tankDetails.current_quantity_liters)} L).`;
             isValid = false;
           }
         }
@@ -743,7 +779,7 @@ export default function NewFuelIntakeFormWizard() {
     const receivedQty = formData.quantity_liters_received || 0;
 
     if (totalDistributedQuantity > receivedQty + EPSILON) {
-      errors.general_tank_distribution = `Ukupno raspoređena količina (${totalDistributedQuantity.toFixed(2)} L) ne može premašiti primljenu količinu (${receivedQty.toFixed(2)} L).`;
+      errors.general_tank_distribution = `Ukupno raspoređena količina (${formatLiters(totalDistributedQuantity)} L) ne može premašiti primljenu količinu (${formatLiters(receivedQty)} L).`;
       isValid = false;
     }
     // Check if not fully distributed, allowing for small negative Epsilon due to prior calculation (e.g. remaining is -0.00001)
@@ -751,7 +787,7 @@ export default function NewFuelIntakeFormWizard() {
     // We want to ensure it's not significantly less.
     const remainingForDistribution = receivedQty - totalDistributedQuantity;
     if (remainingForDistribution > EPSILON && receivedQty > 0) { // If significantly more than EPSILON remains to be distributed
-      errors.general_tank_distribution = `Morate rasporediti cjelokupnu primljenu količinu. Preostalo: ${remainingForDistribution.toFixed(2)} L.`;
+      errors.general_tank_distribution = `Morate rasporediti cjelokupnu primljenu količinu. Preostalo: ${formatLiters(remainingForDistribution)} L.`;
       isValid = false;
     }
 
@@ -978,10 +1014,11 @@ export default function NewFuelIntakeFormWizard() {
 
       // Calculate kg for physical tank distributions
       const physicalTankDistributionsWithKg = formData.physical_tank_distributions?.map(dist => {
-        const kg = dist.quantity_liters ? dist.quantity_liters * formData.specific_gravity! : 0;
+        const liters = dist.quantity_liters || 0;
+        const kg = dist.quantity_kg || (liters ? liters * formData.specific_gravity! : 0);
         return {
           tank_id: dist.tank_id!,
-          quantity_liters: dist.quantity_liters!,
+          quantity_liters: liters,
           quantity_kg: kg,
         };
       });
@@ -1640,7 +1677,7 @@ export default function NewFuelIntakeFormWizard() {
                   <div className="text-sm text-gray-600 mb-1">Ukupno primljeno goriva:</div>
                   <div className="flex items-end justify-between">
                     <div>
-                      <span className="text-lg font-bold text-blue-700">{formData.quantity_liters_received?.toFixed(2) || '0.00'} L</span>
+                      <span className="text-lg font-bold text-blue-700">{formatLiters(formData.quantity_liters_received)} L</span>
                       <div className="text-xs text-blue-600 mt-1">Tip: {selectedFuelType}</div>
                     </div>
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400">
@@ -1654,7 +1691,7 @@ export default function NewFuelIntakeFormWizard() {
                   <div className="flex items-end justify-between">
                     <div>
                       <span className={`text-lg font-bold ${totalDistributedQuantity > (formData.quantity_liters_received || 0) ? 'text-red-600' : 'text-green-700'}`}>
-                        {totalDistributedQuantity.toFixed(2)} L
+                        {formatLiters(totalDistributedQuantity)} L
                       </span>
                       <div className="text-xs text-green-600 mt-1">
                         {formData.tank_distributions?.filter(d => d.tank_id).length || 0} tankova odabrano
@@ -1672,7 +1709,7 @@ export default function NewFuelIntakeFormWizard() {
                   <div className="flex items-end justify-between">
                     <div>
                       <span className={`text-lg font-bold ${((formData.quantity_liters_received || 0) - totalDistributedQuantity) < 0 ? 'text-red-600' : 'text-gray-700'}`}>
-                        {((formData.quantity_liters_received || 0) - totalDistributedQuantity).toFixed(2)} L
+                        {formatLiters((formData.quantity_liters_received || 0) - totalDistributedQuantity)} L
                       </span>
                       <div className="text-xs text-gray-500 mt-1">
                         {((formData.quantity_liters_received || 0) - totalDistributedQuantity) < 0 ? 'Prekoračenje količine!' : 'Dostupno za raspodjelu'}
@@ -1816,7 +1853,7 @@ export default function NewFuelIntakeFormWizard() {
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleTankDistributionChange(index, 'quantity_liters', e.target.value)}
                             onWheel={(e) => e.currentTarget.blur()}
                             placeholder="npr. 500"
-                            step="0.01"
+                            step="0.000001"
                             className={`mt-1 pl-9 ${qtyError ? 'border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'}`}
                           />
                           <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 mt-1">
@@ -1835,6 +1872,47 @@ export default function NewFuelIntakeFormWizard() {
                             {qtyError}
                           </p>
                         )}
+                      </div>
+
+                      <div>
+                        <Label htmlFor={`quantity_kg_${index}`} className="text-gray-700 flex items-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 text-gray-500">
+                            <path d="M6 20h12"/>
+                            <path d="M8 4h8"/>
+                            <path d="M7 4v16"/>
+                            <path d="M17 4v16"/>
+                            <path d="M4 8h16"/>
+                            <path d="M4 16h16"/>
+                          </svg>
+                          Količina za ovaj tank (KG)
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            id={`quantity_kg_${index}`}
+                            name={`quantity_kg_${index}`}
+                            type="number"
+                            value={distribution.quantity_kg === undefined ? '' : distribution.quantity_kg}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleTankDistributionChange(index, 'quantity_kg', e.target.value)}
+                            onWheel={(e) => e.currentTarget.blur()}
+                            placeholder="npr. 400"
+                            step="0.001"
+                            disabled={!specificGravity || specificGravity <= 0}
+                            className={`mt-1 pl-9 ${qtyError ? 'border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'}`}
+                          />
+                          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 mt-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M6 20h12"/>
+                              <path d="M8 4h8"/>
+                              <path d="M7 4v16"/>
+                              <path d="M17 4v16"/>
+                              <path d="M4 8h16"/>
+                              <path d="M4 16h16"/>
+                            </svg>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Unos u KG automatski računa litre po gustoći {specificGravity?.toFixed(4) || '0.0000'} kg/L.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1961,16 +2039,16 @@ export default function NewFuelIntakeFormWizard() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="bg-white p-3 rounded-lg border border-green-100">
                       <div className="text-xs text-gray-600 mb-1">Ukupno primljeno</div>
-                      <div className="text-lg font-bold text-green-700">{totalQuantityLiters.toFixed(2)} L</div>
+                      <div className="text-lg font-bold text-green-700">{formatLiters(totalQuantityLiters)} L</div>
                     </div>
                     <div className="bg-white p-3 rounded-lg border border-blue-100">
                       <div className="text-xs text-gray-600 mb-1">Raspodijeljeno</div>
-                      <div className="text-lg font-bold text-blue-700">{distributedSoFar.toFixed(2)} L</div>
+                      <div className="text-lg font-bold text-blue-700">{formatLiters(distributedSoFar)} L</div>
                     </div>
                     <div className={`bg-white p-3 rounded-lg border ${remaining < 0 ? 'border-red-100' : remaining > 0 ? 'border-orange-100' : 'border-green-100'}`}>
                       <div className="text-xs text-gray-600 mb-1">Preostalo</div>
                       <div className={`text-lg font-bold ${remaining < 0 ? 'text-red-700' : remaining > 0 ? 'text-orange-700' : 'text-green-700'}`}>
-                        {remaining.toFixed(2)} L
+                        {formatLiters(remaining)} L
                       </div>
                     </div>
                   </div>
@@ -1987,7 +2065,7 @@ export default function NewFuelIntakeFormWizard() {
                       <svg className="flex-shrink-0 w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
                       </svg>
-                      <span>Imate još {remaining.toFixed(2)} L koje treba raspodijeliti.</span>
+                      <span>Imate još {formatLiters(remaining)} L koje treba raspodijeliti.</span>
                     </div>
                   )}
                   {remaining === 0 && distributedSoFar > 0 && (
@@ -2074,12 +2152,17 @@ export default function NewFuelIntakeFormWizard() {
                         <Label>Količina (L)</Label>
                         <Input
                           type="number"
-                          step="0.01"
+                          step="0.000001"
                           min="0"
                           value={distribution.quantity_liters || ''}
                           onChange={(e) => {
                             const updated = [...(formData.physical_tank_distributions || [])];
-                            updated[index] = { ...updated[index], quantity_liters: parseFloat(e.target.value) || 0 };
+                            const liters = e.target.value === '' ? undefined : roundToPrecision(parseFloat(e.target.value) || 0, LITER_PRECISION);
+                            updated[index] = { 
+                              ...updated[index], 
+                              quantity_liters: liters,
+                              quantity_kg: liters && specificGravity ? roundToPrecision(liters * specificGravity, KG_PRECISION) : undefined,
+                            };
                             setFormData({ ...formData, physical_tank_distributions: updated });
                           }}
                           onWheel={(e) => e.currentTarget.blur()}
@@ -2115,17 +2198,41 @@ export default function NewFuelIntakeFormWizard() {
                                 <div>
                                   <div className="font-medium">Prekoračenje kapaciteta!</div>
                                   <div className="mt-1">
-                                    Slobodno mjesto: {freeSpace.toFixed(2)} L
+                                    Slobodno mjesto: {formatLiters(freeSpace)} L
                                     <br />
-                                    Pokušavate dodati: {distribution.quantity_liters.toFixed(2)} L
+                                    Pokušavate dodati: {formatLiters(distribution.quantity_liters)} L
                                     <br />
-                                    Prekoračenje: {(distribution.quantity_liters - freeSpace).toFixed(2)} L
+                                    Prekoračenje: {formatLiters(distribution.quantity_liters - freeSpace)} L
                                   </div>
                                 </div>
                               </div>
                             </div>
                           );
                         })()}
+                      </div>
+                      <div>
+                        <Label>Količina (KG)</Label>
+                        <Input
+                          type="number"
+                          step="0.001"
+                          min="0"
+                          value={distribution.quantity_kg || ''}
+                          onChange={(e) => {
+                            const updated = [...(formData.physical_tank_distributions || [])];
+                            const kg = e.target.value === '' ? undefined : roundToPrecision(parseFloat(e.target.value) || 0, KG_PRECISION);
+                            updated[index] = { 
+                              ...updated[index], 
+                              quantity_kg: kg,
+                              quantity_liters: kg && specificGravity ? roundToPrecision(kg / specificGravity, LITER_PRECISION) : undefined,
+                            };
+                            setFormData({ ...formData, physical_tank_distributions: updated });
+                          }}
+                          onWheel={(e) => e.currentTarget.blur()}
+                          disabled={!specificGravity || specificGravity <= 0}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Unos u KG automatski računa litre po gustoći {specificGravity?.toFixed(4) || '0.0000'} kg/L.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -2179,7 +2286,7 @@ export default function NewFuelIntakeFormWizard() {
                     <span className="text-lg font-bold text-purple-800">
                       {formData.physical_tank_distributions
                         .reduce((sum, dist) => sum + (dist.quantity_liters || 0), 0)
-                        .toFixed(2)} L
+                        .toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: LITER_PRECISION })} L
                     </span>
                   </div>
                 </div>
@@ -2430,11 +2537,11 @@ export default function NewFuelIntakeFormWizard() {
                   </div>
                   <div className="flex">
                     <span className="text-gray-500 w-40">Količina (L):</span>
-                    <span className="font-medium">{displayValue(formData.quantity_liters_received?.toFixed(2))}</span>
+                    <span className="font-medium">{displayValue(formatLiters(formData.quantity_liters_received))}</span>
                   </div>
                   <div className="flex">
                     <span className="text-gray-500 w-40">Količina (KG):</span>
-                    <span className="font-medium">{displayValue(formData.quantity_kg_received?.toFixed(2))}</span>
+                    <span className="font-medium">{displayValue(formatKg(formData.quantity_kg_received))}</span>
                   </div>
                   <div className="flex">
                     <span className="text-gray-500 w-40">Spec. gustoća (kg/L):</span>
@@ -2494,14 +2601,15 @@ export default function NewFuelIntakeFormWizard() {
                             <span className="font-medium">{getTankDisplayInfo(dist.tank_id)}</span>
                           </div>
                           <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium">
-                            {displayValue(dist.quantity_liters?.toFixed(2))} L
+                            {displayValue(formatLiters(dist.quantity_liters))} L
+                            {dist.quantity_kg !== undefined ? ` / ${formatKg(dist.quantity_kg)} KG` : ''}
                           </span>
                         </div>
                       ))}
                     </div>
                     <div className="mt-4 pt-3 border-t border-gray-200 flex justify-between items-center">
                       <span className="text-gray-600 font-medium">Ukupno raspoređeno:</span>
-                      <span className="font-bold text-blue-700">{totalDistributedQuantity.toFixed(2)} L</span>
+                      <span className="font-bold text-blue-700">{formatLiters(totalDistributedQuantity)} L</span>
                     </div>
                   </div>
                 )}
