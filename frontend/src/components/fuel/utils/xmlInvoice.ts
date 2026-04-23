@@ -94,6 +94,7 @@ const DESTINATION_IATA_MAP: Record<string, string> = {
   friedrichshafen: 'FDH',
   fuerteventura: 'FUE',
   gdansk: 'GDN',
+  gdansklechwalesa: 'GDN',
   goteborglandvetter: 'GOT',
   grancanaria: 'LPA',
   grenoble: 'GNB',
