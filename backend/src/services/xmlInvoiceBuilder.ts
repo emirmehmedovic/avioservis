@@ -245,8 +245,8 @@ const mapDestinationToIata = (destination?: string | null): string => {
 // Mirrors frontend generateXMLInvoice exactly in structure and fields
 export const generateXMLInvoiceBackend = (operation: FuelingOperationForXml): string => {
   const quantityLiters = formatDecimal(operation.quantity_liters);
-  const quantityKg = formatDecimal(operation.quantity_kg);
-  const totalAmount = formatDecimal(operation.total_amount);
+  const quantityKg = formatAmountTwoDecimals(operation.quantity_kg);
+  const totalAmount = formatAmountTwoDecimals(operation.total_amount);
   const totalAmountTwoDecimals = formatAmountTwoDecimals(operation.total_amount);
   const pricePerKg = formatDecimal(operation.price_per_kg);
 
@@ -416,7 +416,7 @@ export const generateXMLInvoiceBackend = (operation: FuelingOperationForXml): st
     </SubInvoiceHeader>
     <InvoiceSummary>
       <InvoiceLineCount>1</InvoiceLineCount>
-      <TotalInvoiceLineAmount>${totalAmount}</TotalInvoiceLineAmount>
+      <TotalInvoiceLineAmount>${totalAmountTwoDecimals}</TotalInvoiceLineAmount>
       <TotalInvoiceTaxAmount>0</TotalInvoiceTaxAmount>
     </InvoiceSummary>
   </Invoice>

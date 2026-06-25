@@ -238,8 +238,8 @@ const mapDestinationToIata = (destination?: string): string => {
 export const generateXMLInvoice = (operation: FuelingOperation): string => {
   // Safely parse all numeric values at the beginning
   const quantityLiters = formatDecimal(operation.quantity_liters);
-  const quantityKg = formatDecimal(operation.quantity_kg);
-  const totalAmount = formatDecimal(operation.total_amount);
+  const quantityKg = formatAmountTwoDecimals(operation.quantity_kg);
+  const totalAmount = formatAmountTwoDecimals(operation.total_amount);
   const totalAmountTwoDecimals = formatAmountTwoDecimals(operation.total_amount);
   const pricePerKg = formatDecimal(operation.price_per_kg);
 
@@ -417,7 +417,7 @@ export const generateXMLInvoice = (operation: FuelingOperation): string => {
     </SubInvoiceHeader>
     <InvoiceSummary>
       <InvoiceLineCount>1</InvoiceLineCount>
-      <TotalInvoiceLineAmount>${totalAmount}</TotalInvoiceLineAmount>
+      <TotalInvoiceLineAmount>${totalAmountTwoDecimals}</TotalInvoiceLineAmount>
       <TotalInvoiceTaxAmount>0</TotalInvoiceTaxAmount>
     </InvoiceSummary>
   </Invoice>
@@ -534,7 +534,7 @@ export const generateConsolidatedXMLInvoice = (operations: FuelingOperation[], f
         <ItemQuantity>
           <ItemQuantityType>DL</ItemQuantityType>
           <ItemQuantityFlag>GR</ItemQuantityFlag>
-          <ItemQuantityQty>${quantityKg.toFixed(6)}</ItemQuantityQty>
+          <ItemQuantityQty>${quantityKg.toFixed(2)}</ItemQuantityQty>
           <ItemQuantityUOM>KG</ItemQuantityUOM>
         </ItemQuantity>
         <ItemDeliveryLocation>TZL</ItemDeliveryLocation>
@@ -542,7 +542,7 @@ export const generateConsolidatedXMLInvoice = (operations: FuelingOperation[], f
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="ARN">${aircraftRegistration}</ItemDeliveryReferenceValue>
         <ItemDeliveryReferenceValue ItemDeliveryReferenceType="DTN">${destination}</ItemDeliveryReferenceValue>
         <ItemReferenceLocalDate ItemReferenceDateTypes="DTA">${operationDate}</ItemReferenceLocalDate>
-        <ItemInvoiceAmount>${operation.total_amount || 0}</ItemInvoiceAmount>
+        <ItemInvoiceAmount>${formatAmountTwoDecimals(operation.total_amount)}</ItemInvoiceAmount>
         <SubItem>
           <SubItemProduct>
             <SubItemProductID>${operation.tank?.fuel_type || 'JETA1'}</SubItemProductID>
@@ -551,15 +551,15 @@ export const generateConsolidatedXMLInvoice = (operations: FuelingOperation[], f
             <SubItemPricingUOM>KG</SubItemPricingUOM>
             <SubItemPricingUOMFactor>1</SubItemPricingUOMFactor>
             <SubItemPricingCurrencyCode>${operation.currency || 'BAM'}</SubItemPricingCurrencyCode>
-            <SubItemPricingAmount>${quantityKg.toFixed(6)}</SubItemPricingAmount>
+            <SubItemPricingAmount>${quantityKg.toFixed(2)}</SubItemPricingAmount>
             <SubItemInvoiceUOM>KG</SubItemInvoiceUOM>
             <SubItemQuantity>
-              <SubItemInvoiceQuantity>${quantityKg.toFixed(6)}</SubItemInvoiceQuantity>
+              <SubItemInvoiceQuantity>${quantityKg.toFixed(2)}</SubItemInvoiceQuantity>
               <SubItemQuantityType>DL</SubItemQuantityType>
               <SubItemQuantityFlag>GR</SubItemQuantityFlag>
             </SubItemQuantity>
             <SubItemInvoiceUnitRate>${operation.price_per_kg || 0}</SubItemInvoiceUnitRate>
-            <SubItemInvoiceAmount>${operation.total_amount || 0}</SubItemInvoiceAmount>
+            <SubItemInvoiceAmount>${formatAmountTwoDecimals(operation.total_amount)}</SubItemInvoiceAmount>
           </SubItemProduct>
         </SubItem>
       </InvoiceLine>`;
@@ -611,7 +611,7 @@ export const generateConsolidatedXMLInvoice = (operations: FuelingOperation[], f
     </SubInvoiceHeader>
     <InvoiceSummary>
       <InvoiceLineCount>${operations.length}</InvoiceLineCount>
-      <TotalInvoiceLineAmount>${totalAmount}</TotalInvoiceLineAmount>
+      <TotalInvoiceLineAmount>${totalAmountTwoDecimals}</TotalInvoiceLineAmount>
       <TotalInvoiceTaxAmount>0</TotalInvoiceTaxAmount>
     </InvoiceSummary>
   </Invoice>
