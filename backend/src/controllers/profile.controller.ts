@@ -3,9 +3,7 @@ import { validationResult } from 'express-validator';
 import { AuthRequest } from '../middleware/auth';
 import * as UserService from '../services/user.service';
 import bcrypt from 'bcrypt';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 const SALT_ROUNDS = 10;
 
 // PUT /profile/password - Update current user's password

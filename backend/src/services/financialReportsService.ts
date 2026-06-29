@@ -3,12 +3,10 @@
  * Servisni sloj za generisanje finansijskih izvještaja
  */
 
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { parseMrnBreakdown, groupByMrn, calculateTotals, type MrnBreakdownItem } from '../utils/mrnBreakdownParser';
 import { convertToBAM, EUR_TO_BAM_RATE } from '../utils/currencyConverter';
-
-// Inicijalizacija Prisma klijenta
-const prisma = new PrismaClient();
 
 /**
  * Cache za MRN podatke da izbegnemо duplikate database poziva

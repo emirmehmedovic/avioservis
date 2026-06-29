@@ -1,19 +1,18 @@
 import { Request, Response } from 'express';
-import { PrismaClient, EmailDispatchStatus, PaymentStatus } from '@prisma/client';
+import { EmailDispatchStatus, PaymentStatus } from '@prisma/client';
 import dayjs from 'dayjs';
 import path from 'path';
 import fs from 'fs';
-import { 
-  dispatchOneEmailOperation, 
-  dispatchEmailRange, 
+import {
+  dispatchOneEmailOperation,
+  dispatchEmailRange,
   findEligibleOperationsForEmailDispatch,
   prepareEmailDay,
   prepareEmailRange
 } from '../services/emailInvoiceDispatch.service';
 import { manualRetryFailedEmails } from '../cron/emailInvoiceCron';
 import { AuthRequest } from '../middleware/auth';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 export const getEmailInvoiceDispatches = async (req: AuthRequest, res: Response): Promise<void> => {
   try {

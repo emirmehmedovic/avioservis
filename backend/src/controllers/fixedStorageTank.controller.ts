@@ -1,12 +1,11 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
-import { PrismaClient, FixedTankStatus, Prisma, FixedTankActivityType } from '@prisma/client';
+import { FixedTankStatus, Prisma, FixedTankActivityType } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path'; // Ensure path is imported
 import fs from 'fs';   // Use standard fs module
 import { AuthRequest } from '../middleware/auth';
 import { logger } from '../utils/logger'; // Ensure path is imported
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 // Define constants for file paths
 const PUBLIC_UPLOADS_BASE_PATH = '/uploads/fixed_tank_documents/'; // URL base path

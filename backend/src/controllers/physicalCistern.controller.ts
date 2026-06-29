@@ -1,7 +1,5 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 // Get all physical cisterns
 export const getPhysicalCisterns: RequestHandler = async (req, res, next): Promise<void> => {

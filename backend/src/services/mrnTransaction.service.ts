@@ -1,10 +1,9 @@
-import { Prisma, PrismaClient, MrnTransactionType } from '@prisma/client';
+import { Prisma, MrnTransactionType } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { logger } from '../utils/logger';
+import { prisma } from '../lib/prisma';
 
 export { MrnTransactionType }; // Re-export for use in other services/controllers
-
-const prisma = new PrismaClient();
 
 // Tip za Prisma transakcijskog klijenta
 type PrismaTransactionClient = Prisma.TransactionClient;

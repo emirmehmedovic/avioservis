@@ -1,19 +1,18 @@
 import { Response } from 'express';
 import { AuthRequest } from '../types/auth';
 import { parseDecimalValue } from '../utils/numberUtils';
-import prismaClient from '../utils/prisma';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { logger } from '../utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 import { ExcessFuelExchangeResult, processExcessFuelExchange } from '../utils/excessFuelExchangeService';
 
 // Proširena definicija tipa za Prisma klijent koji uključuje tankReserveFuel
-type ExtendedPrismaClient = PrismaClient & {
+type ExtendedPrismaClient = typeof prisma & {
   tankReserveFuel: any
 };
 
 // Primijeni prošireni tip na postojeći Prisma klijent
-const prisma = prismaClient as ExtendedPrismaClient;
+const prismaTyped = prisma as ExtendedPrismaClient;
 
 /**
  * Dohvaća listu rezervnog goriva za određeni tank
@@ -45,7 +44,7 @@ export const getReserveFuelByTank = async (req: AuthRequest, res: Response): Pro
       return;  // Dodajemo return kako bi zaustavili izvršavanje funkcije
     }
 
-    const reserveFuel = await prisma.tankReserveFuel.findMany({
+    const reserveFuel = await prismaTyped.tankReserveFuel.findMany({
       where: {
         tank_id: tankIdNum,
         tank_type: tankType
@@ -123,7 +122,7 @@ export const dispenseReserveFuel = async (req: AuthRequest, res: Response): Prom
     }
 
     // Dohvati dostupno rezervno gorivo
-    const availableReserveFuel = await prisma.tankReserveFuel.findMany({
+    const availableReserveFuel = await prismaTyped.tankReserveFuel.findMany({
       where: {
         tank_id: tankIdNum,
         tank_type: tankType,

@@ -1,10 +1,8 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { StatusCodes } from 'http-status-codes';
 import { logger } from '../utils/logger';
 import { getFuelOperations, getFuelOperationDetails, FuelOperationType } from '../utils/fuelAuditUtils';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 /**
  * Dohvaća listu operacija s gorivom s paginacijom i filtriranjem

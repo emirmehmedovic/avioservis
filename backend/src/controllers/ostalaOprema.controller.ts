@@ -1,13 +1,11 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { notoSansRegularBase64 } from '../fonts/fonts';
 import { notoSansBoldBase64 } from '../fonts/notoSansBoldBase64';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 // Font configuration
 const FONT_NAME = 'NotoSans';

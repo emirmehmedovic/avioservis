@@ -1,17 +1,16 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { authenticateToken, requireRole, AuthRequest } from '../middleware/auth';
 import { validateRequest } from '../middleware/validateRequest';
 import { createVehicleSchema, updateVehicleSchema, vehicleIdSchema } from '../schemas/vehicle.schema';
 import express from 'express';
-import { uploadVehicleImage } from '../middleware/imageUpload'; 
+import { uploadVehicleImage } from '../middleware/imageUpload';
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
-import { v4 as uuidv4 } from 'uuid'; 
+import { v4 as uuidv4 } from 'uuid';
+import { prisma } from '../lib/prisma';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Get all vehicles
 router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {

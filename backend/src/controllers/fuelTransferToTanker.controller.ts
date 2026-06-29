@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient, Prisma, FixedTankActivityType, MrnTransactionType } from '@prisma/client';
+import { Prisma, FixedTankActivityType, MrnTransactionType } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
 import * as densityUtils from '../utils/densityUtils'; // Import density utilities
@@ -9,8 +9,7 @@ import { Decimal } from '@prisma/client/runtime/library'; // For Prisma Decimal 
 import { processExcessFuelExchange } from '../utils/excessFuelExchangeService'; // Za automatsku zamjenu viška goriva
 import { createMrnTransaction, processMrnDeduction } from '../services/mrnTransaction.service';
 import { performMrnCleanupIfNeeded } from '../services/mrnCleanupService';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 /**
  * Kreira zapis o transferu goriva iz fiksnog skladišnog tanka u mobilni tanker

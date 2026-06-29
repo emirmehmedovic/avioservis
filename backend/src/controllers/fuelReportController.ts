@@ -1,9 +1,8 @@
 import { Request, Response } from 'express';
-import { PrismaClient, FuelingOperation, Airline, FuelTank, Prisma } from '@prisma/client';
+import { FuelingOperation, Airline, FuelTank, Prisma } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
 type Decimal = Prisma.Decimal;
-
-const prisma = new PrismaClient();
 
 // Define types to use for our operations
 interface TankData { // This interface is for FuelTank (mobile tankers)

@@ -1,7 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 // GET /api/airlines - Fetch all airlines
 export const getAllAirlines = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

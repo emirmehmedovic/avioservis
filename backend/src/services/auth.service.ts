@@ -1,7 +1,6 @@
-import { PrismaClient, User, Role, Prisma } from '@prisma/client';
+import { User, Role, Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 export async function findUserByUsername(username: string): Promise<User | null> {
   return prisma.user.findUnique({

@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 // Ova funkcija će ispisati sva imena modela dostupna u Prisma klijentu
 async function checkPrismaModels() {

@@ -28,8 +28,18 @@ import {
   Activity,
   DropletIcon
 } from 'lucide-react';
-import { getTotalFuelSummary, getTotalFixedTankIntake, getFixedTanks, getFuelIntakes, getFixedTankHistory } from '@/lib/apiService';
-import { FixedStorageTank, TankTransaction, FuelIntakeRecord } from '@/types/fuel';
+import {
+  getTotalFuelSummary,
+  getWeeklyConsumptionTrend,
+  getMonthlyFlightRealization,
+  getDashboardStatistics
+} from '@/lib/apiService';
+import { DashboardKPIData } from '@/types/dashboard';
+import KPICard from '@/components/dashboard/KPICard';
+import FuelConsumptionChart from '@/components/dashboard/FuelConsumptionChart';
+import TopAirlinesChart from '@/components/dashboard/TopAirlinesChart';
+import DestinationsPieChart from '@/components/dashboard/DestinationsPieChart';
+import { MapPin } from 'lucide-react';
 
 // Helper function to format numbers with thousand separators
 const formatNumber = (num: number): string => {
@@ -60,138 +70,226 @@ export default function DashboardPage() {
     mobileTanksTotalKg: number;
     grandTotalKg: number;
   } | null>(null);
-  // We don't need monthly intake anymore as we'll show total fuel status instead
-  const [fixedTanks, setFixedTanks] = useState<FixedStorageTank[]>([]);
-  const [recentActivities, setRecentActivities] = useState<any[]>([]);
-  const [fuelAlerts, setFuelAlerts] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
-  
+
+  // New KPI State
+  const [kpiData, setKpiData] = useState<DashboardKPIData>({
+    dailyConsumption: { liters: 0, kg: 0, loading: true, error: null },
+    weeklyConsumption: { average: 0, trend: 0, loading: true, error: null },
+    topDestination: { name: '', volume: 0, percentage: 0, loading: true, error: null },
+    flightRealization: { scheduled: 0, realized: 0, rate: 0, unplanned: 0, loading: true, error: null }
+  });
+
+  // Chart Data State
+  const [chartsData, setChartsData] = useState<{
+    fuelByDay: { data: any[]; loading: boolean; error: string | null };
+    topAirlines: { data: any[]; loading: boolean; error: string | null };
+    destinations: { data: any[]; loading: boolean; error: string | null };
+  }>({
+    fuelByDay: { data: [], loading: true, error: null },
+    topAirlines: { data: [], loading: true, error: null },
+    destinations: { data: [], loading: true, error: null }
+  });
+
+  // Helper function to get current month name
+  const getCurrentMonthName = () => {
+    const monthNames = [
+      'Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun',
+      'Jul', 'Avgust', 'Septembar', 'Oktobar', 'Novembar', 'Decembar'
+    ];
+    const today = new Date();
+    return monthNames[today.getMonth()];
+  };
+
+  // Helper function to get date ranges
+  const getDateRanges = () => {
+    const today = new Date();
+    const subDays = (date: Date, days: number) => {
+      const result = new Date(date);
+      result.setDate(result.getDate() - days);
+      return result;
+    };
+    const startOfMonth = (date: Date) => {
+      return new Date(date.getFullYear(), date.getMonth(), 1);
+    };
+    const formatDate = (date: Date) => {
+      return date.toISOString().split('T')[0];
+    };
+
+    const last30Days = { startDate: formatDate(subDays(today, 30)), endDate: formatDate(today) };
+    const last4Weeks = { startDate: formatDate(subDays(today, 28)), endDate: formatDate(today) };
+    const currentMonth = { startDate: formatDate(startOfMonth(today)), endDate: formatDate(today) };
+
+    return { last30Days, last4Weeks, currentMonth };
+  };
+
+  // Consolidated fetch function for statistics (Daily consumption + Charts)
+  const fetchConsolidatedStatistics = async () => {
+    try {
+      const { last30Days, currentMonth } = getDateRanges();
+
+      // Fetch both periods in parallel - 2 API calls instead of 4!
+      const [stats30Days, statsCurrentMonth] = await Promise.all([
+        getDashboardStatistics(last30Days.startDate, last30Days.endDate),
+        getDashboardStatistics(currentMonth.startDate, currentMonth.endDate)
+      ]);
+
+      // Calculate daily average from 30-day stats
+      // Only count days that have operations (days with data)
+      let totalLiters = 0;
+      (stats30Days.fuelByDay || []).forEach((day: any) => {
+        totalLiters += parseFloat(day.totalLiters || 0);
+      });
+
+      const daysWithOperations = (stats30Days.fuelByDay || []).length;
+      const avgLiters = daysWithOperations > 0 ? totalLiters / daysWithOperations : 0;
+      const avgKg = avgLiters * 0.804; // JET-A1 density
+
+      // Update Daily Consumption KPI
+      setKpiData(prev => ({
+        ...prev,
+        dailyConsumption: {
+          liters: Math.round(avgLiters),
+          kg: Math.round(avgKg),
+          loading: false,
+          error: null
+        }
+      }));
+
+      // Update Charts Data (Line Chart + Bar Chart from 30-day stats)
+      setChartsData(prev => ({
+        ...prev,
+        fuelByDay: {
+          data: stats30Days.fuelByDay || [],
+          loading: false,
+          error: null
+        },
+        topAirlines: {
+          data: stats30Days.fuelByAirline || [],
+          loading: false,
+          error: null
+        }
+      }));
+
+      // Update Top Destination KPI from current month stats
+      // OPTIMIZED: Use fuelByDestination from statistics instead of separate API call
+      const destinations = statsCurrentMonth.fuelByDestination || [];
+      if (destinations.length > 0) {
+        const sortedDest = [...destinations].sort((a: any, b: any) => b.totalLiters - a.totalLiters);
+        const topDest = sortedDest[0];
+        const totalVolume = destinations.reduce((sum: number, dest: any) => sum + parseFloat(dest.totalLiters || 0), 0);
+        const percentage = totalVolume > 0 ? (topDest.totalLiters / totalVolume) * 100 : 0;
+
+        setKpiData(prev => ({
+          ...prev,
+          topDestination: {
+            name: topDest.destination || 'N/A',
+            volume: Math.round(topDest.totalLiters || 0),
+            percentage: percentage,
+            loading: false,
+            error: null
+          }
+        }));
+      } else {
+        setKpiData(prev => ({
+          ...prev,
+          topDestination: { name: 'N/A', volume: 0, percentage: 0, loading: false, error: null }
+        }));
+      }
+
+      // Update Pie Chart data from current month stats
+      setChartsData(prev => ({
+        ...prev,
+        destinations: {
+          data: statsCurrentMonth.fuelByDestination || [],
+          loading: false,
+          error: null
+        }
+      }));
+
+    } catch (error: any) {
+      console.error('Error fetching consolidated statistics:', error);
+
+      // Update all related states with error
+      setKpiData(prev => ({
+        ...prev,
+        dailyConsumption: {
+          liters: 0,
+          kg: 0,
+          loading: false,
+          error: error.message || 'Greška prilikom učitavanja'
+        },
+        topDestination: {
+          name: '',
+          volume: 0,
+          percentage: 0,
+          loading: false,
+          error: error.message || 'Greška prilikom učitavanja'
+        }
+      }));
+
+      setChartsData({
+        fuelByDay: { data: [], loading: false, error: error.message || 'Greška prilikom učitavanja' },
+        topAirlines: { data: [], loading: false, error: error.message || 'Greška prilikom učitavanja' },
+        destinations: { data: [], loading: false, error: error.message || 'Greška prilikom učitavanja' }
+      });
+    }
+  };
+
+  const fetchWeeklyConsumption = async () => {
+    try {
+      const { last4Weeks } = getDateRanges();
+      const data = await getWeeklyConsumptionTrend(last4Weeks.startDate, last4Weeks.endDate);
+      setKpiData(prev => ({
+        ...prev,
+        weeklyConsumption: { ...data, loading: false, error: null }
+      }));
+    } catch (error: any) {
+      console.error('Error fetching weekly consumption:', error);
+      setKpiData(prev => ({
+        ...prev,
+        weeklyConsumption: { average: 0, trend: 0, loading: false, error: error.message || 'Greška prilikom učitavanja' }
+      }));
+    }
+  };
+
+  const fetchFlightRealization = async () => {
+    try {
+      const { currentMonth } = getDateRanges();
+      const data = await getMonthlyFlightRealization(currentMonth.startDate, currentMonth.endDate);
+      setKpiData(prev => ({
+        ...prev,
+        flightRealization: { ...data, loading: false, error: null }
+      }));
+    } catch (error: any) {
+      console.error('Error fetching flight realization:', error);
+      setKpiData(prev => ({
+        ...prev,
+        flightRealization: { scheduled: 0, realized: 0, rate: 0, unplanned: 0, loading: false, error: error.message || 'Greška prilikom učitavanja' }
+      }));
+    }
+  };
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setIsLoading(true);
-        
+
         // Fetch fuel summary
         const summary = await getTotalFuelSummary();
         setFuelSummary(summary);
-        
-        // Fetch fixed tanks
-        const tanks = await getFixedTanks();
-        setFixedTanks(tanks);
-        
-        // Fetch recent fuel intakes
-        const intakes = await getFuelIntakes();
-        
-        // Generate alerts based on tank levels
-        const alerts = [];
-        for (const tank of tanks) {
-          const fillPercentage = (tank.current_quantity_liters / tank.capacity_liters) * 100;
-          if (fillPercentage < 20) {
-            alerts.push({
-              id: `tank-low-${tank.id}`,
-              title: 'Nizak nivo goriva',
-              description: `Tank ${tank.tank_name} (${tank.tank_identifier}) ima manje od 20% kapaciteta`,
-              severity: 'high'
-            });
-          }
-        }
-        
-        // Add alerts for tanks with high levels (over 90%)
-        for (const tank of tanks) {
-          const fillPercentage = (tank.current_quantity_liters / tank.capacity_liters) * 100;
-          if (fillPercentage > 90) {
-            alerts.push({
-              id: `tank-high-${tank.id}`,
-              title: 'Visok nivo goriva',
-              description: `Tank ${tank.tank_name} (${tank.tank_identifier}) je na preko 90% kapaciteta`,
-              severity: 'medium'
-            });
-          }
-        }
-        
-        // Limit to 3 alerts
-        setFuelAlerts(alerts.slice(0, 3));
-        
-        // Fetch recent tank transactions for all tanks
-        let allTransactions: (TankTransaction & { tankName?: string; tankIdentifier?: string })[] = [];
-        for (const tank of tanks.slice(0, 2)) { // Limit to first 2 tanks to avoid too many requests
-          try {
-            const tankHistory = await getFixedTankHistory(tank.id);
-            // Add tank name to each transaction
-            const transactionsWithTankName = tankHistory.map(tx => ({
-              ...tx,
-              tankName: tank.tank_name,
-              tankIdentifier: tank.tank_identifier
-            }));
-            allTransactions = [...allTransactions, ...transactionsWithTankName];
-          } catch (error) {
-            console.error(`Error fetching history for tank ${tank.id}:`, error);
-          }
-        }
-        
-        // Sort transactions by date (newest first) and take the first 5
-        allTransactions.sort((a, b) => 
-          new Date(b.transaction_datetime).getTime() - new Date(a.transaction_datetime).getTime()
-        );
-        
-        // Convert transactions to activity format
-        const activities = allTransactions.slice(0, 5).map(tx => {
-          // Determine activity type and details based on transaction type
-          let type = '';
-          let details = '';
-          let status = 'success';
-          
-          const tankName = tx.tankName || 'Nepoznat tank';
-          const tankIdentifier = tx.tankIdentifier || '';
-          
-          switch(tx.type) {
-            case 'intake':
-              type = 'Unos goriva';
-              details = `Unos ${tx.quantityLiters.toLocaleString('bs-BA')}L u tank ${tankName} (${tankIdentifier})`;
-              break;
-            case 'transfer_to_mobile':
-              type = 'Transfer goriva';
-              details = `Transfer ${tx.quantityLiters.toLocaleString('bs-BA')}L iz tanka ${tankName} (${tankIdentifier}) u mobilnu cisternu`;
-              break;
-            case 'fuel_drain':
-              type = 'Drenaža goriva';
-              details = `Drenaža ${Math.abs(tx.quantityLiters).toLocaleString('bs-BA')}L iz tanka ${tankName} (${tankIdentifier})`;
-              status = 'warning';
-              break;
-            case 'internal_transfer_in':
-              type = 'Interni transfer';
-              details = `Primljeno ${tx.quantityLiters.toLocaleString('bs-BA')}L u tank ${tankName} (${tankIdentifier})`;
-              break;
-            case 'internal_transfer_out':
-              type = 'Interni transfer';
-              details = `Poslano ${Math.abs(tx.quantityLiters).toLocaleString('bs-BA')}L iz tanka ${tankName} (${tankIdentifier})`;
-              break;
-            default:
-              type = 'Operacija s gorivom';
-              details = `${tx.quantityLiters.toLocaleString('bs-BA')}L, tank ${tankName} (${tankIdentifier})`;
-          }
-          
-          // Format date to dd.mm.yyyy format with time
-          const date = new Date(tx.transaction_datetime);
-          const day = date.getDate().toString().padStart(2, '0');
-          const month = (date.getMonth() + 1).toString().padStart(2, '0');
-          const year = date.getFullYear();
-          const hours = date.getHours().toString().padStart(2, '0');
-          const minutes = date.getMinutes().toString().padStart(2, '0');
-          const formattedDate = `${day}.${month}.${year} ${hours}:${minutes}`;
-          
-          return {
-            id: tx.id,
-            type,
-            details,
-            timestamp: formattedDate,
-            user: tx.user || 'sistem',
-            status
-          };
-        });
-        
-        setRecentActivities(activities);
-        
+
+        // OPTIMIZED: Fetch all KPIs and Charts data in parallel
+        // Reduced from 6 API calls to 3 API calls:
+        // 1. fetchConsolidatedStatistics (2 calls inside: 30 days + current month)
+        // 2. fetchWeeklyConsumption
+        // 3. fetchFlightRealization
+        await Promise.allSettled([
+          fetchConsolidatedStatistics(),
+          fetchWeeklyConsumption(),
+          fetchFlightRealization()
+        ]);
+
       } catch (err: any) {
         console.error('Error fetching dashboard data:', err);
         setError(err.message || 'Greška prilikom dohvatanja podataka');
@@ -199,7 +297,7 @@ export default function DashboardPage() {
         setIsLoading(false);
       }
     };
-    
+
     fetchDashboardData();
   }, []);
 
@@ -209,7 +307,7 @@ export default function DashboardPage() {
     return (
       <div className="flex justify-center items-center h-[80vh]">
         <motion.div 
-          className="h-16 w-16 rounded-full border-t-4 border-b-4 border-indigo-500"
+          className="h-12 w-12 rounded-full border-2 border-slate-200 border-t-slate-600"
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
         />
@@ -265,316 +363,232 @@ export default function DashboardPage() {
 
   return (
     <motion.div 
-      className="space-y-6 px-4 md:px-6 lg:px-8"
+      className="space-y-8 px-4 md:px-6 lg:px-8 pb-10"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
-      {/* Welcome section */}
+      {/* Welcome header — no card, just inline */}
       <motion.div variants={itemVariants}>
-        <div className="relative overflow-hidden rounded-xl border border-white/10 backdrop-blur-md bg-gradient-to-br from-[#4d4c4c] to-[#1a1a1a] shadow-lg p-6">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gray-600 rounded-full filter blur-3xl opacity-10 -translate-y-1/2 translate-x-1/4"></div>
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-gray-800 rounded-full filter blur-3xl opacity-10 translate-y-1/2 -translate-x-1/4"></div>
-          
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 relative z-10">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-white">
-                Dobrodošli u AvioServis Dashboard
-              </h1>
-              <p className="text-gray-300 mt-1">
-                Pregled stanja goriva i operacija
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="backdrop-blur-md bg-white/10 border border-white/20 text-white shadow-lg hover:bg-white/20 transition-all flex items-center gap-1"
-              >
-                <RefreshCw size={14} />
-                <span>Osvježi</span>
-              </Button>
-              <Button 
-                size="sm" 
-                className="backdrop-blur-md bg-[#F08080]/30 border border-white/20 text-white shadow-lg hover:bg-[#F08080]/40 transition-all font-medium flex items-center gap-1"
-              >
-                <Fuel size={14} />
-                <span>Unos Goriva</span>
-              </Button>
-            </div>
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 pt-2">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
+            <p className="text-slate-400 mt-1 text-sm">
+              Pregled stanja goriva i operacija
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 transition-all flex items-center gap-1.5 px-4"
+            >
+              <RefreshCw size={14} />
+              <span>Osvježi</span>
+            </Button>
+            <Button 
+              size="sm" 
+              className="rounded-xl bg-slate-900 text-white hover:bg-slate-800 transition-all font-medium flex items-center gap-1.5 px-4"
+            >
+              <Fuel size={14} />
+              <span>Unos Goriva</span>
+            </Button>
           </div>
         </div>
       </motion.div>
 
-      {/* Fuel summary section */}
+      {/* Fuel summary — 3 cards: first dark "hero", other two light */}
       <motion.div variants={itemVariants}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-gradient-to-br from-white/60 to-white/20 shadow-sm border border-white/10 backdrop-blur-sm">
+
+          {/* Hero card — Ukupno Stanje */}
+          <Card className="bg-slate-900 rounded-2xl shadow-lg border-0">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                    <Droplet className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Fiksni Tankovi</h3>
-                    <p className="text-2xl font-bold">{fuelSummary ? formatNumber(parseFloat(fuelSummary.fixedTanksTotal.toFixed(1))) : '0.0'} L</p>
-                    <p className="text-sm text-muted-foreground">{fuelSummary ? formatNumber(parseFloat(fuelSummary.fixedTanksTotalKg.toFixed(1))) : '0.0'} kg</p>
-                  </div>
+              <div className="flex items-start justify-between mb-5">
+                <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center">
+                  <BarChart3 className="h-5 w-5 text-white" />
                 </div>
-                <Link href="/dashboard/fuel" className="text-xs text-blue-600 flex items-center hover:underline">
-                  Detalji <ChevronRight size={14} />
+                <Link href="/dashboard/reports">
+                  <div className="w-8 h-8 rounded-full border border-white/20 bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
+                    <ArrowRight size={13} className="text-white/50" />
+                  </div>
                 </Link>
               </div>
-              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-blue-600 rounded-full" 
-                  style={{ width: '65%' }} 
-                />
+              <p className="text-xs font-semibold uppercase tracking-widest text-white/50 mb-2">Ukupno Stanje</p>
+              <div className="flex items-baseline gap-1.5 mb-1">
+                <p className="text-4xl font-bold text-white leading-none">
+                  {fuelSummary ? formatNumber(parseFloat(fuelSummary.grandTotal.toFixed(0))) : '0'}
+                </p>
+                <span className="text-sm font-medium text-white/50">L</span>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">65% ukupnog kapaciteta</p>
+              <p className="text-xs text-white/40 mb-5">
+                {fuelSummary ? formatNumber(parseFloat(fuelSummary.grandTotalKg.toFixed(0))) : '0'} kg ukupno
+              </p>
+              <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                <div className="h-full bg-white/50 rounded-full" style={{ width: '100%' }} />
+              </div>
+              <p className="text-xs text-white/30 mt-2">Svo gorivo u sistemu</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-white/60 to-white/20 shadow-sm border border-white/10 backdrop-blur-sm">
+          {/* Light card — Fiksni Tankovi */}
+          <Card className="bg-white rounded-2xl shadow-md border-0">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center">
-                  <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center mr-3">
-                    <Truck className="h-5 w-5 text-indigo-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Mobilne Cisterne</h3>
-                    <p className="text-2xl font-bold">{fuelSummary ? formatNumber(parseFloat(fuelSummary.mobileTanksTotal.toFixed(1))) : '0.0'} L</p>
-                    <p className="text-sm text-muted-foreground">{fuelSummary ? formatNumber(parseFloat(fuelSummary.mobileTanksTotalKg.toFixed(1))) : '0.0'} kg</p>
-                  </div>
+              <div className="flex items-start justify-between mb-5">
+                <div className="w-11 h-11 rounded-xl bg-sky-50 flex items-center justify-center">
+                  <Droplet className="h-5 w-5 text-sky-500" />
                 </div>
-                <Link href="/dashboard/vehicles" className="text-xs text-indigo-600 flex items-center hover:underline">
-                  Detalji <ChevronRight size={14} />
+                <Link href="/dashboard/fuel">
+                  <div className="w-8 h-8 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center hover:bg-slate-100 transition-colors">
+                    <ArrowRight size={13} className="text-slate-400" />
+                  </div>
                 </Link>
               </div>
-              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-indigo-600 rounded-full" 
-                  style={{ width: '40%' }} 
-                />
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">Fiksni Tankovi</p>
+              <div className="flex items-baseline gap-1.5 mb-1">
+                <p className="text-4xl font-bold text-slate-900 leading-none">
+                  {fuelSummary ? formatNumber(parseFloat(fuelSummary.fixedTanksTotal.toFixed(0))) : '0'}
+                </p>
+                <span className="text-sm font-medium text-slate-400">L</span>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">40% ukupnog kapaciteta</p>
+              <p className="text-xs text-slate-400 mb-5">
+                {fuelSummary ? formatNumber(parseFloat(fuelSummary.fixedTanksTotalKg.toFixed(0))) : '0'} kg
+              </p>
+              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-full bg-sky-400 rounded-full" style={{ width: '65%' }} />
+              </div>
+              <p className="text-xs text-slate-400 mt-2">65% ukupnog kapaciteta</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-white/60 to-white/20 shadow-sm border border-white/10 backdrop-blur-sm">
+          {/* Light card — Mobilne Cisterne */}
+          <Card className="bg-white rounded-2xl shadow-md border-0">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center">
-                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                    <BarChart3 className="h-5 w-5 text-green-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Ukupno Stanje</h3>
-                    <p className="text-2xl font-bold">{fuelSummary ? formatNumber(parseFloat(fuelSummary.grandTotal.toFixed(1))) : '0.0'} L</p>
-                    <p className="text-sm text-muted-foreground">{fuelSummary ? formatNumber(parseFloat(fuelSummary.grandTotalKg.toFixed(1))) : '0.0'} kg</p>
-                  </div>
+              <div className="flex items-start justify-between mb-5">
+                <div className="w-11 h-11 rounded-xl bg-indigo-50 flex items-center justify-center">
+                  <Truck className="h-5 w-5 text-indigo-500" />
                 </div>
-                <Link href="/dashboard/reports" className="text-xs text-green-600 flex items-center hover:underline">
-                  Izvještaji <ChevronRight size={14} />
+                <Link href="/dashboard/vehicles">
+                  <div className="w-8 h-8 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center hover:bg-slate-100 transition-colors">
+                    <ArrowRight size={13} className="text-slate-400" />
+                  </div>
                 </Link>
               </div>
-              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-green-600 rounded-full" 
-                  style={{ width: '100%' }} 
-                />
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">Mobilne Cisterne</p>
+              <div className="flex items-baseline gap-1.5 mb-1">
+                <p className="text-4xl font-bold text-slate-900 leading-none">
+                  {fuelSummary ? formatNumber(parseFloat(fuelSummary.mobileTanksTotal.toFixed(0))) : '0'}
+                </p>
+                <span className="text-sm font-medium text-slate-400">L</span>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">Ukupna količina goriva u sistemu</p>
+              <p className="text-xs text-slate-400 mb-5">
+                {fuelSummary ? formatNumber(parseFloat(fuelSummary.mobileTanksTotalKg.toFixed(0))) : '0'} kg
+              </p>
+              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-full bg-indigo-400 rounded-full" style={{ width: '40%' }} />
+              </div>
+              <p className="text-xs text-slate-400 mt-2">40% ukupnog kapaciteta</p>
             </CardContent>
           </Card>
+
         </div>
       </motion.div>
 
-      {/* Tank status section */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <Card className="border border-white/10 overflow-hidden backdrop-blur-md bg-gradient-to-br from-white/60 to-white/20 shadow-lg">
-            <CardHeader className="pb-3 relative">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-400 rounded-full filter blur-3xl opacity-5"></div>
-              <CardTitle className="text-lg font-medium flex items-center">
-                <div className="flex items-center justify-center p-2 rounded-full bg-gradient-to-r from-blue-500/20 to-indigo-500/20 mr-3">
-                  <Droplet className="h-5 w-5 text-blue-500" />
-                </div>
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
-                  Status Fiksnih Tankova
-                </span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="relative z-10">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Tank</TableHead>
-                      <TableHead>Tip Goriva</TableHead>
-                      <TableHead>Kapacitet</TableHead>
-                      <TableHead>Trenutno</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {fixedTanks.length > 0 ? (
-                      fixedTanks.map((tank) => {
-                        const fillPercentage = calculateFillPercentage(
-                          tank.current_quantity_liters || 0, 
-                          tank.capacity_liters || 1
-                        );
-                        const fillColor = getFillColor(fillPercentage);
-                        
-                        return (
-                          <TableRow key={tank.id}>
-                            <TableCell className="font-medium">{tank.tank_name} ({tank.tank_identifier})</TableCell>
-                            <TableCell>{tank.fuel_type || 'N/A'}</TableCell>
-                            <TableCell>{formatNumber(tank.capacity_liters || 0)} L</TableCell>
-                            <TableCell>{formatNumber(tank.current_quantity_liters || 0)} L</TableCell>
-                            <TableCell>
-                              <div className="flex items-center">
-                                <div className="w-full bg-gray-200 rounded-full h-2.5 mr-2 dark:bg-gray-700">
-                                  <div className={`${fillColor} h-2.5 rounded-full`} style={{ width: `${fillPercentage}%` }}></div>
-                                </div>
-                                <span className="text-xs font-medium">{fillPercentage}%</span>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
-                          Nema dostupnih podataka o tankovima
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-              <div className="mt-4 flex justify-end">
-                <Button variant="outline" size="sm" asChild>
-                  <Link href="/dashboard/fuel" className="flex items-center gap-1">
-                    <span>Upravljanje Tankovima</span>
-                    <ArrowRight size={14} />
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div>
-          <Card className="border border-white/10 overflow-hidden backdrop-blur-md bg-gradient-to-br from-white/60 to-white/20 shadow-lg">
-            <CardHeader className="pb-3 relative">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400 rounded-full filter blur-3xl opacity-5"></div>
-              <CardTitle className="text-lg font-medium flex items-center">
-                <div className="flex items-center justify-center p-2 rounded-full bg-gradient-to-r from-amber-500/20 to-red-500/20 mr-3">
-                  <AlertTriangle className="h-5 w-5 text-amber-500" />
-                </div>
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-600 to-red-600">
-                  Upozorenja
-                </span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="relative z-10">
-              <div className="space-y-4">
-                {fuelAlerts.map((alert) => (
-                  <motion.div 
-                    key={alert.id} 
-                    className={`p-4 rounded-xl backdrop-blur-sm border ${
-                      alert.severity === 'high' ? 'border-red-500/30 bg-gradient-to-r from-red-500/10 to-red-500/5' : 
-                      alert.severity === 'medium' ? 'border-yellow-500/30 bg-gradient-to-r from-yellow-500/10 to-yellow-500/5' : 
-                      'border-blue-500/30 bg-gradient-to-r from-blue-500/10 to-blue-500/5'
-                    }`}
-                    whileHover={{ y: -2, transition: { duration: 0.2 } }}
-                  >
-                    <h3 className={`font-semibold mb-1 ${
-                      alert.severity === 'high' ? 'text-red-600' : 
-                      alert.severity === 'medium' ? 'text-amber-600' : 
-                      'text-blue-600'
-                    }`}>{alert.title}</h3>
-                    <p className="text-sm">{alert.description}</p>
-                  </motion.div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </motion.div>
-
-      {/* Recent fuel activities */}
+      {/* KPI Metrics — first card hero (dark), rest light */}
       <motion.div variants={itemVariants}>
-        <Card className="border border-white/10 overflow-hidden backdrop-blur-md bg-gradient-to-br from-white/60 to-white/20 shadow-lg">
-          <CardHeader className="pb-3 relative">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-400 rounded-full filter blur-3xl opacity-5"></div>
-            <CardTitle className="text-lg font-medium flex items-center">
-              <div className="flex items-center justify-center p-2 rounded-full bg-gradient-to-r from-indigo-500/20 to-blue-500/20 mr-3">
-                <Activity className="h-5 w-5 text-indigo-500" />
-              </div>
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-600">
-                Nedavne Aktivnosti s Gorivom
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="relative z-10">
-            <div className="space-y-4">
-              {recentActivities.length > 0 ? recentActivities.map((activity, index) => (
-                <motion.div 
-                  key={activity.id} 
-                  className="flex items-start pb-4 border-b border-white/10 last:border-0 last:pb-0"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1 + index * 0.1 }}
-                >
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500/20 to-blue-500/20 flex items-center justify-center mr-3 border border-white/10">
-                    <DropletIcon className="h-5 w-5 text-indigo-500" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <h4 className="font-medium text-indigo-600">{activity.type}</h4>
-                      <span className="text-xs bg-white/10 backdrop-blur-sm px-2 py-1 rounded-full border border-white/10">{activity.timestamp}</span>
-                    </div>
-                    <p className="text-sm">{activity.details}</p>
-                    <p className="text-xs text-muted-foreground mt-1 flex items-center">
-                      <span className={`inline-block w-2 h-2 rounded-full ${
-                        activity.status === 'success' ? 'bg-green-500' : 
-                        activity.status === 'warning' ? 'bg-amber-500' : 
-                        'bg-red-500'
-                      } mr-1`}></span>
-                      Korisnik: {activity.user}
-                    </p>
-                  </div>
-                </motion.div>
-              )) : (
-                <motion.div className="flex items-center justify-center py-8 text-muted-foreground">
-                  Nema nedavnih aktivnosti za prikaz
-                </motion.div>
-              )}
-            </div>
-            <div className="mt-4 flex justify-center">
-              <Button variant="outline" size="sm" asChild>
-                <Link href="/dashboard/reports" className="flex items-center gap-1">
-                  <span>Pogledaj sve aktivnosti</span>
-                  <ArrowRight size={14} />
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <KPICard
+            title="Prosječna Potrošnja Dnevno"
+            value={kpiData.dailyConsumption.liters}
+            unit="L/dan"
+            subtitle={`${kpiData.dailyConsumption.kg.toLocaleString('bs-BA', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} kg/dan`}
+            icon={TrendingUp}
+            iconColor="text-white"
+            iconBgColor="bg-white/15"
+            isHero={true}
+            loading={kpiData.dailyConsumption.loading}
+            error={kpiData.dailyConsumption.error}
+            onRetry={fetchConsolidatedStatistics}
+          />
+
+          <KPICard
+            title="Prosječna Potrošnja Sedmično"
+            value={kpiData.weeklyConsumption.average}
+            unit="L/sedmica"
+            subtitle="Zadnje 4 sedmice"
+            icon={Calendar}
+            iconColor="text-teal-600"
+            iconBgColor="bg-teal-50"
+            trend={kpiData.weeklyConsumption.trend !== 0 ? {
+              value: kpiData.weeklyConsumption.trend,
+              direction: kpiData.weeklyConsumption.trend > 0 ? 'up' : 'down'
+            } : undefined}
+            loading={kpiData.weeklyConsumption.loading}
+            error={kpiData.weeklyConsumption.error}
+            onRetry={fetchWeeklyConsumption}
+          />
+
+          <KPICard
+            title="Najbolja Destinacija"
+            value={kpiData.topDestination.name || 'N/A'}
+            subtitle={kpiData.topDestination.volume > 0 ? `${kpiData.topDestination.volume.toLocaleString('bs-BA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} L (${kpiData.topDestination.percentage.toFixed(1)}%)` : 'Nema podataka'}
+            icon={MapPin}
+            iconColor="text-violet-600"
+            iconBgColor="bg-violet-50"
+            loading={kpiData.topDestination.loading}
+            error={kpiData.topDestination.error}
+            onRetry={fetchConsolidatedStatistics}
+          />
+
+          <KPICard
+            title={`Realizacija — ${getCurrentMonthName()}`}
+            value={kpiData.flightRealization.rate.toFixed(0)}
+            unit="%"
+            subtitle={`${kpiData.flightRealization.realized}/${kpiData.flightRealization.scheduled} planiranih${kpiData.flightRealization.unplanned > 0 ? ` (+${kpiData.flightRealization.unplanned})` : ''}`}
+            icon={Activity}
+            iconColor="text-amber-600"
+            iconBgColor="bg-amber-50"
+            loading={kpiData.flightRealization.loading}
+            error={kpiData.flightRealization.error}
+            onRetry={fetchFlightRealization}
+          />
+        </div>
+      </motion.div>
+
+      {/* Fuel Consumption Trend Chart */}
+      <motion.div variants={itemVariants}>
+        <FuelConsumptionChart
+          data={chartsData.fuelByDay.data}
+          loading={chartsData.fuelByDay.loading}
+          error={chartsData.fuelByDay.error}
+          onRetry={fetchConsolidatedStatistics}
+        />
+      </motion.div>
+
+      {/* Airlines & Destinations */}
+      <motion.div variants={itemVariants}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <TopAirlinesChart
+            data={chartsData.topAirlines.data}
+            loading={chartsData.topAirlines.loading}
+            error={chartsData.topAirlines.error}
+            onRetry={fetchConsolidatedStatistics}
+          />
+          <DestinationsPieChart
+            data={chartsData.destinations.data}
+            loading={chartsData.destinations.loading}
+            error={chartsData.destinations.error}
+            onRetry={fetchConsolidatedStatistics}
+          />
+        </div>
       </motion.div>
 
       {/* Footer */}
       <motion.footer 
-        className="text-center text-sm text-muted-foreground py-6"
+        className="text-center text-xs text-slate-300 py-4"
         variants={itemVariants}
       >
-        <p className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent inline-block">
-          © 2025 AvioServis. Sva prava pridržana.
-        </p>
+        © 2025 AvioServis. Sva prava pridržana.
       </motion.footer>
     </motion.div>
   );

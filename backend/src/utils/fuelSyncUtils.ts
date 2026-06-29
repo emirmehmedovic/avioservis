@@ -1,7 +1,8 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { logger } from './logger';
 import { verifyTankConsistency, TankConsistencyResult } from './fuelConsistencyUtils';
 import { Decimal } from '@prisma/client/runtime/library';
+import { prisma } from '../lib/prisma';
 
 // Definiramo LogSeverity enum koji odgovara onome u Prisma shemi
 enum LogSeverity {
@@ -11,8 +12,6 @@ enum LogSeverity {
   ERROR = 'ERROR',
   CRITICAL = 'CRITICAL'
 }
-
-const prisma = new PrismaClient();
 
 /**
  * Strategije za sinhronizaciju nekonzistentnih podataka goriva

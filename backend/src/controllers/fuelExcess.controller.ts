@@ -1,10 +1,9 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth'; // Importiranje AuthRequest koji sadrži 'user'
-import { PrismaClient, MrnTransactionType } from '@prisma/client';
+import { MrnTransactionType } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { logger } from '../utils/logger';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 /**
  * Endpoint za ručnu obradu viška litara goriva iz mobilnog tankera

@@ -1,11 +1,9 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
-import { PrismaClient } from '@prisma/client';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { resolveDocumentPath } from '../config/paths';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 // Ensure upload directory exists
 const uploadDir = path.join(__dirname, '../../../public/uploads/fuel_documents');

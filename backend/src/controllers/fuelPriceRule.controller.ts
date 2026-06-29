@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient, Prisma } from '@prisma/client'; // Added Prisma for error handling
+import { Prisma } from '@prisma/client'; // Added Prisma for error handling
 import { AuthRequest } from '../middleware/auth';
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 export const findFuelPriceRule = async (req: Request, res: Response): Promise<Response | void> => {
   const { airlineId, currency } = req.query;

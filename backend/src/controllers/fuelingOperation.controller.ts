@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { PrismaClient, MrnTransactionType } from '@prisma/client';
+import { MrnTransactionType } from '@prisma/client';
 import * as z from 'zod';
 import * as path from 'path';
 import { logActivity } from './activity.controller';
@@ -9,8 +9,7 @@ import { logger } from '../utils/logger';
 // Import servisa za MRN transakcije
 import { processMrnDeduction } from '../services/mrnTransaction.service';
 import { performMrnCleanupIfNeeded } from '../services/mrnCleanupService';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 // Validation schema for creating a fueling operation
 // Kreiramo složeniju validacijsku shemu koja uzima u obzir valutu

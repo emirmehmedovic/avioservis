@@ -1,11 +1,10 @@
 import express, { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { uploadServiceRecordDocument } from '../middleware/documentUpload';
 import path from 'path';
+import { prisma } from '../lib/prisma';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Define mapping between service item types and vehicle date fields
 const serviceItemToVehicleFieldMap = {

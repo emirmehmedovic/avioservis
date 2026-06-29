@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { StatusCodes } from 'http-status-codes';
 import { logger } from '../utils/logger';
 import { verifyMultipleTanksConsistency, verifyTankConsistency, TankConsistencyResult } from '../utils/fuelConsistencyUtils';
 import { executeFuelOperation } from '../utils/transactionUtils';
+import { prisma } from '../lib/prisma';
 
 // Proširujemo Express Request tip s user svojstvom
 // Koristimo as umjesto tipova da izbjegnemo TypeScript greške
@@ -23,8 +23,6 @@ declare global {
     };
   };
 }
-
-const prisma = new PrismaClient();
 
 /**
  * Dohvaća rezultate provjere konzistentnosti za jedan tank

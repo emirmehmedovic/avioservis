@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 // Definiramo LogSeverity enum koji odgovara onome u Prisma shemi
 enum LogSeverity {
@@ -10,8 +10,7 @@ enum LogSeverity {
 }
 import { logger } from '../utils/logger';
 import { executeInTransaction } from './transactionUtils';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 /**
  * Interfejs za rezultat provjere konzistentnosti tanka

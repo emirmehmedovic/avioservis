@@ -1,12 +1,10 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
-import { PrismaClient, Prisma, FixedTankActivityType, MrnTransactionType } from '@prisma/client';
+import { Prisma, FixedTankActivityType, MrnTransactionType } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
 import { logActivity } from './activity.controller';
 import { logger } from '../utils/logger';
 import { executeFuelOperation } from '../utils/transactionUtils';
-
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 // GET /api/fuel/mrn-balances - Dohvaćanje balansa goriva za sve MRN brojeve
 export const getMrnBalances = async (req: Request, res: Response): Promise<void> => {

@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
-import { PrismaClient, FixedTankStatus } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { FixedTankStatus } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
 // POST /api/fuel/transfers - Kreiranje novog transfera u fiksni tank
 // Ovo se može pozivati i kao dio kreiranja FuelIntakeRecord

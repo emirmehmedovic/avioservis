@@ -1,7 +1,6 @@
-import { PrismaClient, User, Role } from '@prisma/client';
+import { User, Role } from '@prisma/client';
 import bcrypt from 'bcrypt';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 const SALT_ROUNDS = 10;
 
 type UserData = Pick<User, 'id' | 'username' | 'role' | 'createdAt' | 'updatedAt'>;

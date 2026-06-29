@@ -1470,12 +1470,12 @@ export async function getReserveFuelByTank(tankId: number, tankType: 'fixed' | '
 
 // Dispense reserve fuel from a tank
 export async function dispenseReserveFuel(
-  tankId: number, 
+  tankId: number,
   tankType: 'fixed' | 'mobile' = 'fixed',
-  payload: { 
-    quantityLiters: number, 
-    notes?: string, 
-    referenceOperationId?: number | null 
+  payload: {
+    quantityLiters: number,
+    notes?: string,
+    referenceOperationId?: number | null
   }
 ): Promise<{ success: boolean, message: string }> {
   return fetchWithAuth<{ success: boolean, message: string }>(`${API_BASE_URL}/api/reserve-fuel/dispense/${tankId}/${tankType}`, {
@@ -1485,5 +1485,311 @@ export async function dispenseReserveFuel(
   });
 }
 
+// --- Dashboard KPI API Functions --- //
+
+// Cache for Dashboard statistics (for charts)
+let dashboardStatisticsCache: { data: any; timestamp: number } | null = null;
+const DASHBOARD_STATISTICS_CACHE_DURATION_MS = 2 * 60 * 1000; // Cache for 2 minutes
+
+/**
+ * Dohvati kompletne statistike za dashboard charts
+ * Koristi `/api/fuel/reports/statistics` endpoint
+ */
+export async function getDashboardStatistics(
+  startDate: string,
+  endDate: string,
+  forceRefresh: boolean = false
+): Promise<any> {
+  const cacheKey = `stats-${startDate}-${endDate}`;
+  const now = Date.now();
+
+  if (!forceRefresh && dashboardStatisticsCache && (now - dashboardStatisticsCache.timestamp < DASHBOARD_STATISTICS_CACHE_DURATION_MS)) {
+    console.log('Returning dashboard statistics from cache');
+    return dashboardStatisticsCache.data;
+  }
+
+  try {
+    const params = new URLSearchParams({
+      startDate,
+      endDate
+    });
+
+    const response = await fetchWithAuth<any>(`/api/fuel/reports/statistics?${params.toString()}`);
+
+    dashboardStatisticsCache = { data: response, timestamp: now };
+    return response;
+  } catch (error) {
+    console.error('Error fetching dashboard statistics:', error);
+    throw error;
+  }
+}
+
+// Cache for Dashboard KPI data
+let dailyConsumptionCache: { data: any; timestamp: number } | null = null;
+let weeklyConsumptionCache: { data: any; timestamp: number } | null = null;
+let topDestinationCache: { data: any; timestamp: number } | null = null;
+let flightRealizationCache: { data: any; timestamp: number } | null = null;
+const DASHBOARD_KPI_CACHE_DURATION_MS = 2 * 60 * 1000; // Cache for 2 minutes
+
+/**
+ * Dohvati prosječnu dnevnu potrošnju goriva
+ * Koristi `/api/fuel/reports/statistics` endpoint
+ */
+export async function getDailyConsumptionAverage(
+  startDate: string,
+  endDate: string,
+  forceRefresh: boolean = false
+): Promise<{ liters: number; kg: number }> {
+  const cacheKey = `daily-${startDate}-${endDate}`;
+  const now = Date.now();
+
+  if (!forceRefresh && dailyConsumptionCache && (now - dailyConsumptionCache.timestamp < DASHBOARD_KPI_CACHE_DURATION_MS)) {
+    console.log('Returning daily consumption from cache');
+    return dailyConsumptionCache.data;
+  }
+
+  try {
+    const params = new URLSearchParams({
+      startDate,
+      endDate
+    });
+
+    const response = await fetchWithAuth<any>(`/api/fuel/reports/statistics?${params.toString()}`);
+
+    // Računa dnevni prosjek iz fuelByDay podataka
+    let totalLiters = 0;
+    let days = 0;
+
+    if (response.fuelByDay && Array.isArray(response.fuelByDay)) {
+      response.fuelByDay.forEach((day: any) => {
+        totalLiters += parseFloat(day.totalLiters || 0);
+      });
+      days = response.fuelByDay.length || 1;
+    }
+
+    // Konverzija litara u kg (koristi prosječnu gustinu JET-A1: 0.804 kg/L)
+    const avgDensity = 0.804;
+    const avgLiters = days > 0 ? totalLiters / days : 0;
+    const avgKg = avgLiters * avgDensity;
+
+    const result = {
+      liters: avgLiters,
+      kg: avgKg
+    };
+
+    dailyConsumptionCache = { data: result, timestamp: now };
+    return result;
+  } catch (error) {
+    console.error('Error fetching daily consumption average:', error);
+    throw error;
+  }
+}
+
+/**
+ * Dohvati prosječnu sedmičnu potrošnju sa trendom
+ * Koristi `/api/fuel/reports/weekly` endpoint
+ */
+export async function getWeeklyConsumptionTrend(
+  startDate: string,
+  endDate: string,
+  forceRefresh: boolean = false
+): Promise<{ average: number; trend: number }> {
+  const cacheKey = `weekly-${startDate}-${endDate}`;
+  const now = Date.now();
+
+  if (!forceRefresh && weeklyConsumptionCache && (now - weeklyConsumptionCache.timestamp < DASHBOARD_KPI_CACHE_DURATION_MS)) {
+    console.log('Returning weekly consumption from cache');
+    return weeklyConsumptionCache.data;
+  }
+
+  try {
+    const params = new URLSearchParams({
+      startDate,
+      endDate
+    });
+
+    const response = await fetchWithAuth<any>(`/api/fuel/reports/weekly?${params.toString()}`);
+
+    // DEBUG: Log response structure
+    console.log('Weekly consumption response:', JSON.stringify(response, null, 2));
+
+    // Računa prosjek i trend zadnjih 4 sedmice
+    let totalLiters = 0;
+    let weeks = 0;
+    let trend = 0;
+
+    // Backend vraća { success: true, data: { weeklyData: [...], summary: {...} } }
+    if (response.success && response.data && response.data.weeklyData && Array.isArray(response.data.weeklyData)) {
+      const weeklyData = response.data.weeklyData;
+      console.log('Weekly data array length:', weeklyData.length);
+
+      weeklyData.forEach((week: any) => {
+        totalLiters += parseFloat(week.quantity_liters || 0);
+      });
+      weeks = weeklyData.length || 1;
+
+      // Računa trend (zadnja vs prethodna sedmica)
+      if (weeklyData.length >= 2) {
+        const lastWeek = parseFloat(weeklyData[weeklyData.length - 1].quantity_liters || 0);
+        const previousWeek = parseFloat(weeklyData[weeklyData.length - 2].quantity_liters || 0);
+
+        if (previousWeek > 0) {
+          trend = ((lastWeek - previousWeek) / previousWeek) * 100;
+        }
+      }
+    }
+
+    const result = {
+      average: weeks > 0 ? totalLiters / weeks : 0,
+      trend
+    };
+
+    weeklyConsumptionCache = { data: result, timestamp: now };
+    return result;
+  } catch (error) {
+    console.error('Error fetching weekly consumption trend:', error);
+    throw error;
+  }
+}
+
+/**
+ * Dohvati najbolju destinaciju po potrošnji
+ * Koristi `/api/fuel/reports/destination-trends` endpoint
+ */
+export async function getTopDestination(
+  startDate: string,
+  endDate: string,
+  forceRefresh: boolean = false
+): Promise<{ name: string; volume: number; percentage: number }> {
+  const cacheKey = `destination-${startDate}-${endDate}`;
+  const now = Date.now();
+
+  if (!forceRefresh && topDestinationCache && (now - topDestinationCache.timestamp < DASHBOARD_KPI_CACHE_DURATION_MS)) {
+    console.log('Returning top destination from cache');
+    return topDestinationCache.data;
+  }
+
+  try {
+    // Backend očekuje 4 parametra: currentStartDate, currentEndDate, previousStartDate, previousEndDate
+    // Za dashboard, koristimo samo trenutni period
+    const currentStart = new Date(startDate);
+    const currentEnd = new Date(endDate);
+
+    // Izračunaj prethodni period (isti broj dana unazad)
+    const daysDiff = Math.ceil((currentEnd.getTime() - currentStart.getTime()) / (1000 * 60 * 60 * 24));
+    const previousEnd = new Date(currentStart);
+    previousEnd.setDate(previousEnd.getDate() - 1);
+    const previousStart = new Date(previousEnd);
+    previousStart.setDate(previousStart.getDate() - daysDiff);
+
+    const params = new URLSearchParams({
+      currentStartDate: startDate,
+      currentEndDate: endDate,
+      previousStartDate: previousStart.toISOString().split('T')[0],
+      previousEndDate: previousEnd.toISOString().split('T')[0]
+    });
+
+    const response = await fetchWithAuth<any>(`/api/fuel/reports/destination-trends?${params.toString()}`);
+
+    // Pronađi destinaciju sa najvećom potrošnjom iz trenutnog perioda
+    let topDestination = { name: 'N/A', volume: 0, percentage: 0 };
+    let totalVolume = 0;
+
+    if (response.currentPeriod && response.currentPeriod.destinations && Array.isArray(response.currentPeriod.destinations)) {
+      // Izračunaj ukupnu količinu
+      response.currentPeriod.destinations.forEach((dest: any) => {
+        totalVolume += parseFloat(dest.totalLiters || 0);
+      });
+
+      // Pronađi destinaciju sa najvećom količinom
+      if (response.currentPeriod.destinations.length > 0) {
+        const top = response.currentPeriod.destinations.reduce((max: any, dest: any) =>
+          parseFloat(dest.totalLiters || 0) > parseFloat(max.totalLiters || 0) ? dest : max
+        );
+
+        topDestination = {
+          name: top.destination || 'N/A',
+          volume: parseFloat(top.totalLiters || 0),
+          percentage: totalVolume > 0 ? (parseFloat(top.totalLiters || 0) / totalVolume) * 100 : 0
+        };
+      }
+    }
+
+    topDestinationCache = { data: topDestination, timestamp: now };
+    return topDestination;
+  } catch (error) {
+    console.error('Error fetching top destination:', error);
+    throw error;
+  }
+}
+
+/**
+ * Dohvati realizaciju operacija za mjesec
+ * Koristi `/api/flight-schedules/statistics/monthly` endpoint
+ */
+export async function getMonthlyFlightRealization(
+  startDate: string,
+  endDate: string,
+  forceRefresh: boolean = false
+): Promise<{ scheduled: number; realized: number; rate: number; unplanned: number }> {
+  const cacheKey = `realization-${startDate}-${endDate}`;
+  const now = Date.now();
+
+  if (!forceRefresh && flightRealizationCache && (now - flightRealizationCache.timestamp < DASHBOARD_KPI_CACHE_DURATION_MS)) {
+    console.log('Returning flight realization from cache');
+    return flightRealizationCache.data;
+  }
+
+  try {
+    const params = new URLSearchParams({
+      startDate,
+      endDate
+    });
+
+    const response = await fetchWithAuth<any>(`/api/flight-schedules/statistics/monthly?${params.toString()}`);
+
+    // DEBUG: Log response structure
+    console.log('Flight realization response:', JSON.stringify(response, null, 2));
+
+    // Response structure from backend controller
+    let scheduled = 0;
+    let realized = 0;
+    let unplanned = 0;
+
+    if (response.statistics && Array.isArray(response.statistics)) {
+      console.log('Statistics array length:', response.statistics.length);
+
+      // FIXED: Take only the CURRENT month (last period in array), not sum of all
+      // Backend returns multiple periods, we only want the latest one
+      if (response.statistics.length > 0) {
+        const currentMonthStat = response.statistics[response.statistics.length - 1];
+        console.log('Using current month stat:', currentMonthStat);
+
+        scheduled = parseInt(currentMonthStat.scheduled || 0);
+        realized = parseInt(currentMonthStat.realized || 0);
+        unplanned = parseInt(currentMonthStat.unplanned || 0);
+
+        console.log('Current month - Scheduled:', scheduled, 'Realized:', realized, 'Unplanned:', unplanned);
+      }
+    } else {
+      console.log('No statistics array found in response or not an array');
+    }
+
+    const rate = scheduled > 0 ? (realized / scheduled) * 100 : 0;
+
+    const result = {
+      scheduled,
+      realized,
+      rate,
+      unplanned
+    };
+
+    flightRealizationCache = { data: result, timestamp: now };
+    return result;
+  } catch (error) {
+    console.error('Error fetching monthly flight realization:', error);
+    throw error;
+  }
+}
 
 

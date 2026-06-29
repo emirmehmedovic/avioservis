@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import prisma from '../utils/prisma';
 import path from 'path';
 import fs from 'fs';
 import { resolveDocumentPath } from '../config/paths';
+import { prisma } from '../lib/prisma';
 
 export const downloadDocument = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const { documentId } = req.params;

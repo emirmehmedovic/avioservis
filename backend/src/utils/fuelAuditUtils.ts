@@ -1,6 +1,7 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { logger } from './logger';
 import { Decimal } from '@prisma/client/runtime/library';
+import { prisma } from '../lib/prisma';
 
 // Moguće vrijednosti FuelOperationType enuma
 export enum FuelOperationType {
@@ -13,8 +14,6 @@ export enum FuelOperationType {
   ADJUSTMENT = 'ADJUSTMENT',
   SYNC = 'SYNC'
 }
-
-const prisma = new PrismaClient();
 
 /**
  * Interfejs koji definiše osnovne podatke za log operacije s gorivom
@@ -146,7 +145,7 @@ export async function logFailedFuelOperation(
  */
 export async function getTankStateForLogging(
   tankId: number,
-  client: Prisma.TransactionClient | PrismaClient = prisma
+  client: Prisma.TransactionClient | typeof prisma = prisma
 ): Promise<EntityState> {
   try {
     const tank = await client.fixedStorageTanks.findUnique({

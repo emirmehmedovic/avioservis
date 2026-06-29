@@ -1,8 +1,9 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { logger } from './logger';
 import { verifyTankConsistency, verifyMultipleTanksConsistency, TankConsistencyResult } from './fuelConsistencyUtils';
 import { logFuelOperation, getTankStateForLogging, FuelOperationType } from './fuelAuditUtils';
 import { Decimal } from '@prisma/client/runtime/library';
+import { prisma } from '../lib/prisma';
 
 // LogSeverity enum matching the one in the Prisma schema
 enum LogSeverity {
@@ -12,8 +13,6 @@ enum LogSeverity {
   ERROR = 'ERROR',
   CRITICAL = 'CRITICAL'
 }
-
-const prisma = new PrismaClient();
 
 /**
  * Executes a function within a database transaction with the highest isolation level (Serializable).

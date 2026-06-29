@@ -1,6 +1,5 @@
-import { PrismaClient, Location } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { Location } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
 export interface CreateLocationData {
   name: string;

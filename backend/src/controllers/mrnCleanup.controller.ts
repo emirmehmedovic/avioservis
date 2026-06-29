@@ -1,15 +1,13 @@
 import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
-import { PrismaClient } from '@prisma/client';
-import { 
-  cleanupFixedTankMrnRemnants, 
+import {
+  cleanupFixedTankMrnRemnants,
   cleanupMobileTankMrnRemnants,
   MRN_CLEANUP_CONFIG,
-  performMrnCleanupIfNeeded 
+  performMrnCleanupIfNeeded
 } from '../services/mrnCleanupService';
 import { logger } from '../utils/logger';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 /**
  * Manual cleanup for specific fixed tank

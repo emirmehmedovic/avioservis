@@ -1,11 +1,10 @@
 import { Request, Response } from 'express';
-import { PrismaClient, XmlDispatchStatus, PaymentStatus } from '@prisma/client';
+import { XmlDispatchStatus, PaymentStatus } from '@prisma/client';
 import dayjs from 'dayjs';
 import { dispatchDay, dispatchOneOperation, findEligibleOperationsForDate, dispatchRange, prepareDay, prepareRange } from '../services/xmlInvoiceDispatch.service';
 import { generateXMLInvoiceBackend } from '../services/xmlInvoiceBuilder';
 import { FtpClientService, buildFtpConfigFromEnv } from '../services/ftpClient';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 // Helper function to update expired and overdue invoices
 const updateExpiredAndOverdueInvoices = async () => {

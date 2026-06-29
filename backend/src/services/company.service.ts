@@ -1,6 +1,5 @@
-import { PrismaClient, Company } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { Company } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
 export async function findAllCompanies(): Promise<Company[]> {
   return prisma.company.findMany({

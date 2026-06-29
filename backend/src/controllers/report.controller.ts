@@ -1,15 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
 import { v4 as uuidv4 } from 'uuid';
-import { 
+import {
   getCustomFilteredAnalysis,
   getMonthlyFilteredAnalysis,
   getWeeklyFilteredAnalysis,
   getPeriodComparison
 } from './analyticsComparison.controller';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 // Template tipovi
 export enum ReportTemplate {

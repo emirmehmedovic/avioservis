@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma } from '../db';
+import { prisma } from '../lib/prisma';
 import { validateAndParseDate } from '../utils/dateUtils';
 
 // Define ValveTestType enum to match the Prisma schema

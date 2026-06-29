@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
-import { PrismaClient, Prisma } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { Prisma } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 const DEFAULT_GLOBAL_PROJECTION_PRESET_NAME = 'default_global_projection';
 
 export const getFuelProjectionPreset = async (req: Request, res: Response) => {

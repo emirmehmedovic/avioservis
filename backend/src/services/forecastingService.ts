@@ -3,11 +3,8 @@
  * Servisni sloj za prognoziranje potrošnje goriva
  */
 
-import { PrismaClient } from '@prisma/client';
 import { convertToBAM } from '../utils/currencyConverter';
-
-// Inicijalizacija Prisma klijenta
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 /**
  * Interfejsi za forecasting

@@ -4,8 +4,7 @@
  */
 
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { 
+import {
   generateWeeklyComparison,
   generateMonthlyComparison,
   generateYearlyComparison,
@@ -14,19 +13,18 @@ import {
   generateAirlineComparisonAnalysis,
   generateMarketShareAnalysis
 } from '../services/comparativeAnalysisService';
-import { 
+import {
   generateWeeklyTrendData,
   generateMonthlyTrendData,
   generateYearOverYearData,
   generateSeasonalPatterns
 } from '../services/trendAnalysisService';
-import { 
+import {
   detectAnomalies,
   generateCachedAnalytics
 } from '../services/anomalyDetectionService';
 import { convertToBAM } from '../utils/currencyConverter';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 /**
  * Helper funkcija za konverziju revenue u BAM
@@ -482,9 +480,6 @@ export async function getAnomalies(req: Request, res: Response): Promise<void> {
  */
 export async function getAirlines(req: Request, res: Response): Promise<void> {
   try {
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
-
     const airlines = await prisma.airline.findMany({
       select: {
         id: true,
@@ -494,8 +489,6 @@ export async function getAirlines(req: Request, res: Response): Promise<void> {
         name: 'asc'
       }
     });
-
-    await prisma.$disconnect();
 
     res.json({
       success: true,
@@ -522,8 +515,6 @@ export async function getAirlines(req: Request, res: Response): Promise<void> {
 export async function getDestinations(req: Request, res: Response): Promise<void> {
   try {
     const { airlineId } = req.query;
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
 
     let whereClause: any = {
       is_deleted: false
@@ -553,8 +544,6 @@ export async function getDestinations(req: Request, res: Response): Promise<void
       code: item.destination.substring(0, 3).toUpperCase(), // Generate code from name
       country: 'N/A' // We don't have country info in current schema
     }));
-
-    await prisma.$disconnect();
 
     res.json({
       success: true,
@@ -605,9 +594,6 @@ export async function getAirlineDestinationComparison(req: Request, res: Respons
       return;
     }
 
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
-
     // Build filter conditions
     let whereClause: any = {
       is_deleted: false
@@ -653,8 +639,6 @@ export async function getAirlineDestinationComparison(req: Request, res: Respons
         }
       }
     });
-
-    await prisma.$disconnect();
 
     // Calculate totals with BAM conversion
     const currentTotals = {
@@ -804,7 +788,7 @@ export async function getWeeklyFilteredAnalysis(req: Request, res: Response): Pr
       airlineId,
       destinationId 
     } = req.body;
-    
+
     if (!startDate || !endDate) {
       res.status(400).json({
         success: false,
@@ -812,9 +796,6 @@ export async function getWeeklyFilteredAnalysis(req: Request, res: Response): Pr
       });
       return;
     }
-
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
 
     // Build filter conditions
     let whereClause: any = {
@@ -845,8 +826,6 @@ export async function getWeeklyFilteredAnalysis(req: Request, res: Response): Pr
         dateTime: 'asc'
       }
     });
-
-    await prisma.$disconnect();
 
     // Group by ISO week
     const weeklyData = new Map();
@@ -1141,9 +1120,6 @@ export async function getMonthlyFilteredAnalysis(req: Request, res: Response): P
       return;
     }
 
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
-
     // Build filter conditions
     let whereClause: any = {
       is_deleted: false,
@@ -1173,8 +1149,6 @@ export async function getMonthlyFilteredAnalysis(req: Request, res: Response): P
         dateTime: 'asc'
       }
     });
-
-    await prisma.$disconnect();
 
     // Group by month
     const monthlyData = new Map();
@@ -1303,9 +1277,6 @@ export const getPeriodComparison = async (
       throw new Error('Početni datum mora biti prije završnog datuma');
     }
 
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
-    
     // Build filter conditions for period 1
     let whereClause1: any = {
       is_deleted: false,
@@ -1359,8 +1330,6 @@ export const getPeriodComparison = async (
         }
       })
     ]);
-
-    await prisma.$disconnect();
 
     // Group by week for both periods
     const groupByWeek = (operations: any[]) => {

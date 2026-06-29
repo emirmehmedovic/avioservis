@@ -1,10 +1,9 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../middleware/auth';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library'; // Za precizne decimalne kalkulacije
 import { performMrnCleanupIfNeeded } from '../services/mrnCleanupService';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 // Definirajmo prošireni tip za FuelDrainRecord koji uključuje mrnBreakdown polje
 type ExtendedFuelDrainRecordInput = Prisma.FuelDrainRecordUncheckedCreateInput & {

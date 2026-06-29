@@ -3,11 +3,9 @@
  *  Servis za automatsku zamjenu viška goriva između mobilnih i fiksnih tankova
  */
 
-import { PrismaClient } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library'; // Za precizne decimalne kalkulacije
 import { logger } from './logger';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 // Definiramo tipove za jasnoću i tip safety
 export interface ExcessFuelExchangeResult {

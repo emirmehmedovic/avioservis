@@ -1,8 +1,6 @@
 import { RequestHandler } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { logger } from '../utils/logger';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 /**
  * GET /api/physical-tank-transfers

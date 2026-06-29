@@ -3,11 +3,9 @@
  * Servisni sloj za komparativnu analizu potrošnje goriva
  */
 
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { convertToBAM } from '../utils/currencyConverter';
-
-// Inicijalizacija Prisma klijenta
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 /**
  * Interfejsi za komparativnu analizu

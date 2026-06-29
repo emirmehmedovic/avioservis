@@ -1,10 +1,9 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../middleware/auth'; // Import AuthRequest
-import { PrismaClient, FixedStorageTanks, Prisma } from '@prisma/client';
+import { FixedStorageTanks, Prisma } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 export const createFuelReceipt = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   const { dateTime, fixedStorageTankId, supplier, quantityLiters, notes } = req.body;

@@ -155,28 +155,21 @@ export default function Sidebar() {
           'fixed top-0 left-0 z-40 h-screen sidebar-gradient text-white shadow-xl flex flex-col',
           'md:relative md:z-0 backdrop-blur-lg bg-black/20 border-r border-white/10',
           mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
-          'group sidebar-no-scrollbar'
+          'group sidebar-no-scrollbar',
+          'will-change-[width]' // GPU acceleration hint
         )}
         variants={sidebarVariants}
         initial={false}
         animate={collapsed ? 'collapsed' : 'expanded'}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        transition={{ type: 'tween', duration: 0.2, ease: 'easeInOut' }}
         onHoverStart={() => setCollapsed(false)}
         onHoverEnd={() => setCollapsed(true)}
       >
         {/* Logo and toggle button */}
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <div className="flex items-center space-x-3 overflow-hidden">
-            <motion.div
+            <div
               className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-white font-bold shadow-md"
-              animate={{ 
-                rotate: collapsed ? 360 : 0,
-                scale: [1, 1.05, 1]
-              }}
-              transition={{ 
-                rotate: { duration: 0.5 },
-                scale: { repeat: Infinity, repeatType: "reverse", duration: 2 }
-              }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M19.7 14a6.9 6.9 0 0 0 .3-2V5l-8-3-3.2 1.2"></path>
@@ -185,7 +178,7 @@ export default function Sidebar() {
                 <path d="M4.5 10a5.5 5.5 0 1 0 11 0 5.5 5.5 0 1 0-11 0Z"></path>
                 <path d="M7.5 10a2.5 2.5 0 1 0 5 0 2.5 2.5 0 1 0-5 0Z"></path>
               </svg>
-            </motion.div>
+            </div>
             {!collapsed && (
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
@@ -251,14 +244,9 @@ export default function Sidebar() {
             {navItems.map((item, idx) => {
               const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
               const Icon = item.icon;
-              
+
               return (
-                <motion.li 
-                  key={item.name}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1 + idx * 0.05 }}
-                >
+                <li key={item.name}>
                   <Link
                     href={item.href}
                     className={cn(
@@ -269,16 +257,14 @@ export default function Sidebar() {
                       collapsed ? 'justify-center p-3 my-2' : 'p-3 space-x-3'
                     )}
                   >
-                    <motion.div
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.95 }}
+                    <div
                       className={cn(
-                        'flex items-center justify-center',
+                        'flex items-center justify-center transition-transform duration-200 hover:scale-110 active:scale-95',
                         isActive ? 'text-white' : 'text-white/70'
                       )}
                     >
                       <Icon size={collapsed ? 20 : 18} />
-                    </motion.div>
+                    </div>
                     {!collapsed && (
                       <span className={isActive ? 'font-medium' : ''}>{item.name}</span>
                     )}
@@ -291,7 +277,7 @@ export default function Sidebar() {
                       />
                     )}
                   </Link>
-                </motion.li>
+                </li>
               );
             })}
           </ul>
@@ -318,11 +304,9 @@ export default function Sidebar() {
                   <span className="text-xs font-medium text-white/80">{fuelSummary ? formatNumber(fuelSummary.grandTotalKg, 1) : '0'} kg</span>
                 </div>
                 <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                  <motion.div 
-                    className="h-full bg-gradient-to-r from-[#E60026] to-[#4D000A] rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${fuelPercentage}%` }}
-                    transition={{ delay: 0.5, duration: 1 }}
+                  <div
+                    className="h-full bg-gradient-to-r from-[#E60026] to-[#4D000A] rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${fuelPercentage}%` }}
                   />
                 </div>
                 <p className="text-xs text-white/60 mt-1">{fuelPercentage}% ukupnog kapaciteta</p>
@@ -333,20 +317,18 @@ export default function Sidebar() {
 
         {/* Footer with logout */}
         <div className="p-4 border-t border-white/10 space-y-2 bg-black/10 backdrop-blur-md">
-          <motion.button
+          <button
             onClick={logout}
             className={cn(
               'w-full flex items-center rounded-xl transition-all duration-200 p-3 backdrop-blur-sm',
               'border border-[#E60026]/20 bg-gradient-to-r from-[#E60026]/20 to-[#4D000A]/20',
-              'hover:from-[#E60026]/30 hover:to-[#4D000A]/30 text-white',
+              'hover:from-[#E60026]/30 hover:to-[#4D000A]/30 hover:-translate-y-0.5 active:translate-y-0 text-white',
               collapsed ? 'justify-center' : 'space-x-3'
             )}
-            whileHover={{ y: -2 }}
-            whileTap={{ y: 0 }}
           >
             <LogOut size={collapsed ? 20 : 18} />
             {!collapsed && <span>Odjavi se</span>}
-          </motion.button>
+          </button>
         </div>
       </motion.aside>
     </>

@@ -1,9 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
 import { parse } from 'csv-parse/sync';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 interface CSVRow {
   Datum: string;
