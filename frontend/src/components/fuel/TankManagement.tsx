@@ -214,18 +214,17 @@ export default function TankManagement() {
     return [];
   };
 
-  // Helper function to get first day of current month in YYYY-MM-DD format
-  const getFirstDayOfMonth = (): string => {
+  // Helper function to get date 7 days ago in YYYY-MM-DD format
+  const getSevenDaysAgo = (): string => {
     const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    now.setDate(now.getDate() - 7);
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   };
 
-  // Helper function to get last day of current month in YYYY-MM-DD format
-  const getLastDayOfMonth = (): string => {
+  // Helper function to get today's date in YYYY-MM-DD format
+  const getToday = (): string => {
     const now = new Date();
-    // Create a date for the first day of the next month, then subtract one day
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    return `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, '0')}-${String(lastDay.getDate()).padStart(2, '0')}`;
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   };
 
   // Helper function to detect orphaned liters (MRNs with <= 0.1 KG but > 0.1 L)
@@ -264,8 +263,8 @@ export default function TankManagement() {
   // Use month-year for the month picker input
   const [dateFilter, setDateFilter] = useState<string>(format(new Date(), 'yyyy-MM'));
   // Add specific date range filters for more precise filtering
-  const [startDateFilter, setStartDateFilter] = useState<string>(getFirstDayOfMonth());
-  const [endDateFilter, setEndDateFilter] = useState<string>(getLastDayOfMonth());
+  const [startDateFilter, setStartDateFilter] = useState<string>(getSevenDaysAgo());
+  const [endDateFilter, setEndDateFilter] = useState<string>(getToday());
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [tankFilter, setTankFilter] = useState<string>('all');
   const [loadingTransactions, setLoadingTransactions] = useState(false);
@@ -537,7 +536,7 @@ export default function TankManagement() {
       for (const tank of tanks) {
         try {
           console.log(`Fetching transactions for tank ${tank.id} (${tank.name})`);
-          const data = await fetchWithAuth<MobileTankTransaction[]>(`/api/fuel/tanks/${tank.id}/transactions`);
+          const data = await fetchWithAuth<MobileTankTransaction[]>(`/api/fuel/tanks/${tank.id}/transactions?days=7`);
           console.log(`Tank ${tank.id} has ${data.length} transactions:`, data);
           
           // Dodaj tank informacije u svaku transakciju
@@ -572,7 +571,7 @@ export default function TankManagement() {
     setLoadingTransactions(true);
     try {
       console.log('Fetching transactions for tank ID:', tankId);
-      const data = await fetchWithAuth<MobileTankTransaction[]>(`/api/fuel/tanks/${tankId}/transactions`);
+      const data = await fetchWithAuth<MobileTankTransaction[]>(`/api/fuel/tanks/${tankId}/transactions?days=7`);
       console.log('Received transactions data:', data);
       setTransactions(data);
     } catch (error) {
@@ -1406,8 +1405,8 @@ export default function TankManagement() {
                 type="button"
                 className="inline-flex items-center px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-900 shadow-sm hover:shadow-md transition-all font-medium rounded-lg border border-gray-400"
                 onClick={() => {
-                  setStartDateFilter(getFirstDayOfMonth());
-                  setEndDateFilter(getLastDayOfMonth());
+                  setStartDateFilter(getSevenDaysAgo());
+                  setEndDateFilter(getToday());
                   setTypeFilter('all');
                   setTankFilter('all');
                   applyFilters();

@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import dayjs from 'dayjs';
-import { FuelIntakeRecord, FuelCategory, Currency } from '@/types/fuel';
-import { updateFuelIntakeRecord } from '@/lib/apiService';
+import { FuelIntakeRecord, FuelCategory, Currency, FuelIntakeDocument } from '@/types/fuel';
+import { updateFuelIntakeRecord, uploadFuelIntakeDocument, fetchWithAuth } from '@/lib/apiService';
 
 interface EditFuelIntakeModalProps {
   record: FuelIntakeRecord;
@@ -45,6 +45,13 @@ const EditFuelIntakeModal: React.FC<EditFuelIntakeModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Document upload state
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [documentType, setDocumentType] = useState<string>('otpremnica');
+  const [existingDocuments, setExistingDocuments] = useState<FuelIntakeDocument[]>([]);
+  const [isUploadingDocument, setIsUploadingDocument] = useState(false);
+  const [loadingDocuments, setLoadingDocuments] = useState(false);
+
   // Initialize form data when record changes
   useEffect(() => {
     if (record) {
@@ -60,8 +67,55 @@ const EditFuelIntakeModal: React.FC<EditFuelIntakeModalProps> = ({
         supplier_name: record.supplier_name || ''
       });
       setErrors({});
+      setSelectedFile(null);
+
+      // Fetch existing documents
+      fetchExistingDocuments(record.id);
     }
   }, [record]);
+
+  // Fetch existing documents for this intake record
+  const fetchExistingDocuments = async (recordId: number) => {
+    setLoadingDocuments(true);
+    try {
+      const docs = await fetchWithAuth<FuelIntakeDocument[]>(`/api/fuel/intakes/${recordId}/documents`);
+      setExistingDocuments(docs || []);
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+      setExistingDocuments([]);
+    } finally {
+      setLoadingDocuments(false);
+    }
+  };
+
+  // Handle file selection
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  // Upload document
+  const handleDocumentUpload = async () => {
+    if (!selectedFile) {
+      toast.error('Molimo odaberite dokument');
+      return;
+    }
+
+    setIsUploadingDocument(true);
+    try {
+      await uploadFuelIntakeDocument(record.id, selectedFile, documentType);
+      toast.success('Dokument uspješno učitan');
+      setSelectedFile(null);
+      // Refresh documents list
+      fetchExistingDocuments(record.id);
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      toast.error('Greška pri učitavanju dokumenta');
+    } finally {
+      setIsUploadingDocument(false);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -369,6 +423,70 @@ const EditFuelIntakeModal: React.FC<EditFuelIntakeModalProps> = ({
               <p className="text-xs text-gray-500 mt-1">
                 Ovo polje se automatski izračunava na osnovu ukupne cijene
               </p>
+            </div>
+
+            {/* Document Upload Section */}
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <h4 className="text-sm font-medium text-gray-700 mb-3">Dokumenti</h4>
+
+              {/* Existing Documents */}
+              {loadingDocuments ? (
+                <p className="text-sm text-gray-500 mb-3">Učitavanje dokumenata...</p>
+              ) : existingDocuments.length > 0 ? (
+                <div className="mb-3">
+                  <p className="text-xs text-gray-600 mb-2">Postojeći dokumenti:</p>
+                  <ul className="space-y-1">
+                    {existingDocuments.map((doc) => (
+                      <li key={doc.id} className="flex items-center text-xs text-gray-700 bg-white p-2 rounded border">
+                        <svg className="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span className="flex-1">{doc.document_name}</span>
+                        <span className="text-gray-400 ml-2">({doc.document_type})</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <p className="text-xs text-gray-500 mb-3">Nema učitanih dokumenata</p>
+              )}
+
+              {/* Upload New Document */}
+              <div className="space-y-2">
+                <p className="text-xs text-gray-600">Dodaj novi dokument:</p>
+                <div className="flex gap-2">
+                  <select
+                    value={documentType}
+                    onChange={(e) => setDocumentType(e.target.value)}
+                    className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="otpremnica">Otpremnica</option>
+                    <option value="faktura">Faktura</option>
+                    <option value="certifikat">Certifikat kvaliteta</option>
+                    <option value="carinska_deklaracija">Carinska deklaracija</option>
+                    <option value="ostalo">Ostalo</option>
+                  </select>
+                  <input
+                    type="file"
+                    onChange={handleFileChange}
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    className="flex-1 text-sm text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                </div>
+                {selectedFile && (
+                  <div className="flex items-center justify-between bg-white p-2 rounded border">
+                    <span className="text-xs text-gray-700">{selectedFile.name}</span>
+                    <button
+                      type="button"
+                      onClick={handleDocumentUpload}
+                      disabled={isUploadingDocument}
+                      className="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {isUploadingDocument ? 'Učitavanje...' : 'Učitaj'}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Read-only fields info */}

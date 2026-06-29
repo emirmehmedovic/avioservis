@@ -173,29 +173,41 @@ export const getFuelTankById = async (req: Request, res: Response): Promise<void
 
 export const getTankTransactions = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
-  
+  const { days } = req.query;
+
   try {
-    console.log('getTankTransactions called for tank ID:', id);
-    
+    console.log('getTankTransactions called for tank ID:', id, 'days:', days);
+
     // Check if the tank exists
     const tank = await (prisma as any).fuelTank.findUnique({
       where: { id: Number(id) },
     });
-    
+
     if (!tank) {
       console.log('Tank not found for ID:', id);
       res.status(404).json({ message: 'Tanker nije pronađen' });
       return;
     }
-    
+
     console.log('Tank found:', tank.name || tank.identifier);
-    
+
+    // Calculate date filter (default 7 days if not specified)
+    const daysToFetch = days ? parseInt(days as string, 10) : 7;
+    const dateFilter = new Date();
+    dateFilter.setDate(dateFilter.getDate() - daysToFetch);
+    dateFilter.setHours(0, 0, 0, 0);
+
+    console.log('Filtering transactions from:', dateFilter.toISOString());
+
     // Get all transactions for this tank
     const transactions = [];
-    
-    // 1. Get refills from suppliers
+
+    // 1. Get refills from suppliers (filtered by date)
     const supplierRefills = await (prisma as any).fuelTankRefill.findMany({
-      where: { tankId: Number(id) },
+      where: {
+        tankId: Number(id),
+        date: { gte: dateFilter }
+      },
       orderBy: { date: 'desc' },
     });
     
@@ -213,11 +225,12 @@ export const getTankTransactions = async (req: Request, res: Response): Promise<
       notes: refill.notes,
     }));
     
-    // 2. Get transfers from fixed tanks
+    // 2. Get transfers from fixed tanks (filtered by date)
     const fixedTankTransfers = await (prisma as any).fixedTankTransfers.findMany({
-      where: { 
+      where: {
         activity_type: 'TANKER_TRANSFER_OUT',
-        notes: { contains: `Transfer to mobile tanker ID: ${id}` }
+        notes: { contains: `Transfer to mobile tanker ID: ${id}` },
+        transfer_datetime: { gte: dateFilter }
       },
       select: {
         id: true,
@@ -253,11 +266,12 @@ export const getTankTransactions = async (req: Request, res: Response): Promise<
     
     console.log('Mapped fixed tank transfers:', mappedFixedTankTransfers);
     
-    // 3. Get fueling operations (where this tank was used to fuel aircraft)
+    // 3. Get fueling operations (where this tank was used to fuel aircraft, filtered by date)
     const fuelingOperations = await (prisma as any).fuelingOperation.findMany({
-      where: { 
+      where: {
         tankId: Number(id),
-        is_deleted: false // Ne uključujemo obrisane operacije
+        is_deleted: false, // Ne uključujemo obrisane operacije
+        dateTime: { gte: dateFilter }
       },
       orderBy: { dateTime: 'desc' },
     });
