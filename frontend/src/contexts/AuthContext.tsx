@@ -67,12 +67,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           console.warn('🟢 INVALID redirect URL:', redirectAfterLogin);
         }
       } else {
-        console.log('🟢 NO redirectAfterLogin found, going to dashboard');
+        console.log('🟢 NO redirectAfterLogin found, redirecting based on role');
       }
     }
-    
-    // Default redirect
-    router.push('/dashboard');
+
+    // Role-based redirect
+    let redirectPath = '/dashboard';
+    switch (data.user.role) {
+      case 'FUEL_OPERATOR':
+        redirectPath = '/dashboard/fuel';
+        break;
+      case 'KONTROLA':
+        redirectPath = '/dashboard/reports';
+        break;
+      case 'CARINA':
+        redirectPath = '/dashboard/customs';
+        break;
+      case 'AERODROM':
+        redirectPath = '/dashboard/airport';
+        break;
+      default:
+        redirectPath = '/dashboard';
+    }
+
+    console.log('🟢 Redirecting to:', redirectPath, 'for role:', data.user.role);
+    router.push(redirectPath);
   };
 
   const logout = () => {
