@@ -34,6 +34,7 @@ import {
   getMonthlyFlightRealization,
   getDashboardStatistics
 } from '@/lib/apiService';
+import { useAuth } from '@/contexts/AuthContext';
 import { DashboardKPIData } from '@/types/dashboard';
 import KPICard from '@/components/dashboard/KPICard';
 import FuelConsumptionChart from '@/components/dashboard/FuelConsumptionChart';
@@ -61,6 +62,7 @@ const getFillColor = (percentage: number): string => {
 };
 
 export default function DashboardPage() {
+  const { authUser, isLoading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [fuelSummary, setFuelSummary] = useState<{
     fixedTanksTotal: number;
@@ -271,24 +273,43 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
+    // Wait for auth to finish loading before fetching data
+    if (authLoading) {
+      return;
+    }
+
     const fetchDashboardData = async () => {
       try {
         setIsLoading(true);
 
-        // Fetch fuel summary
+        // Fetch fuel summary (available to all authenticated users)
         const summary = await getTotalFuelSummary();
         setFuelSummary(summary);
 
-        // OPTIMIZED: Fetch all KPIs and Charts data in parallel
-        // Reduced from 6 API calls to 3 API calls:
-        // 1. fetchConsolidatedStatistics (2 calls inside: 30 days + current month)
-        // 2. fetchWeeklyConsumption
-        // 3. fetchFlightRealization
-        await Promise.allSettled([
-          fetchConsolidatedStatistics(),
-          fetchWeeklyConsumption(),
-          fetchFlightRealization()
-        ]);
+        // Check if user has access to reports (ADMIN, KONTROLA, FUEL_OPERATOR)
+        const hasReportAccess = authUser?.role && ['ADMIN', 'KONTROLA', 'FUEL_OPERATOR'].includes(authUser.role);
+
+        if (hasReportAccess) {
+          // OPTIMIZED: Fetch all KPIs and Charts data in parallel
+          await Promise.allSettled([
+            fetchConsolidatedStatistics(),
+            fetchWeeklyConsumption(),
+            fetchFlightRealization()
+          ]);
+        } else {
+          // User doesn't have report access - set default values without errors
+          setKpiData({
+            dailyConsumption: { liters: 0, kg: 0, loading: false, error: null },
+            weeklyConsumption: { average: 0, trend: 0, loading: false, error: null },
+            topDestination: { name: 'N/A', volume: 0, percentage: 0, loading: false, error: null },
+            flightRealization: { scheduled: 0, realized: 0, rate: 0, unplanned: 0, loading: false, error: null }
+          });
+          setChartsData({
+            fuelByDay: { data: [], loading: false, error: null },
+            topAirlines: { data: [], loading: false, error: null },
+            destinations: { data: [], loading: false, error: null }
+          });
+        }
 
       } catch (err: any) {
         console.error('Error fetching dashboard data:', err);
@@ -299,14 +320,14 @@ export default function DashboardPage() {
     };
 
     fetchDashboardData();
-  }, []);
+  }, [authLoading, authUser]);
 
 
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="flex justify-center items-center h-[80vh]">
-        <motion.div 
+        <motion.div
           className="h-12 w-12 rounded-full border-2 border-slate-200 border-t-slate-600"
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
