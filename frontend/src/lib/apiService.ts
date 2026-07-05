@@ -178,12 +178,13 @@ export async function fetchWithAuth<T>(urlPath: string, options: FetchWithAuthOp
 
   const response = await fetch(fullUrl, { ...nativeFetchOptions, headers }); // Use fullUrl
 
-  // Check for token expiration (401 Unauthorized)
-  if (response.status === 401 || response.status === 403) {
-    // Token is invalid or expired, or user is not authorized
+  // Check for token expiration (401 Unauthorized only)
+  // Note: 403 Forbidden means user is authenticated but lacks permissions - don't logout!
+  if (response.status === 401) {
+    // Token is invalid or expired
     console.error(`Authentication error: ${response.status} for ${urlPath}`);
     handleTokenExpiration(); // This function handles logout and redirection
-    return new Promise(() => {}); 
+    return new Promise(() => {});
   }
 
   if (!response.ok) {
