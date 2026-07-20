@@ -22,6 +22,7 @@ interface EditFormData {
   destination: string;
   flight_number: string;
   price_per_kg: string;
+  currency: string;
   tip_saobracaja: string;
   notes: string;
   delivery_note_number: string;
@@ -44,6 +45,7 @@ const EditOperationModal: React.FC<EditOperationModalProps> = ({
     destination: '',
     flight_number: '',
     price_per_kg: '',
+    currency: '',
     tip_saobracaja: '',
     notes: '',
     delivery_note_number: '',
@@ -64,6 +66,7 @@ const EditOperationModal: React.FC<EditOperationModalProps> = ({
         destination: operation.destination || '',
         flight_number: operation.flight_number || '',
         price_per_kg: operation.price_per_kg?.toString() || '',
+        currency: operation.currency || 'EUR',
         tip_saobracaja: operation.tip_saobracaja || '',
         notes: operation.notes || '',
         delivery_note_number: operation.delivery_note_number || '',
@@ -169,7 +172,9 @@ const EditOperationModal: React.FC<EditOperationModalProps> = ({
         updatePayload.price_per_kg = parseFloat(formData.price_per_kg);
       }
 
-
+      if (formData.currency !== (operation.currency || 'EUR')) {
+        updatePayload.currency = formData.currency;
+      }
 
       if (formData.tip_saobracaja !== (operation.tip_saobracaja || '')) {
         updatePayload.tip_saobracaja = formData.tip_saobracaja;
@@ -390,11 +395,28 @@ const EditOperationModal: React.FC<EditOperationModalProps> = ({
               )}
             </div>
 
+            {/* Valuta */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Valuta fakture
+              </label>
+              <select
+                name="currency"
+                value={formData.currency}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="EUR">EUR</option>
+                <option value="USD">USD</option>
+                <option value="BAM">BAM</option>
+              </select>
+            </div>
+
             {/* Kurs za valute (USD/EUR) */}
-            {operation?.currency && operation.currency !== 'BAM' && (
+            {formData.currency && formData.currency !== 'BAM' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Kurs ({operation.currency} → BAM)
+                  Kurs ({formData.currency} → BAM)
                 </label>
                 <input
                   type="number"
@@ -405,10 +427,10 @@ const EditOperationModal: React.FC<EditOperationModalProps> = ({
                   className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                     errors.usd_exchange_rate ? 'border-red-500' : 'border-gray-300'
                   }`}
-                  placeholder={operation.currency === 'EUR' ? '1.95583 (preporučeno)' : 'npr. 1.80'}
+                  placeholder={formData.currency === 'EUR' ? '1.95583 (preporučeno)' : 'npr. 1.80'}
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Unesite kurs za dan transakcije. Ako ostavite prazno, koristi se postojeća vrijednost ({operation.usd_exchange_rate ?? (operation.currency === 'EUR' ? '1.95583' : 'n/a')}).
+                  Unesite kurs za dan transakcije. Ako ostavite prazno, koristi se postojeća vrijednost ({operation.usd_exchange_rate ?? (formData.currency === 'EUR' ? '1.95583' : 'n/a')}).
                 </p>
                 {errors.usd_exchange_rate && (
                   <p className="text-red-500 text-sm mt-1">{errors.usd_exchange_rate}</p>
