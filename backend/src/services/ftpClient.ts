@@ -1,5 +1,6 @@
 import * as ftp from 'basic-ftp';
 import Client from 'ssh2-sftp-client';
+import crypto from 'crypto';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -14,6 +15,16 @@ export interface FtpConfig {
   secure?: boolean;
   baseDir?: string;
   timeoutMs?: number;
+  hostFingerprintSha256?: string;
+}
+
+function normalizeSha256Fingerprint(fingerprint?: string): string | null {
+  if (!fingerprint) return null;
+  return fingerprint.trim().replace(/^SHA256:/i, '').replace(/=+$/, '');
+}
+
+function getSha256Fingerprint(hostKey: Buffer): string {
+  return crypto.createHash('sha256').update(hostKey).digest('base64').replace(/=+$/, '');
 }
 
 export class FtpClientService {
@@ -41,6 +52,7 @@ export class FtpClientService {
   async connect(): Promise<void> {
     if (this.isSftp) {
       if (!this.sftpClient) throw new Error('SFTP client not initialized');
+      const expectedHostFingerprint = normalizeSha256Fingerprint(this.config.hostFingerprintSha256);
       
       const connectConfig = {
         host: this.config.host,
@@ -50,10 +62,23 @@ export class FtpClientService {
         readyTimeout: 30000,
         tryKeyboard: true,
 
-        hostHash: 'sha1',
-        hostVerifier: () => true,
+        hostVerifier: (hostKey: Buffer) => {
+          if (!expectedHostFingerprint) return true;
+
+          const actualHostFingerprint = getSha256Fingerprint(hostKey);
+          const verified = actualHostFingerprint === expectedHostFingerprint;
+          if (!verified) {
+            console.error(
+              'SFTP host key fingerprint mismatch. Expected:',
+              `SHA256:${expectedHostFingerprint}`,
+              'Actual:',
+              `SHA256:${actualHostFingerprint}`
+            );
+          }
+          return verified;
+        },
         algorithms: {
-          serverHostKey: ['ssh-rsa', 'ssh-dss'] as any,
+          serverHostKey: ['ecdsa-sha2-nistp256', 'ssh-rsa', 'ssh-dss'] as any,
           kex: [
             'diffie-hellman-group1-sha1',
             'diffie-hellman-group14-sha1',
@@ -177,6 +202,6 @@ export function buildFtpConfigFromEnv(): FtpConfig {
     secure: process.env.SFTP_PROTOCOL === 'sftp' || false,
     baseDir: process.env.SFTP_BASE_DIR || '/',
     timeoutMs: process.env.SFTP_TIMEOUT_MS ? parseInt(process.env.SFTP_TIMEOUT_MS, 10) : 30000,
+    hostFingerprintSha256: process.env.SFTP_HOST_FINGERPRINT_SHA256,
   };
 }
-
