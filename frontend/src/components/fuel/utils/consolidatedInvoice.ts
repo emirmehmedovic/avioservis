@@ -304,24 +304,27 @@ export const generateConsolidatedPDFInvoice = async (operations: FuelingOperatio
     doc.text('OPERATIONS OVERVIEW:', 14, 20); // Počni od vrha nove stranice
     doc.setFont(FONT_NAME, 'normal');
     
-    const tableColumn = ['Date', 'Aircraft Reg.', 'Destination', 'MRN', 'Delivery Note', 'Qty (L)', 'Qty (kg)', 'Price/kg', 'Amount', 'Currency'];
-    const tableRows = operationsWithCalculations.map(operation => [
-      formatDate(operation.dateTime),
-      operation.aircraft_registration || 'N/A',
-      operation.destination,
-      // Display MRN data if available, otherwise show 'N/A'
-      operation.parsedMrnBreakdown && operation.parsedMrnBreakdown.length > 0
-        ? (operation.parsedMrnBreakdown.length > 2 
-            ? `${operation.parsedMrnBreakdown.slice(0, 2).map(item => item.mrn).join(', ')}, ... (+${operation.parsedMrnBreakdown.length - 2})` 
-            : operation.parsedMrnBreakdown.map(item => item.mrn).join(', '))
-        : 'N/A',
-      operation.delivery_note_number || 'N/A',
-      (operation.quantity_liters || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
-      (operation.quantity_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
-      (operation.price_per_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
-      operation.netAmount.toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
-      operation.currency || 'BAM'
-    ]);
+    const tableColumn = ['Date', 'Aircraft Reg.', 'Destination', 'MRN', 'Delivery Note', 'Qty (L)', 'Qty (kg)', 'Price/t', 'Amount', 'Currency'];
+    const tableRows = operationsWithCalculations.map(operation => {
+      const pricePerTonne = Number(operation.price_per_kg || 0) * 1000;
+      return [
+        formatDate(operation.dateTime),
+        operation.aircraft_registration || 'N/A',
+        operation.destination,
+        // Display MRN data if available, otherwise show 'N/A'
+        operation.parsedMrnBreakdown && operation.parsedMrnBreakdown.length > 0
+          ? (operation.parsedMrnBreakdown.length > 2
+              ? `${operation.parsedMrnBreakdown.slice(0, 2).map(item => item.mrn).join(', ')}, ... (+${operation.parsedMrnBreakdown.length - 2})`
+              : operation.parsedMrnBreakdown.map(item => item.mrn).join(', '))
+          : 'N/A',
+        operation.delivery_note_number || 'N/A',
+        (operation.quantity_liters || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
+        (operation.quantity_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
+        pricePerTonne.toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
+        operation.netAmount.toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
+        operation.currency || 'BAM'
+      ];
+    });
     
     const totalRowIndex = tableRows.length; // Indeks za TOTAL red
     tableRows.push([

@@ -155,7 +155,7 @@ export const generateDomesticPDFInvoice = async (operation: FuelingOperation): P
     doc.setFont(FONT_NAME, 'bold');
     doc.text(`Broj fakture: ${invoiceNumber}`, 14, 70); // Pomjeri ka gore da bude inline s KUPAC
     doc.setFont(FONT_NAME, 'normal');
-    doc.text(`Datum izdavanja: ${formatDate(new Date().toISOString())}`, 14, 77);
+    doc.text(`Datum izdavanja: ${formatDate(operation.dateTime)}`, 14, 77);
     doc.text(`Datum usluge: ${formatDate(operation.dateTime)}`, 14, 83);
     doc.text(`Paritet/Parity: CPT Aerodrom Tuzla`, 14, 89);
     doc.setFont(FONT_NAME, 'bold');
@@ -244,8 +244,20 @@ export const generateDomesticPDFInvoice = async (operation: FuelingOperation): P
       margin: { left: 14, right: 14 }
     });
     
-    let finalY = (doc as any).lastAutoTable?.finalY + 10 || 170;
-    
+    let finalY = (doc as any).lastAutoTable?.finalY + 5 || 170;
+
+    // Dodaj cijenu po toni ispod tabele
+    const pricePerTonne = (operation.price_per_kg || 0) * 1000;
+    doc.setFontSize(9);
+    doc.setFont(FONT_NAME, 'normal');
+    doc.setTextColor(0, 0, 0);
+    doc.text(
+      `Cijena po toni / Price per tonne: ${pricePerTonne.toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${operation.currency || 'BAM'}`,
+      14,
+      finalY
+    );
+    finalY += 8;
+
     const summaryBoxY = finalY;
     
     let processedMrnData: { mrn: string, quantityKg: number }[] = [];
@@ -614,10 +626,11 @@ export const generateConsolidatedDomesticPDFInvoice = async (operations: Fueling
     doc.setFont(FONT_NAME, 'bold');
     doc.text('PREGLED OPERACIJA:', 14, summaryFinalY);
     
-    const tableColumn = ['Datum', 'Registracija', 'Destinacija', 'MRN', 'Dostavnica', 'Količina (L)', 'Količina (kg)', 'Osnovna cijena', 'Neto', 'PDV 17%', 'Bruto', 'Valuta'];
+    const tableColumn = ['Datum', 'Registracija', 'Destinacija', 'MRN', 'Dostavnica', 'Količina (L)', 'Količina (kg)', 'Cijena/t', 'Neto', 'PDV 17%', 'Bruto', 'Valuta'];
     const operationsWithCalculations = operations.map(op => {
       const quantityKg = parseFloat(String(op.quantity_kg || '0'));
       const pricePerKg = parseFloat(String(op.price_per_kg || '0'));
+      const pricePerTonne = pricePerKg * 1000;
       const discountPercentage = parseFloat(String(op.discount_percentage || '0'));
       const quantityLiters = parseFloat(String(op.quantity_liters || '0'));
 
@@ -640,7 +653,7 @@ export const generateConsolidatedDomesticPDFInvoice = async (operations: Fueling
         op.delivery_note_number || 'N/A',
         (op.quantity_liters || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
         (op.quantity_kg || 0).toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
-        `${(Number(baseAmount) || 0).toFixed(2).replace('.', ',')} ${op.currency || 'BAM'}`,
+        pricePerTonne.toLocaleString('hr-HR', { minimumFractionDigits: 2 }),
         (Number(netAmount) || 0).toFixed(2).replace('.', ','),
         (Number(vatAmount) || 0).toFixed(2).replace('.', ','),
         (Number(grossAmount) || 0).toFixed(2).replace('.', ','),
@@ -652,7 +665,7 @@ export const generateConsolidatedDomesticPDFInvoice = async (operations: Fueling
       'UKUPNO', '', '', '', '',
       totalLiters.toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       totalKg.toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-      `${(Number(totalBaseAmountNum) || 0).toFixed(2).replace('.', ',')} ${mostCommonCurrency}`,
+      '', // Cijena/t - prazno za UKUPNO red
       (Number(finalTotalNetAmountNum) || 0).toFixed(2).replace('.', ','),
       (Number(totalVatAmountNum) || 0).toFixed(2).replace('.', ','),
       (Number(totalGrossAmountNum) || 0).toFixed(2).replace('.', ','),

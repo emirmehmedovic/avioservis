@@ -454,20 +454,23 @@ model FuelTankRefill {
 }
 
 model Airline {
-  id                    Int                @id @default(autoincrement())
-  name                  String             @unique
-  contact_details       String?
-  createdAt             DateTime           @default(now())
-  updatedAt             DateTime           @updatedAt
-  address               String?
-  isForeign             Boolean            @default(false)
-  operatingDestinations String[]
-  taxId                 String?
-  fuelPriceRules        FuelPriceRule[]
-  fuelingOperations     FuelingOperation[]
-  xmlInvoiceDispatches  XmlInvoiceDispatch[]
-  emailInvoiceDispatches EmailInvoiceDispatch[]
-  flightSchedules       FlightSchedule[]
+  id                          Int                @id @default(autoincrement())
+  name                        String             @unique
+  contact_details             String?
+  price_notification_email    String?            // Email za slanje obavijesti o cijenama goriva
+  price_notification_currency String?            // Preferirana valuta za obavijesti o cijenama (USD, EUR, BAM)
+  price_notification_active   Boolean            @default(false) // Da li je aktivna za slanje obavijesti
+  createdAt                   DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+  address                  String?
+  isForeign                Boolean            @default(false)
+  operatingDestinations    String[]
+  taxId                    String?
+  fuelPriceRules           FuelPriceRule[]
+  fuelingOperations        FuelingOperation[]
+  xmlInvoiceDispatches     XmlInvoiceDispatch[]
+  emailInvoiceDispatches   EmailInvoiceDispatch[]
+  flightSchedules          FlightSchedule[]
 }
 
 model FuelReceipt {

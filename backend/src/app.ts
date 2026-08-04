@@ -57,6 +57,7 @@ import physicalCisternRoutes from './routes/physicalCistern.routes'; // Rute za 
 import physicalTankTransferRoutes from './routes/physicalTankTransfer.routes'; // Rute za transfere između tankova i cisterni
 import physicalTankRetrofitRoutes from './routes/physicalTankRetrofit.routes'; // Rute za retrofit funkcionalnost
 import physicalSubCisternRoutes from './routes/physicalSubCistern.routes'; // Rute za sub-cisterne
+import fuelPriceNotificationRoutes from './routes/fuelPriceNotification.routes'; // Rute za slanje obavijesti o cijenama goriva
 
 const app = express();
 
@@ -165,6 +166,7 @@ app.use('/api/physical-cisterns', sensitiveOperationsLimiter, physicalCisternRou
 app.use('/api/physical-tank-transfers', sensitiveOperationsLimiter, physicalTankTransferRoutes); // Registracija ruta za transfere između tankova i cisterni
 app.use('/api/physical-tanks/retrofit', sensitiveOperationsLimiter, physicalTankRetrofitRoutes); // Registracija ruta za retrofit funkcionalnost
 app.use('/api/physical-sub-cisterns', sensitiveOperationsLimiter, physicalSubCisternRoutes); // Registracija ruta za sub-cisterne
+app.use('/api/fuel-price-notifications', fuelPriceNotificationRoutes); // Registracija ruta za slanje obavijesti o cijenama goriva
 
 app.get('/', (req, res) => {
   res.send('Backend radi!');

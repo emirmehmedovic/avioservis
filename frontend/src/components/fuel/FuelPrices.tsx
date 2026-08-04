@@ -5,14 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import TradingViewWidget from './TradingViewWidget';
 import ForexTradingViewWidget from './ForexTradingViewWidget';
-import { getAirlines, getCachedFuelPriceRules, createFuelPriceRule, updateFuelPriceRule, deleteFuelPriceRule, clearFuelPriceRulesCache, clearAirlinesCache } from '@/lib/apiService';
+import { getAirlines, getCachedFuelPriceRules, createFuelPriceRule, updateFuelPriceRule, deleteFuelPriceRule, clearFuelPriceRulesCache, clearAirlinesCache, getAirlinesForPriceNotification, updateAirlinePriceNotificationEmail, sendFuelPriceToAirline, sendFuelPriceToAllAirlines, sendFuelPriceSummary, AirlineWithPriceRule, getAirlinesWithoutRules, getGeneralRules, sendFuelPriceWithGeneralRule, AirlineWithoutRule, GeneralRule, updateAirlinePriceNotificationCurrency, updateAirlinePriceNotificationActive } from '@/lib/apiService';
 import { Airline, FuelPriceRule, CreateFuelPriceRulePayload, UpdateFuelPriceRulePayload } from '@/types/fuel'; // Added UpdateFuelPriceRulePayload // Added type imports
 import { Button } from '@/components/ui/Button'; // Assuming Button component exists
 import { Input } from '@/components/ui/input'; // Corrected casing
 // Select imports removed - using native HTML select elements
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table'; // Corrected casing to Table
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog'; // Assuming Dialog components exist
-import { toast } from 'sonner'; // Assuming sonner for notifications
+import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Constants for widget height
@@ -51,6 +51,23 @@ const FuelPrices: React.FC = () => {
   const [deletingRule, setDeletingRule] = useState<FuelPriceRule | null>(null);
   
   const [activeTab, setActiveTab] = useState<string>('manage-prices'); // Changed default tab to manage-prices
+
+  // State for Price Notifications
+  const [notificationAirlines, setNotificationAirlines] = useState<AirlineWithPriceRule[]>([]);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState<boolean>(false);
+  const [editingEmailAirlineId, setEditingEmailAirlineId] = useState<number | null>(null);
+  const [editingEmailValue, setEditingEmailValue] = useState<string>('');
+  const [isSendingEmail, setIsSendingEmail] = useState<number | null>(null);
+  const [isSendingAll, setIsSendingAll] = useState<boolean>(false);
+  const [isSendingSummary, setIsSendingSummary] = useState<boolean>(false);
+
+  // State for airlines without specific rules (use general rules)
+  const [airlinesWithoutRules, setAirlinesWithoutRules] = useState<AirlineWithoutRule[]>([]);
+  const [generalRules, setGeneralRules] = useState<GeneralRule[]>([]);
+  const [isSendingOthers, setIsSendingOthers] = useState<boolean>(false);
+  const [editingOtherEmailAirlineId, setEditingOtherEmailAirlineId] = useState<number | null>(null);
+  const [editingOtherEmailValue, setEditingOtherEmailValue] = useState<string>('');
+  const [otherAirlinesFilter, setOtherAirlinesFilter] = useState<string>('');
 
   // Priority ranking for airlines (same as AddOperationForm)
   const getAirlinePriority = (airlineName: string): number => {
@@ -96,7 +113,7 @@ const FuelPrices: React.FC = () => {
   });
 
   // Separate general rules from specific rules for visual grouping
-  const generalRules = sortedRules.filter(rule => rule.airlineId === null);
+  const displayGeneralRules = sortedRules.filter(rule => rule.airlineId === null);
   const specificRules = sortedRules.filter(rule => rule.airlineId !== null);
 
   // Enhanced currency indicator
@@ -244,6 +261,205 @@ const FuelPrices: React.FC = () => {
     }
   };
 
+  // Fetch airlines for price notifications when tab changes
+  useEffect(() => {
+    if (activeTab === 'send-notifications' && canEdit) {
+      fetchNotificationAirlines();
+    }
+  }, [activeTab, canEdit]);
+
+  const fetchNotificationAirlines = async () => {
+    try {
+      setIsLoadingNotifications(true);
+      const [airlinesData, withoutRulesData, generalRulesData] = await Promise.all([
+        getAirlinesForPriceNotification(),
+        getAirlinesWithoutRules(),
+        getGeneralRules(),
+      ]);
+      setNotificationAirlines(airlinesData);
+      setAirlinesWithoutRules(withoutRulesData);
+      setGeneralRules(generalRulesData);
+    } catch (err) {
+      console.error('Error fetching notification airlines:', err);
+      toast.error('Greška pri dohvatanju aviokompanija za obavijesti.');
+    } finally {
+      setIsLoadingNotifications(false);
+    }
+  };
+
+  const handleUpdateEmail = async (airlineId: number) => {
+    try {
+      await updateAirlinePriceNotificationEmail(airlineId, editingEmailValue || null);
+      setNotificationAirlines(prev =>
+        prev.map(a => a.airlineId === airlineId ? { ...a, email: editingEmailValue || null } : a)
+      );
+      setEditingEmailAirlineId(null);
+      setEditingEmailValue('');
+      toast.success('Email adresa uspješno ažurirana.');
+    } catch (err) {
+      console.error('Error updating email:', err);
+      toast.error('Greška pri ažuriranju email adrese.');
+    }
+  };
+
+  const handleSendToAirline = async (airlineId: number) => {
+    const airline = notificationAirlines.find(a => a.airlineId === airlineId);
+    try {
+      setIsSendingEmail(airlineId);
+      await sendFuelPriceToAirline(airlineId);
+      toast.success(`✅ Email uspješno poslan na ${airline?.email || 'aviokompaniju'}!`, {
+        duration: 5000,
+      });
+    } catch (err: any) {
+      console.error('Error sending notification:', err);
+      toast.error(err.message || 'Greška pri slanju obavijesti.');
+    } finally {
+      setIsSendingEmail(null);
+    }
+  };
+
+  const handleSendToAll = async () => {
+    try {
+      setIsSendingAll(true);
+      const result = await sendFuelPriceToAllAirlines();
+      if (result.failed === 0) {
+        toast.success(`✅ Uspješno poslano ${result.sent} emailova svim aviokompanijama!`, {
+          duration: 5000,
+        });
+      } else {
+        toast(`⚠️ Poslano: ${result.sent}, Neuspješno: ${result.failed}`, {
+          duration: 5000,
+          icon: '⚠️',
+        });
+      }
+    } catch (err: any) {
+      console.error('Error sending to all:', err);
+      toast.error(err.message || 'Greška pri slanju obavijesti.');
+    } finally {
+      setIsSendingAll(false);
+    }
+  };
+
+  const handleSendSummary = async () => {
+    try {
+      setIsSendingSummary(true);
+      await sendFuelPriceSummary();
+      toast.success('✅ Sedmični pregled cijena uspješno poslan!', {
+        duration: 5000,
+      });
+    } catch (err: any) {
+      console.error('Error sending summary:', err);
+      toast.error(err.message || 'Greška pri slanju zbirnog pregleda.');
+    } finally {
+      setIsSendingSummary(false);
+    }
+  };
+
+  // Handlers for "Other" airlines (without specific rules)
+  const handleToggleOtherAirline = async (airlineId: number, active: boolean) => {
+    try {
+      await updateAirlinePriceNotificationActive(airlineId, active);
+      setAirlinesWithoutRules(prev => prev.map(a =>
+        a.airlineId === airlineId ? { ...a, active } : a
+      ));
+    } catch (err) {
+      console.error('Error toggling airline active state:', err);
+      toast.error('Greška pri ažuriranju statusa.');
+    }
+  };
+
+  const handleChangeOtherAirlineCurrency = async (airlineId: number, currency: string) => {
+    try {
+      await updateAirlinePriceNotificationCurrency(airlineId, currency);
+      setAirlinesWithoutRules(prev => prev.map(a =>
+        a.airlineId === airlineId ? { ...a, currency } : a
+      ));
+    } catch (err) {
+      console.error('Error saving currency preference:', err);
+    }
+  };
+
+  const handleUpdateOtherEmail = async (airlineId: number) => {
+    try {
+      await updateAirlinePriceNotificationEmail(airlineId, editingOtherEmailValue || null);
+      setAirlinesWithoutRules(prev => prev.map(a =>
+        a.airlineId === airlineId ? { ...a, email: editingOtherEmailValue || null } : a
+      ));
+      setEditingOtherEmailAirlineId(null);
+      setEditingOtherEmailValue('');
+      toast.success('Email adresa uspješno ažurirana.');
+    } catch (err) {
+      toast.error('Greška pri ažuriranju email adrese.');
+    }
+  };
+
+  // Get active airlines (those with active=true, email, and currency set)
+  const activeOtherAirlines = airlinesWithoutRules.filter(a => a.active && a.email && a.currency);
+
+  const handleSendToSelectedOthers = async () => {
+    if (activeOtherAirlines.length === 0) {
+      toast.error('Nema aktivnih aviokompanija za slanje.');
+      return;
+    }
+
+    try {
+      setIsSendingOthers(true);
+      let sent = 0;
+      let failed = 0;
+
+      for (const airline of activeOtherAirlines) {
+        try {
+          await sendFuelPriceWithGeneralRule(airline.airlineId, airline.currency!);
+          sent++;
+        } catch (err) {
+          failed++;
+        }
+      }
+
+      if (failed === 0) {
+        toast.success(`✅ Uspješno poslano ${sent} emailova!`, { duration: 5000 });
+      } else {
+        toast(`⚠️ Poslano: ${sent}, Neuspješno: ${failed}`, { duration: 5000, icon: '⚠️' });
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Greška pri slanju obavijesti.');
+    } finally {
+      setIsSendingOthers(false);
+    }
+  };
+
+  // Filter airlines without rules by search term
+  const filteredAirlinesWithoutRules = airlinesWithoutRules
+    .filter(a => a.airlineName.toLowerCase().includes(otherAirlinesFilter.toLowerCase()))
+    .sort((a, b) => {
+      // Active airlines first
+      if (a.active && !b.active) return -1;
+      if (!a.active && b.active) return 1;
+      return a.airlineName.localeCompare(b.airlineName);
+    });
+
+  // Count of active airlines for visual separator
+  const activeCount = filteredAirlinesWithoutRules.filter(a => a.active).length;
+
+  // Get current week validity period
+  const getWeekValidityPeriod = () => {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diffToMonday);
+    monday.setHours(0, 0, 0, 0);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+    return {
+      start: monday.toLocaleDateString('hr-HR'),
+      end: sunday.toLocaleDateString('hr-HR'),
+    };
+  };
+
+  const validityPeriod = getWeekValidityPeriod();
+
   const handleAddRule = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canEdit) {
@@ -344,8 +560,8 @@ const FuelPrices: React.FC = () => {
             </span>
             <span>Upravljanje Cijenama</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="charts" 
+          <TabsTrigger
+            value="charts"
             className="px-5 py-3 text-sm font-medium transition-all duration-200 ease-in-out flex items-center gap-2 focus:outline-none rounded-xl backdrop-blur-md text-gray-300 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-white/10 hover:text-white hover:bg-white/5"
             style={{
               background: activeTab === 'charts' ? 'linear-gradient(135deg, #4FC3C720, #4FC3C740)' : 'transparent',
@@ -361,6 +577,23 @@ const FuelPrices: React.FC = () => {
             </span>
             <span>Grafovi</span>
           </TabsTrigger>
+          {canEdit && (
+            <TabsTrigger
+              value="send-notifications"
+              className="px-5 py-3 text-sm font-medium transition-all duration-200 ease-in-out flex items-center gap-2 focus:outline-none rounded-xl backdrop-blur-md text-gray-300 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-white/10 hover:text-white hover:bg-white/5"
+              style={{
+                background: activeTab === 'send-notifications' ? 'linear-gradient(135deg, #10B98120, #10B98140)' : 'transparent',
+                borderBottom: activeTab === 'send-notifications' ? '2px solid #10B981' : 'none'
+              }}
+            >
+              <span style={{ color: '#10B981' }}>
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 8L10.89 13.26C11.2187 13.4793 11.6049 13.5963 12 13.5963C12.3951 13.5963 12.7813 13.4793 13.11 13.26L21 8M5 19H19C19.5304 19 20.0391 18.7893 20.4142 18.4142C20.7893 18.0391 21 17.5304 21 17V7C21 6.46957 20.7893 5.96086 20.4142 5.58579C20.0391 5.21071 19.5304 5 19 5H5C4.46957 5 3.96086 5.21071 3.58579 5.58579C3.21071 5.96086 3 6.46957 3 7V17C3 17.5304 3.21071 18.0391 3.58579 18.4142C3.96086 18.7893 4.46957 19 5 19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
+                </svg>
+              </span>
+              <span>Slanje Obavijesti</span>
+            </TabsTrigger>
+          )}
         </TabsList>
         
         <TabsContent value="charts" className="mt-6">
@@ -523,7 +756,7 @@ const FuelPrices: React.FC = () => {
                           <span className="text-sm text-white/80 font-medium">Učitavanje pravila...</span>
                         </div>
                       </div>
-                    ) : (generalRules.length > 0 || specificRules.length > 0) ? (
+                    ) : (displayGeneralRules.length > 0 || specificRules.length > 0) ? (
                       <div className="space-y-6">
                         <Table className="min-w-full divide-y divide-gray-200">
                           <TableHeader className="bg-gradient-to-r from-black/40 via-black/60 to-black/40 backdrop-blur-xl border-b border-white/10">
@@ -654,6 +887,375 @@ const FuelPrices: React.FC = () => {
             </div>
           </div>
         </TabsContent>
+
+        {/* Tab for Sending Price Notifications */}
+        {canEdit && (
+          <TabsContent value="send-notifications" className="mt-6">
+            <div className="space-y-6">
+              {/* Validity Period Info */}
+              <Card className="bg-slate-50 border-slate-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-slate-200 rounded-lg">
+                      <svg className="w-6 h-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-600">Period Važenja Cijena</p>
+                      <p className="text-lg font-bold text-slate-800">{validityPeriod.start} (Ponedjeljak 00:00) - {validityPeriod.end} (Nedjelja 23:59)</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-4">
+                <Button
+                  onClick={handleSendSummary}
+                  disabled={isSendingSummary}
+                  className="bg-slate-700 hover:bg-slate-800 text-white"
+                >
+                  {isSendingSummary ? (
+                    <svg className="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  )}
+                  Pošalji Zbirni Pregled (tzl.fuelservices@hifapetrol.ba)
+                </Button>
+                <Button
+                  onClick={handleSendToAll}
+                  disabled={isSendingAll || notificationAirlines.filter(a => a.email).length === 0}
+                  className="bg-slate-600 hover:bg-slate-700 text-white"
+                >
+                  {isSendingAll ? (
+                    <svg className="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                  )}
+                  Pošalji Svim Aviokompanijama ({notificationAirlines.filter(a => a.email).length})
+                </Button>
+              </div>
+
+              {/* Airlines Table */}
+              <Card className="bg-white shadow-sm rounded-xl border border-slate-200 overflow-hidden">
+                <CardHeader className="bg-slate-800 border-b border-slate-700 p-4">
+                  <CardTitle className="text-white text-lg font-medium">Aviokompanije s Pravilima o Cijenama</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {isLoadingNotifications ? (
+                    <div className="flex justify-center items-center py-12">
+                      <svg className="animate-spin h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                      </svg>
+                    </div>
+                  ) : notificationAirlines.length === 0 ? (
+                    <div className="text-center py-12 text-slate-500">
+                      <p>Nema aviokompanija s pravilima o cijenama goriva.</p>
+                      <p className="text-sm text-slate-400">Dodajte pravila u tabu "Upravljanje Cijenama".</p>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader className="bg-slate-100">
+                        <TableRow>
+                          <TableHead className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase">Aviokompanija</TableHead>
+                          <TableHead className="px-4 py-3 text-right text-xs font-medium text-slate-600 uppercase">Price per kg</TableHead>
+                          <TableHead className="px-4 py-3 text-right text-xs font-medium text-slate-600 uppercase">Price per tonne</TableHead>
+                          <TableHead className="px-4 py-3 text-center text-xs font-medium text-slate-600 uppercase">Valuta</TableHead>
+                          <TableHead className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase">Email za Obavijesti</TableHead>
+                          <TableHead className="px-4 py-3 text-right text-xs font-medium text-slate-600 uppercase">Akcije</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {notificationAirlines.map((airline) => (
+                          <TableRow key={airline.airlineId} className="hover:bg-slate-50">
+                            <TableCell className="px-4 py-3 font-medium text-slate-800">{airline.airlineName}</TableCell>
+                            <TableCell className="px-4 py-3 text-right font-mono text-slate-700">
+                              {airline.price?.toFixed(5) || '-'}
+                            </TableCell>
+                            <TableCell className="px-4 py-3 text-right font-mono text-slate-700">
+                              {airline.pricePerTonne?.toFixed(2) || '-'}
+                            </TableCell>
+                            <TableCell className="px-4 py-3 text-center">
+                              {airline.currency && (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                                  {airline.currency}
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell className="px-4 py-3">
+                              {editingEmailAirlineId === airline.airlineId ? (
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    type="email"
+                                    value={editingEmailValue}
+                                    onChange={(e) => setEditingEmailValue(e.target.value)}
+                                    placeholder="email@example.com"
+                                    className="h-8 text-sm"
+                                  />
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleUpdateEmail(airline.airlineId)}
+                                    className="h-8 bg-slate-700 hover:bg-slate-800"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => { setEditingEmailAirlineId(null); setEditingEmailValue(''); }}
+                                    className="h-8"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  {airline.email ? (
+                                    <span className="text-sm text-slate-700">{airline.email}</span>
+                                  ) : (
+                                    <span className="text-sm text-slate-400 italic">Nije postavljeno</span>
+                                  )}
+                                  <button
+                                    onClick={() => { setEditingEmailAirlineId(airline.airlineId); setEditingEmailValue(airline.email || ''); }}
+                                    className="p-1 text-slate-400 hover:text-slate-600"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell className="px-4 py-3 text-right">
+                              <Button
+                                size="sm"
+                                onClick={() => handleSendToAirline(airline.airlineId)}
+                                disabled={!airline.email || isSendingEmail === airline.airlineId}
+                                className={`${airline.email ? 'bg-slate-600 hover:bg-slate-700' : 'bg-slate-300 cursor-not-allowed'} text-white`}
+                              >
+                                {isSendingEmail === airline.airlineId ? (
+                                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                  </svg>
+                                ) : (
+                                  <>
+                                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                    </svg>
+                                    Pošalji
+                                  </>
+                                )}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Other Airlines Section (without specific rules) */}
+              {airlinesWithoutRules.length > 0 && generalRules.length > 0 && (
+                <Card className="bg-white shadow-sm rounded-xl border border-slate-200 overflow-hidden">
+                  <CardHeader className="bg-slate-700 border-b border-slate-600 p-4">
+                    <div className="flex items-center justify-between flex-wrap gap-3">
+                      <CardTitle className="text-white text-lg font-medium">Ostale Aviokompanije (Opća Cijena)</CardTitle>
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          </svg>
+                          <Input
+                            type="text"
+                            placeholder="Pretraži aviokompanije..."
+                            value={otherAirlinesFilter}
+                            onChange={(e) => setOtherAirlinesFilter(e.target.value)}
+                            className="h-8 pl-9 pr-3 w-64 text-sm bg-slate-600 text-white placeholder-slate-400 border-slate-500 focus:ring-slate-400"
+                          />
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={handleSendToSelectedOthers}
+                          disabled={isSendingOthers || activeOtherAirlines.length === 0}
+                          className="bg-slate-500 hover:bg-slate-400 text-white"
+                        >
+                          {isSendingOthers ? (
+                            <svg className="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                          )}
+                          Pošalji Aktivnim ({activeOtherAirlines.length})
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="max-h-96 overflow-y-auto">
+                      <Table>
+                        <TableHeader className="bg-slate-100 sticky top-0">
+                          <TableRow>
+                            <TableHead className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase">Aviokompanija</TableHead>
+                            <TableHead className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase">Email za Obavijesti</TableHead>
+                            <TableHead className="px-4 py-3 text-center text-xs font-medium text-slate-600 uppercase">Valuta</TableHead>
+                            <TableHead className="px-4 py-3 text-right text-xs font-medium text-slate-600 uppercase">Akcija</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredAirlinesWithoutRules.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={4} className="px-4 py-8 text-center text-slate-500">
+                                {otherAirlinesFilter ? 'Nema rezultata za pretragu.' : 'Nema aviokompanija.'}
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            filteredAirlinesWithoutRules.map((airline, index) => (
+                              <React.Fragment key={airline.airlineId}>
+                                {/* Separator between selected and unselected */}
+                                {activeCount > 0 && index === activeCount && (
+                                  <TableRow>
+                                    <TableCell colSpan={4} className="px-0 py-0">
+                                      <div className="border-t-2 border-slate-300 bg-slate-100 py-1.5 px-4 text-xs text-slate-500 font-medium">
+                                        Ostale aviokompanije
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                )}
+                                <TableRow className={`${
+                                  airline.active
+                                    ? 'bg-emerald-50 hover:bg-emerald-100 border-l-4 border-l-emerald-500'
+                                    : 'hover:bg-slate-50'
+                                }`}>
+                                <TableCell className="px-4 py-3 font-medium text-slate-800">{airline.airlineName}</TableCell>
+                                <TableCell className="px-4 py-3">
+                                  {editingOtherEmailAirlineId === airline.airlineId ? (
+                                    <div className="flex items-center gap-2">
+                                      <Input
+                                        type="email"
+                                        value={editingOtherEmailValue}
+                                        onChange={(e) => setEditingOtherEmailValue(e.target.value)}
+                                        placeholder="email@example.com"
+                                        className="h-8 text-sm"
+                                      />
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleUpdateOtherEmail(airline.airlineId)}
+                                        className="h-8 bg-slate-700 hover:bg-slate-800"
+                                      >
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => { setEditingOtherEmailAirlineId(null); setEditingOtherEmailValue(''); }}
+                                        className="h-8"
+                                      >
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-2">
+                                      {airline.email ? (
+                                        <span className="text-sm text-slate-700">{airline.email}</span>
+                                      ) : (
+                                        <span className="text-sm text-slate-400 italic">Nije postavljeno</span>
+                                      )}
+                                      <button
+                                        onClick={() => { setEditingOtherEmailAirlineId(airline.airlineId); setEditingOtherEmailValue(airline.email || ''); }}
+                                        className="p-1 text-slate-400 hover:text-slate-600"
+                                      >
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg>
+                                      </button>
+                                    </div>
+                                  )}
+                                </TableCell>
+                                <TableCell className="px-4 py-3 text-center">
+                                  <select
+                                    value={airline.currency || generalRules[0]?.currency || 'USD'}
+                                    onChange={(e) => handleChangeOtherAirlineCurrency(airline.airlineId, e.target.value)}
+                                    className={`h-8 px-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-slate-400 ${
+                                      airline.currency
+                                        ? 'bg-white border-slate-300'
+                                        : 'bg-slate-50 border-slate-200 text-slate-500'
+                                    }`}
+                                  >
+                                    {generalRules.map(rule => (
+                                      <option key={rule.currency} value={rule.currency}>
+                                        {rule.currency}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </TableCell>
+                                <TableCell className="px-4 py-3 text-right">
+                                  {airline.active ? (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleToggleOtherAirline(airline.airlineId, false)}
+                                      className="text-slate-600 border-slate-300 hover:bg-slate-100"
+                                    >
+                                      Ukloni
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleToggleOtherAirline(airline.airlineId, true)}
+                                      disabled={!airline.email || !airline.currency}
+                                      className={`${airline.email && airline.currency ? 'bg-slate-600 hover:bg-slate-700' : 'bg-slate-300 cursor-not-allowed'} text-white`}
+                                    >
+                                      Dodaj
+                                    </Button>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                              </React.Fragment>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* CC Info */}
+              <div className="text-sm text-slate-500 flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Svi emailovi se šalju u CC na: <strong className="text-slate-700">mensur.alibasic@hifapetrol.ba</strong></span>
+              </div>
+            </div>
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Edit Fuel Price Rule Dialog */}

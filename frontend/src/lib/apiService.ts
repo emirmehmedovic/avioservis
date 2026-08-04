@@ -1793,4 +1793,93 @@ export async function getMonthlyFlightRealization(
   }
 }
 
+// --- Fuel Price Notifications API --- //
 
+export interface AirlineWithPriceRule {
+  airlineId: number;
+  airlineName: string;
+  email: string | null;
+  price: number | null;
+  pricePerTonne: number | null;
+  currency: string | null;
+}
+
+export async function getAirlinesForPriceNotification(): Promise<AirlineWithPriceRule[]> {
+  const response = await fetchWithAuth<AirlineWithPriceRule[]>('/api/fuel-price-notifications/airlines');
+  return response;
+}
+
+export async function updateAirlinePriceNotificationEmail(airlineId: number, email: string | null): Promise<void> {
+  await fetchWithAuth(`/api/fuel-price-notifications/airlines/${airlineId}/email`, {
+    method: 'PUT',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function sendFuelPriceToAirline(airlineId: number): Promise<{ message: string }> {
+  const response = await fetchWithAuth<{ message: string }>(`/api/fuel-price-notifications/send/${airlineId}`, {
+    method: 'POST',
+  });
+  return response;
+}
+
+export async function sendFuelPriceToAllAirlines(): Promise<{ message: string; sent: number; failed: number; results: any[] }> {
+  const response = await fetchWithAuth<{ message: string; sent: number; failed: number; results: any[] }>('/api/fuel-price-notifications/send-all', {
+    method: 'POST',
+  });
+  return response;
+}
+
+export async function sendFuelPriceSummary(): Promise<{ message: string }> {
+  const response = await fetchWithAuth<{ message: string }>('/api/fuel-price-notifications/send-summary', {
+    method: 'POST',
+  });
+  return response;
+}
+
+// Airlines without specific rules (use general "Ostalo" rules)
+export interface AirlineWithoutRule {
+  airlineId: number;
+  airlineName: string;
+  email: string | null;
+  currency: string | null;
+  active: boolean;
+}
+
+export interface GeneralRule {
+  currency: string;
+  price: number;
+  pricePerTonne: number;
+}
+
+export async function getAirlinesWithoutRules(): Promise<AirlineWithoutRule[]> {
+  const response = await fetchWithAuth<AirlineWithoutRule[]>('/api/fuel-price-notifications/airlines-without-rules');
+  return response;
+}
+
+export async function getGeneralRules(): Promise<GeneralRule[]> {
+  const response = await fetchWithAuth<GeneralRule[]>('/api/fuel-price-notifications/general-rules');
+  return response;
+}
+
+export async function sendFuelPriceWithGeneralRule(airlineId: number, currency: string): Promise<{ message: string }> {
+  const response = await fetchWithAuth<{ message: string }>(`/api/fuel-price-notifications/send-general/${airlineId}`, {
+    method: 'POST',
+    body: JSON.stringify({ currency }),
+  });
+  return response;
+}
+
+export async function updateAirlinePriceNotificationCurrency(airlineId: number, currency: string | null): Promise<void> {
+  await fetchWithAuth(`/api/fuel-price-notifications/airlines/${airlineId}/currency`, {
+    method: 'PUT',
+    body: JSON.stringify({ currency }),
+  });
+}
+
+export async function updateAirlinePriceNotificationActive(airlineId: number, active: boolean): Promise<void> {
+  await fetchWithAuth(`/api/fuel-price-notifications/airlines/${airlineId}/active`, {
+    method: 'PUT',
+    body: JSON.stringify({ active }),
+  });
+}

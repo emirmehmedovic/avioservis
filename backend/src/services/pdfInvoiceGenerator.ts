@@ -327,8 +327,20 @@ export async function generatePDFInvoiceBuffer(operation: FuelingOperationForPDF
       }
     });
 
+    // Dodaj cijenu po toni ispod tabele
+    finalY += 5;
+    const pricePerTonne = Number(operation.price_per_kg || 0) * 1000;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    doc.text(
+      `Price per tonne / Cijena po toni: ${pricePerTonne.toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${operation.currency || 'BAM'}`,
+      14,
+      finalY
+    );
+    finalY += 8;
+
     // Summary section - IDENTICAL to frontend
-    finalY += 10;
     const summaryBoxY = finalY;
     doc.setFillColor(248, 248, 248);
     doc.rect(pageWidth / 2, summaryBoxY, pageWidth / 2 - 14, 50, 'F');
@@ -846,8 +858,20 @@ export async function generateDomesticPDFInvoiceBuffer(operation: FuelingOperati
       margin: { left: 14, right: 14 }
     });
     
-    let finalY = (doc as any).lastAutoTable?.finalY + 10 || 170;
-    
+    let finalY = (doc as any).lastAutoTable?.finalY + 5 || 170;
+
+    // Dodaj cijenu po toni ispod tabele
+    const pricePerTonne = Number(operation.price_per_kg || 0) * 1000;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    doc.text(
+      `Cijena po toni / Price per tonne: ${pricePerTonne.toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${operation.currency || 'BAM'}`,
+      14,
+      finalY
+    );
+    finalY += 8;
+
     // MRN breakdown if available
     let processedMrnData: { mrn: string, quantityKg: number }[] = [];
     try {

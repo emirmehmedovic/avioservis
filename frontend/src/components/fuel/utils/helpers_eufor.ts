@@ -146,7 +146,7 @@ export const generateEUFORPDFInvoice = async (operation: FuelingOperationWithExc
     // Left column - invoice info
     doc.setFont(FONT_NAME, 'bold');
     doc.text(`Invoice No.: ${invoiceNumber}`, 14, 77 + topPadding);
-    doc.text(`Issue Date: ${formatDate(new Date().toISOString())}`, 14, 83 + topPadding);
+    doc.text(`Issue Date: ${formatDate(operation.dateTime)}`, 14, 83 + topPadding);
     doc.text(`Service Date: ${formatDate(operation.dateTime)}`, 14, 89 + topPadding);
     doc.setFont(FONT_NAME, 'normal');
 

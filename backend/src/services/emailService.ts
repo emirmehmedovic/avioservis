@@ -36,6 +36,7 @@ export interface EmailOptions {
   html?: string;
   text?: string;
   attachments?: EmailAttachment[];
+  cc?: string; // CC recipients (comma-separated)
   bcc?: string; // BCC recipients (comma-separated)
 }
 
@@ -72,6 +73,7 @@ export class EmailService {
         subject: options.subject,
         html: options.html,
         text: options.text,
+        cc: options.cc, // Add CC support
         bcc: options.bcc, // Add BCC support
         attachments: options.attachments?.map(att => ({
           filename: att.filename,
@@ -354,7 +356,7 @@ export function buildEmailBody(operation: any): string {
               <div style="color: #475569; font-size: 14px;">
                 <p style="margin: 5px 0; display: flex; align-items: center;">
                   <span style="margin-right: 8px;">📧</span>
-                  <strong>Email:</strong>&nbsp;<a href="mailto:airport.tuzla@hifapetrol.ba" style="color: #3b82f6; text-decoration: none;">airport.tuzla@hifapetrol.ba</a>
+                  <strong>Email:</strong>&nbsp;<a href="mailto:mensur.alibasic@hifapetrol.ba" style="color: #3b82f6; text-decoration: none;">mensur.alibasic@hifapetrol.ba</a>
                 </p>
                 <p style="margin: 5px 0; display: flex; align-items: center;">
                   <span style="margin-right: 8px;">📞</span>
@@ -382,7 +384,8 @@ export function buildEmailBody(operation: any): string {
           <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
             <p style="margin: 0 0 5px 0; color: #64748b; font-size: 12px; font-weight: 600;">HIFA-PETROL d.o.o. Sarajevo</p>
             <p style="margin: 0 0 5px 0; color: #64748b; font-size: 12px;">Tax ID: 4200468580006 | VAT: BA200468580006</p>
-            <p style="margin: 0; color: #64748b; font-size: 12px;">This is an automated message. Please do not reply to this email address.</p>
+            <p style="margin: 0 0 8px 0; color: #64748b; font-size: 12px;">This is an automated message from an unmonitored mailbox. Please do not reply to this email.</p>
+            <p style="margin: 0; color: #64748b; font-size: 12px;">For any inquiries, please contact us at <a href="mailto:mensur.alibasic@hifapetrol.ba" style="color: #3b82f6; text-decoration: none;">mensur.alibasic@hifapetrol.ba</a></p>
           </div>
           
         </div>

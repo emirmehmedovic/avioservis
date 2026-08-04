@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import { getAirlines, clearAirlinesCache, fetchWithAuth } from '@/lib/apiService';
 import { useAuth } from '@/contexts/AuthContext';
+import * as XLSX from 'xlsx';
 
 interface Airline {
   id: number;
@@ -23,6 +24,7 @@ export default function AirlineManagement() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentAirline, setCurrentAirline] = useState<Airline | null>(null);
+  const [searchFilter, setSearchFilter] = useState('');
 
   // Check if user has permission to edit
   const canEdit = authUser?.role === 'ADMIN' || authUser?.role === 'KONTROLA' || authUser?.role === 'FUEL_OPERATOR';
@@ -187,6 +189,48 @@ export default function AirlineManagement() {
     setShowEditModal(true);
   };
 
+  // Filter airlines based on search
+  const filteredAirlines = airlines.filter(airline => {
+    const search = searchFilter.toLowerCase();
+    return (
+      airline.name.toLowerCase().includes(search) ||
+      (airline.contact_details?.toLowerCase() || '').includes(search) ||
+      (airline.taxId?.toLowerCase() || '').includes(search) ||
+      (airline.address?.toLowerCase() || '').includes(search) ||
+      (airline.operatingDestinations?.join(', ').toLowerCase() || '').includes(search)
+    );
+  });
+
+  // Export to Excel
+  const handleExportExcel = () => {
+    const exportData = filteredAirlines.map(airline => ({
+      'Naziv': airline.name,
+      'Kontakt': airline.contact_details || '-',
+      'ID/PDV': airline.taxId || '-',
+      'Adresa': airline.address || '-',
+      'Tip': airline.isForeign ? 'Strana' : 'Domaća',
+      'Destinacije': airline.operatingDestinations?.join(', ') || '-'
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Aviokompanije');
+
+    // Auto-width columns
+    const maxWidths = exportData.reduce((acc: { [key: string]: number }, row) => {
+      Object.keys(row).forEach(key => {
+        const value = String(row[key as keyof typeof row]);
+        acc[key] = Math.max(acc[key] || key.length, value.length);
+      });
+      return acc;
+    }, {});
+    worksheet['!cols'] = Object.keys(maxWidths).map(key => ({ wch: Math.min(maxWidths[key] + 2, 50) }));
+
+    const date = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(workbook, `aviokompanije_${date}.xlsx`);
+    toast.success('Excel fajl uspješno eksportovan');
+  };
+
   return (
     <div>
       <div className="relative overflow-hidden rounded-xl border border-white/10 backdrop-blur-md bg-gradient-to-br from-[#4d4c4c] to-[#1a1a1a] shadow-lg p-6 mb-6">
@@ -208,29 +252,70 @@ export default function AirlineManagement() {
               Upravljanje avio kompanijama i njihovim podacima
             </p>
           </div>
-          {canEdit && (
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => {
-                resetForm();
-                setShowAddModal(true);
-              }}
-              className="backdrop-blur-md bg-[#F08080]/30 border border-white/20 text-white shadow-lg hover:bg-[#F08080]/40 transition-all font-medium rounded-xl flex items-center gap-2 px-4 py-2"
+              onClick={handleExportExcel}
+              disabled={filteredAirlines.length === 0}
+              className="backdrop-blur-md bg-green-600/80 border border-white/20 text-white shadow-lg hover:bg-green-600 transition-all font-medium rounded-xl flex items-center gap-2 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <PlusIcon className="h-5 w-5" />
-              <span>Dodaj Avio Kompaniju</span>
+              <ArrowDownTrayIcon className="h-5 w-5" />
+              <span>Excel</span>
+            </button>
+            {canEdit && (
+              <button
+                onClick={() => {
+                  resetForm();
+                  setShowAddModal(true);
+                }}
+                className="backdrop-blur-md bg-[#F08080]/30 border border-white/20 text-white shadow-lg hover:bg-[#F08080]/40 transition-all font-medium rounded-xl flex items-center gap-2 px-4 py-2"
+              >
+                <PlusIcon className="h-5 w-5" />
+                <span>Dodaj Avio Kompaniju</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Search Filter */}
+      <div className="mb-4">
+        <div className="relative max-w-md">
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Pretraži aviokompanije..."
+            value={searchFilter}
+            onChange={(e) => setSearchFilter(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+          {searchFilter && (
+            <button
+              onClick={() => setSearchFilter('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
           )}
         </div>
+        {searchFilter && (
+          <p className="mt-2 text-sm text-gray-500">
+            Pronađeno: {filteredAirlines.length} od {airlines.length} aviokompanija
+          </p>
+        )}
       </div>
 
       {loading ? (
         <div className="flex justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
         </div>
-      ) : airlines.length === 0 ? (
+      ) : filteredAirlines.length === 0 ? (
         <div className="bg-white shadow rounded-lg p-6 text-center">
-          <p className="text-gray-500">Nema unesenih avio kompanija.</p>
-          {canEdit && (
+          <p className="text-gray-500">
+            {searchFilter ? 'Nema rezultata za pretragu.' : 'Nema unesenih avio kompanija.'}
+          </p>
+          {!searchFilter && canEdit && (
             <button
               onClick={() => {
                 resetForm();
@@ -259,7 +344,7 @@ export default function AirlineManagement() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 bg-white">
-              {airlines.map((airline) => (
+              {filteredAirlines.map((airline) => (
                 <tr key={airline.id}>
                   <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">{airline.name}</td>
                   <td className="whitespace-pre-wrap px-3 py-4 text-sm text-gray-500">{airline.contact_details || '-'}</td>

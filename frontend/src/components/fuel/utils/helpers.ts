@@ -213,7 +213,7 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0);
     doc.text(`Invoice No.: ${invoiceNumber}`, 14, 77 + topPadding); // Adjusted Y for padding
-    doc.text(`Issue Date: ${formatDate(new Date().toISOString())}`, 14, 83 + topPadding); // Adjusted Y for padding
+    doc.text(`Issue Date: ${formatDate(operation.dateTime)}`, 14, 83 + topPadding); // Adjusted Y for padding
     doc.text(`Service Date: ${formatDate(operation.dateTime)}`, 14, 89 + topPadding); // Adjusted Y for padding
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
@@ -340,8 +340,20 @@ export const generatePDFInvoice = async (operation: FuelingOperationWithExchange
       }
     });
     
+    // Dodaj cijenu po toni ispod tabele
+    finalY += 5;
+    const pricePerTonne = (operation.price_per_kg || 0) * 1000;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    doc.text(
+      `Price per tonne / Cijena po toni: ${pricePerTonne.toLocaleString('hr-HR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${operation.currency || 'BAM'}`,
+      14,
+      finalY
+    );
+    finalY += 8;
+
     // Sekcija za ukupan iznos - pozicionirana nakon tabele
-    finalY += 10; // Dodajemo malo prostora nakon tabele
     const summaryBoxY = finalY;
     doc.setFillColor(248, 248, 248); // Promijeni u jako svijetlu sivu
     doc.rect(pageWidth / 2, summaryBoxY, pageWidth / 2 - 14, 50, 'F'); // Povećaj visinu sa 35 na 50
